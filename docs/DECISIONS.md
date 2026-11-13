@@ -49,3 +49,6 @@ Why: 2D is clearer for planning and works best on phones. 3D is the "show" mode 
 
 **2026-11-13: Desktop is the primary view, phone is secondary** (Moss)
 Why: judges and the demo video use a desktop. Design and polish desktop first. Phones only need to work (no broken layout), not to shine. T-16 was downgraded accordingly.
+
+**2026-11-13: The recommended route is picked by a fixed rule, and the AI briefing is number-checked** (Teammate's Claude, T-12; Moss can overrule)
+Why: "AI explains, never decides." The rule is best verdict → SCIENCE if it visits a site → SAFE → FAST. Claude writes the 3-sentence explanation; if it quotes any number that isn't in the computed data, the server swaps in the template briefing. Judges can see the AI can't make things up. Details in ARCHITECTURE.md → AI explanation contract.
