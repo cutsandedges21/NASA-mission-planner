@@ -31,3 +31,9 @@ Why: Sol Atlas (friend's repo, `saracen66/the-sol-explorers`) is a live 2026 ent
 
 **2026-11-13: Routes are scored for astronauts on foot (Marswalk / EVA), not just rovers** (Moss's Claude, from the official challenge wording; Moss can overrule)
 Why: NASA's ask is to help "a human explorer plan and carry out a successful Marswalk". SAFE / FAST / SCIENCE routes get an O₂ / time / slope / daylight budget from `eva.js`. Rover driving stays an optional mode. See `docs/CHALLENGE.md`.
+
+**2026-11-13: Deadline Sun 15 Nov 12:00 EST. Time-boxed milestones, Tier 3 cut, feature freeze Sat 23:00, submit by Sun 11:00** (Moss)
+Why: about 43 hours for 2 people. The schedule is at the top of `docs/TASKS.md`.
+
+**2026-11-13: Stack = Next.js + TypeScript + Tailwind + MapLibre GL + OpenPlanetaryMap Mars basemap, planner in a Web Worker, Claude API for explanations, Vercel** (Moss's Claude; Moss can overrule)
+Why: fastest for Moss, a clean 2D mission-control look that's deliberately unlike Sol Atlas's 3D game view, no tile server needed. Full detail and the data contract in `docs/ARCHITECTURE.md`.

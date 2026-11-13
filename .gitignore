@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+out/
+.env*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+target/
+.idea/
+.vercel/
+.DS_Store
+data-cache/

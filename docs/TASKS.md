@@ -6,6 +6,20 @@ People: **Moss** (product, frontend, UI/UX) and **Teammate** (data, routing, bac
 
 Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DONE (commit)`
 
+## ⏰ DEADLINE: Sunday 15 Nov, 12:00 (EST). We started Fri 13 Nov, 16:45
+
+**Work smart and fast.** If a task runs past its time box, stop, ship the simplest working version, and write what's missing as a new task. A finished simple demo beats an unfinished clever one. **Tier 3 is cut.**
+
+| Milestone | When (EST) | What must work | Tasks |
+|---|---|---|---|
+| **M0 Skeleton** | Fri 21:00 | Web app live on Vercel with the Mars basemap + demo region. Planner tests pass. Region chosen | T-04, T-05, T-09 |
+| **M1 Tier 1 end to end** | Sat 01:00 | Click base + destination → 3 routes on the map + dashboard numbers (demo data is OK). Real region data baked | T-10, T-11 |
+| 💤 Sleep | Sat 01:00–08:00 | Seriously. Tired people break working demos | |
+| **M2 Smart** | Sat 13:00 | Real region swapped in. AI explanation. Science POIs. Daylight + Earth delay. Live space weather | T-07, T-12, T-13 |
+| **M3 Wow** | Sat 19:00 | "Simulate Mission" animation, phone layout, visual polish | T-15, T-16 |
+| **M4 FEATURE FREEZE** | **Sat 23:00** | Bugs only after this. Challenge checklist filled. README + credits | T-08, T-17 |
+| **M5 Submit** | **Sun 11:00** | Demo video + NASA project page submitted. 11:00–12:00 is buffer only | T-14 |
+
 ## How to work this board (every Claude, every session)
 
 1. `git pull --rebase --autostash`, then read this file top to bottom.
@@ -14,83 +28,158 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 4. **Claim it:** change its status to `IN PROGRESS (Moss|Teammate, HH:MM)`, then commit `claim T-xx` and push **right away**, so the other Claude sees it.
 5. Do the steps in order. **Commit and push after every step** (about every 2 minutes of work): `git pull --rebase --autostash && git push`.
 6. When the done-check passes, set `DONE (commit hash)`, add one line under **Result**, and push.
-7. Found new work? Add a new task at the bottom with an owner, steps and a done-check. Don't silently do extra work.
+7. Found new work? Add a new task at the bottom with an owner, steps, a time box and a done-check. Don't silently do extra work.
+8. **Stay inside your folders** to avoid merge conflicts: Teammate owns `planner/`, `data/`, `web/app/api/`. Moss owns the rest of `web/`. Both can edit `docs/`.
 
 ---
 
+## Now (Friday evening)
+
 ## T-01 · Agree on the two-person split
-- **Owner:** Moss + Teammate (humans, not Claude)
+- **Owner:** Moss + Teammate (humans) · **Time box:** 5 min, do it first
+- **Status:** TODO
+- **Steps:** read `docs/PLAN.md` → Team, agree or change it, add a "Team split" entry to `docs/DECISIONS.md`.
+- **Done when:** DECISIONS has a "Team split" entry.
+
+## T-04 · Pick the Mars region (fast version)
+- **Owner:** Teammate · **Time box:** 60 min, **decide by Fri 18:00**
+- **Status:** TODO
+- **Rules:** not Jezero (that's Sol Atlas's region). The area must hold a walkable EVA zone (~10–30 km) with science targets. Favour a NASA 2015 human **Exploration Zone** (it answers challenge objective O2).
+- **Steps:**
+  1. Read Sol Atlas's `build_data.py`: the `S3 = ...` bucket and the dataset keys in `stage_global`, `stage_region`, `stage_crater`.
+  2. **Safe default that works anywhere:** the global **HRSC + MOLA blended DEM (200 m/px)** used in `stage_region`, plus Viking colour and THEMIS night IR. 200 m cells are plenty for 10–30 km EVA routes. If nothing better turns up in 45 min, use this.
+  3. Spend at most 30 min checking whether a sharper DEM (CTX ~20 m) exists in the same bucket for: **Gale Crater** (Curiosity, lots of science), **Mawrth Vallis**, or **Arcadia Planitia** (shallow water ice, a human-landing favourite).
+  4. Write `docs/DATASETS.md`: chosen region, lon/lat bounds, each dataset (name, mission, resolution, URL), and 4–6 science POIs with lon/lat + one line on why each matters + source.
+  5. Log the region in `docs/DECISIONS.md` and tell Moss.
+- **Done when:** `docs/DATASETS.md` exists and DECISIONS has a "Region" entry.
+
+## T-05 · Planner module with SAFE / FAST / SCIENCE
+- **Owner:** Teammate · **Time box:** Fri 21:00 (M0)
+- **Status:** TODO (start right after T-04, or in parallel)
+- **Steps:**
+  1. Read `docs/ARCHITECTURE.md` → "Planner API".
+  2. Create `planner/package.json` (`"type": "module"`, `"test": "node --test"`). Copy Sol Atlas's `eva.js` → `planner/src/eva.js` and `pathfinding.js` → `planner/src/route.js`. Add a header comment to each: "Adapted from Sol Atlas by The SOL Explorers. Changes: …".
+  3. Add the `strategy` + `pois` args to `find()` (FAST = time, SAFE = slope-penalized with a 15° limit, SCIENCE = cheaper near POIs or start→POI→end legs).
+  4. Create `planner/src/plan.js` exporting `planMission(...)` per the Planner API in ARCHITECTURE.md. It must return all three routes, each with `budget()` + `verdict()`.
+  5. Write `planner/test/plan.test.js` on a synthetic grid (plane + hill + one POI): SAFE max slope ≤ FAST's; FAST time ≤ SAFE's and SCIENCE's; SCIENCE passes closer to the POI than FAST.
+  6. Make sure it runs in a browser Web Worker: no Node-only imports in `planner/src/`.
+- **Done when:** `cd planner && npm test` passes. Paste the output under Result.
+
+## T-09 · Web app skeleton, live on Vercel
+- **Owner:** Moss's Claude · **Time box:** Fri 20:00
 - **Status:** TODO
 - **Steps:**
-  1. Read `docs/PLAN.md` → Team (the proposed split).
-  2. Agree on it or change it.
-  3. Add an entry to `docs/DECISIONS.md` with the final split. Update the Owner fields on this board if anything moved.
-- **Done when:** `docs/DECISIONS.md` has a "Team split" entry.
+  1. `npx create-next-app@latest web --ts --tailwind --app --eslint --src-dir=false --import-alias "@/*" --use-npm`, then `cd web && npm i maplibre-gl`.
+  2. Full-screen MapLibre map with the OpenPlanetaryMap Mars basemap (URL in `docs/ARCHITECTURE.md`), dark mission-control UI shell: left panel (mission setup), right panel (dashboard), top bar (title + Mars clock placeholder).
+  3. Write `planner/scripts/make-demo-region.mjs`, which writes a synthetic region in the data-contract format to `web/public/data/demo/` (512×512, 60 m cells, hills + a crater + 4 fake POIs labelled "DEMO"). Load it and draw its `visible.jpg` as a MapLibre image overlay.
+  4. Deploy on Vercel (root directory `web/`). Put the live URL at the top of `README.md`.
+- **Done when:** the Vercel URL shows the Mars basemap with the demo region overlay, on desktop and phone.
 
-## T-02 · Add a .gitignore and untrack build junk
-- **Owner:** Either (quick, good first task)
+---
+
+## Tonight (M1, Sat 01:00)
+
+## T-10 · Bake the real region data
+- **Owner:** Teammate · **Time box:** Sat 01:00 · **Needs:** T-04
 - **Status:** TODO
 - **Steps:**
-  1. Create `.gitignore` at the repo root containing: `node_modules/`, `.next/`, `dist/`, `out/`, `.env*`, `!.env.example`, `__pycache__/`, `*.pyc`, `.venv/`, `target/`, `.idea/`, `.vercel/`, `.DS_Store`, `data-cache/`.
-  2. `git rm -r --cached .idea`
-  3. Commit `Add .gitignore, untrack build output` and push.
-- **Done when:** `git ls-files | grep -E "target/|\.idea/"` prints nothing.
+  1. Copy Sol Atlas's `build_data.py` → `data/build_region.py` (credit header). Keep only the stages you need. Set the bounds from `docs/DATASETS.md`.
+  2. Add an export step that writes **exactly** the data contract in `docs/ARCHITECTURE.md`: `meta.json`, `elev.i16`, `slope.png`, `visible.jpg`, `thermal.jpg`, `pois.json` → `web/public/data/<region-id>/`.
+  3. `pip install rasterio numpy pillow scipy`, run it, and check that the files load (dimensions match `meta.json`, elevations plausible).
+  4. Keep the total under 15 MB (resize images to ≤ 2048 px). Commit the outputs (not the download cache: add `data-cache/` to `.gitignore`).
+- **Done when:** `web/public/data/<region-id>/` has all 6 files and `meta.json` lists every source with its URL.
 
-## T-03 · Check the vendored Sol Atlas routing runs
-- **Owner:** Moss's Claude
-- **Status:** DONE (see commit "T-03")
-- **Result:** route detours around the 400 m hill (highest point 8 m), 4.30 km, found in ~30 ms on a 200×200 grid; EVA 80 min, O₂ margin 83 %, GO. Mars clock + sun maths work. Vendored code is usable as-is.
-- **Steps:** write `smoke-test.mjs` (synthetic hill, route around it, O₂ budget) and run it with `node`.
-- **Done when:** `node smoke-test.mjs` prints `OK`.
-
-## T-04 · Pick the Mars region + NASA datasets
-- **Owner:** Teammate
-- **Status:** TODO
-- **Why it matters:** Sol Atlas (a competitor in the same challenge) uses **Jezero**. We should pick a different region so we don't look like a copy, and it needs a good elevation model (DEM) we can download this weekend.
-- **Steps:**
-  1. Read Sol Atlas's `build_data.py`, especially the `S3 = ...` bucket and the dataset keys in each `stage_*` function. That shows where real NASA/USGS rasters live (public USGS Astrogeology bucket `asc-pds-services`, no login).
-  2. Find 3 candidate regions that are **not Jezero** and that have: a regional DEM (CTX ~20 m/px or HRSC ~50–200 m/px), colour/visible imagery, and something scientifically interesting for the SCIENCE route. Start with: **Gale Crater** (Curiosity), **Mawrth Vallis** or **Arcadia Planitia** (proposed human landing / water ice). Check NASA's 2015 human Exploration Zones too.
-  3. For each candidate, write down: dataset name, mission, resolution, file URL, file size, and lat/lon bounds.
-  4. Write it all to a new file `docs/DATASETS.md` with a **recommended region** at the top and one sentence on why.
-  5. Push. Then ask Moss to approve and log it in `docs/DECISIONS.md`.
-- **Done when:** `docs/DATASETS.md` exists with 3 candidates + a recommendation, and the choice is logged in DECISIONS.
-
-## T-05 · Port routing into our own planner module with SAFE / FAST / SCIENCE
-- **Owner:** Teammate
-- **Status:** TODO (can start now: it's plain JavaScript and doesn't depend on the web stack)
-- **Steps:**
-  1. Read Sol Atlas's `pathfinding.js` and `eva.js`.
-  2. Create `planner/` at the repo root: `planner/package.json` (`"type": "module"`, test script `node --test`), `planner/src/eva.js` and `planner/src/route.js` **copied from** Sol Atlas, with a header comment crediting Sol Atlas and listing your changes.
-  3. In `route.js`, add a `strategy` argument to `find()`:
-     - **FAST:** step cost = travel **time** (distance ÷ `walkSpeed`), slope limit as given.
-     - **SAFE:** step cost = energy × a slope penalty that grows smoothly from 10°. Hard limit 15° instead of 20°. Prefer cells away from steep ground.
-     - **SCIENCE:** step cost × 0.6 inside a radius (default 500 m) of each science point passed in. Optionally force a pass through the top POI as a waypoint.
-  4. Add `planner/src/plan.js` exporting `planMission({ elev, w, h, cellX, cellY, fineSlope, start, end, pois })` → `[{ strategy, path, budget, verdict }]` for all three strategies (use `budget()` + `verdict()` from eva.js).
-  5. Write `planner/test/plan.test.js` on synthetic grids (flat plane + a hill + a POI): SAFE max slope ≤ FAST max slope; FAST total time ≤ SAFE and SCIENCE; SCIENCE passes closer to the POI than FAST.
-  6. Commit and push after each step.
-- **Done when:** `cd planner && npm test` passes. Paste the test output under Result.
-
-## T-06 · Decide the web stack + architecture
-- **Owner:** Moss's Claude (Moss approves)
+## T-11 · Plan a mission in the UI (Tier 1 core)
+- **Owner:** Moss's Claude · **Time box:** Sat 01:00 · **Needs:** T-09, and T-05 for real routes (stub `planMission` with straight lines until it lands)
 - **Status:** TODO
 - **Steps:**
-  1. Compare map renderers for a single-region Mars map with custom raster layers + an animated rover: MapLibre GL, deck.gl, CesiumJS, or plain Three.js. Must look polished and different from Sol Atlas (they use Three.js with a game HUD).
-  2. Decide where routing runs (Web Worker in the browser vs a Next.js API route). The planner is pure JS, so a Worker is the likely pick.
-  3. Decide the AI explanation path: which model, called server-side from a Next.js route, given **only** computed numbers.
-  4. Write it to `docs/ARCHITECTURE.md`, log it in DECISIONS, and add the setup tasks (scaffold Next.js, map page, worker hookup) to this board with owners.
-- **Done when:** `docs/ARCHITECTURE.md` exists and DECISIONS has a "Stack" entry.
+  1. `web/lib/region.ts`: load `meta.json` + `elev.i16` → `Float32Array`, plus lon/lat ↔ grid-cell helpers.
+  2. `web/workers/plan.worker.ts`: imports `planner/src/plan.js` and runs `planMission` off the main thread.
+  3. Click 1 = base, click 2 = destination (plus inputs in the left panel). Show POIs as markers.
+  4. Draw the 3 routes as MapLibre lines: SAFE green, FAST amber, SCIENCE violet. Clicking a route card highlights its line.
+  5. Right-panel dashboard, one card per route: distance, EVA time, O₂ left at return (%), max slope, GO / CAUTION / NO-GO with the verdict issues.
+- **Done when:** on the live URL, two clicks produce 3 coloured routes + 3 dashboard cards in under 2 s.
 
-## T-07 · Brainstorm agenda
-- **Owner:** Moss's Claude, with Moss
-- **Status:** TODO (after T-06)
-- **Steps:** work through `docs/OPEN-QUESTIONS.md` → Brainstorm agenda with Moss. Log every decision, turn every agreed feature into a task on this board.
-- **Done when:** each agenda item is answered in DECISIONS or turned into a task.
+---
+
+## Saturday
+
+## T-07 · Pick the one "wow" upgrade (30 min max)
+- **Owner:** Moss's Claude, with Moss · **When:** Sat 08:00
+- **Status:** TODO
+- **Steps:** skim `docs/OPEN-QUESTIONS.md` → Brainstorm agenda and `docs/CHALLENGE.md` → "Known gaps". Pick at most **one** extra feature that fits in 3 hours (candidates: two-person EVA, a "plan any region" generator, a CRISM minerals layer, boulder/rock hazard). Log it in DECISIONS and add it as a task.
+- **Done when:** DECISIONS has a "Wow feature" entry, or "none".
+
+## T-12 · AI explanation + live space weather APIs
+- **Owner:** Teammate · **Time box:** Sat 13:00
+- **Status:** TODO
+- **Steps:**
+  1. `web/app/api/explain/route.ts` per "AI explanation contract" in ARCHITECTURE.md. Claude API, key from `ANTHROPIC_API_KEY` (add it to Vercel env vars). The system prompt forbids numbers that weren't given. 10 s timeout.
+  2. Export `fallbackExplanation(routes)` from `web/lib/explain-fallback.ts` (a template sentence from the same numbers) for when the API fails.
+  3. `web/app/api/space-weather/route.ts`: port Sol Atlas's `spaceweather.js` + their DONKI function to a route handler with `NASA_API_KEY`, 30-min cache.
+  4. Test both with `curl` against the Vercel preview and paste the output under Result.
+- **Done when:** both endpoints answer on the live URL, and explain returns a fallback (not an error) when the key is missing.
+
+## T-13 · Mission context: daylight, Earth delay, AI panel
+- **Owner:** Moss's Claude · **Time box:** Sat 13:00 · **Needs:** T-11, T-12
+- **Status:** TODO
+- **Steps:**
+  1. Copy Sol Atlas's `marstime.js` → `web/lib/marstime.js` (credit header). Top bar: sol, local solar time at the region, season, Earth–Mars signal delay.
+  2. Add a start-time picker, then compute sunrise/sunset at the region. Add "ends X h before sunset" to each route card, and NO-GO if the walk ends after dark (pass `sun` into `verdict()`).
+  3. "Mission briefing" panel: calls `/api/explain` with the computed numbers, typing-style reveal, recommended route highlighted.
+  4. Space-weather badge from `/api/space-weather`.
+- **Done when:** picking routes shows a briefing that quotes only the dashboard numbers.
+
+## T-15 · "Simulate Mission" animation
+- **Owner:** Moss's Claude · **Time box:** Sat 19:00
+- **Status:** TODO
+- **Steps:** an astronaut marker moves along the chosen route (time-compressed, ~20 s for the whole EVA), with a live HUD of elapsed time, O₂ remaining gauge (from `budget().timeline`) and distance. Pause at POIs with their "why it matters" card. The camera follows smoothly.
+- **Done when:** one button plays the whole EVA end to end without stutter on a phone.
+
+## T-16 · Phone layout + polish pass
+- **Owner:** Moss's Claude · **Time box:** Sat 19:00
+- **Status:** TODO
+- **Steps:** panels become bottom sheets on phones. Loading states, empty states, a "Data & credits" panel (every NASA source + the Sol Atlas credit). Test at 390×844.
+- **Done when:** the whole demo flow works one-handed on a phone.
 
 ## T-08 · Fill in the challenge checklist
-- **Owner:** Moss's Claude, with Moss
-- **Status:** TODO (after T-04 and T-06)
+- **Owner:** Moss's Claude, with Moss · **When:** Sat 19:00–21:00
+- **Status:** TODO
+- **Steps:** in `docs/CHALLENGE.md`, write one line per row O1–O8 / C1–C6 naming the feature and the NASA dataset behind it. Empty rows become quick tasks or an explicit "skip" with a reason.
+- **Done when:** no empty "How we answer it" cells remain.
+
+## T-17 · README for judges
+- **Owner:** Teammate · **When:** Sat 19:00–23:00
+- **Status:** TODO
+- **Steps:** rewrite the root `README.md`: live URL, one-paragraph pitch, 3 screenshots, how it works (data → planner → AI), NASA data sources table, credits (Sol Atlas, OpenPlanetaryMap), AI-use disclosure, team.
+- **Done when:** a stranger can understand the project in 60 seconds from the README.
+
+---
+
+## Sunday
+
+## T-14 · Submit
+- **Owner:** Both · **When:** Sun 08:00–11:00 · **Hard stop:** submitted by 11:00
+- **Status:** TODO
 - **Steps:**
-  1. Open `docs/CHALLENGE.md`.
-  2. For every row O1–O8 and C1–C6, write one line in "How we answer it", naming the feature and the NASA dataset behind it.
-  3. Any row with no answer becomes a new task on this board (owner, steps, done-check), or gets an explicit "skip" with a reason.
-- **Done when:** no empty "How we answer it" cells remain in `docs/CHALLENGE.md`.
+  1. Re-read the official Space Apps submission requirements (project page fields, video length, links) and list them here.
+  2. Record the demo: the planned flow (choose base → 3 routes → briefing → Simulate Mission), from the live URL.
+  3. Fill in the NASA project page: title, summary, demo link, repo link, NASA data used, AI disclosure.
+  4. Submit. Paste the confirmation link under Result.
+- **Done when:** the project page is submitted.
+
+---
+
+## Done
+
+## T-02 · .gitignore + untrack build junk
+- **Status:** DONE (Moss's Claude, Fri 16:50)
+- **Result:** `.gitignore` added at the repo root. `.idea` untracked.
+
+## T-03 · Vendored Sol Atlas routing runs
+- **Status:** DONE (commit 13a57b4)
+- **Result:** route detours around a 400 m hill (highest point 8 m), 4.30 km, ~30 ms on a 200×200 grid. EVA 80 min, O₂ margin 83 %, GO. Mars clock + sun maths work.
+
+## T-06 · Stack + architecture
+- **Status:** DONE (commit 5ab98c8)
+- **Result:** `docs/ARCHITECTURE.md`: Next.js + MapLibre + OpenPlanetaryMap basemap + planner in a Web Worker + Claude API explanations + Vercel. Includes the data contract both sides build against.

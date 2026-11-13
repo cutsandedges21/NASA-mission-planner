@@ -1,5 +1,7 @@
 # NASA Space Apps 2026: Mars Mission Planner
 
+**Deadline: Sunday 15 Nov, 12:00 EST.** Schedule at the top of docs/TASKS.md.
+
 Two-person team. Both of us work with Claude, so **this repo is our shared memory.** If it isn't written in `docs/`, the other person's Claude doesn't know it.
 
 ## Start here, every session
@@ -19,7 +21,8 @@ Two-person team. Both of us work with Claude, so **this repo is our shared memor
 1. [docs/PLAN.md](docs/PLAN.md): what we're building, why, features by tier, the demo, who does what
 2. [docs/DECISIONS.md](docs/DECISIONS.md): every decision already made, with dates. Don't re-open these without a good reason.
 3. [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md): what's still undecided and what we want help brainstorming
-4. [docs/CHALLENGE.md](docs/CHALLENGE.md): NASA's official ask + requirement checklist. **The challenge is about astronauts on foot (Marswalk).**
+4. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): stack, folders, the **data contract** and API shapes. Build against these exactly.
+5. [docs/CHALLENGE.md](docs/CHALLENGE.md): NASA's official ask + requirement checklist. **The challenge is about astronauts on foot (Marswalk).**
 
 ## One-line summary
 
