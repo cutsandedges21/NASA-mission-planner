@@ -1,0 +1,37 @@
+{
+  "id": "demo",
+  "name": "Gale Crater (DEMO terrain, not real data)",
+  "synthetic": true,
+  "lon": [
+    137.3,
+    137.5
+  ],
+  "lat": [
+    -4.8,
+    -4.55
+  ],
+  "width": 472,
+  "height": 592,
+  "cellM": [
+    25.033,
+    25.032
+  ],
+  "elevRange": [
+    -4562,
+    -3456
+  ],
+  "base": {
+    "id": "bradbury",
+    "name": "Bradbury Landing",
+    "lon": 137.4417,
+    "lat": -4.5895
+  },
+  "sources": [
+    {
+      "layer": "all",
+      "dataset": "Synthetic placeholder from web/scripts/make-demo-region.mjs",
+      "mission": "none",
+      "url": ""
+    }
+  ]
+}

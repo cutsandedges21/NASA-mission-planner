@@ -1,0 +1,42 @@
+[
+  {
+    "id": "yellowknife",
+    "name": "Yellowknife Bay",
+    "lon": 137.453,
+    "lat": -4.626,
+    "why": "Mudstone from an ancient freshwater lake that could have supported microbial life",
+    "source": "HiRISE ESP_032436_1755; NASA MSL"
+  },
+  {
+    "id": "pahrump",
+    "name": "Pahrump Hills",
+    "lon": 137.379,
+    "lat": -4.676,
+    "why": "Lake-bed layers of the Murray formation at the base of Mount Sharp",
+    "source": "HiRISE ESP_039280_1755"
+  },
+  {
+    "id": "vera-rubin",
+    "name": "Vera Rubin Ridge",
+    "lon": 137.357,
+    "lat": -4.714,
+    "why": "Hematite-capped ridge recording groundwater altering old lake sediments",
+    "source": "HiRISE ESP_052176_1750"
+  },
+  {
+    "id": "glen-torridon",
+    "name": "Glen Torridon",
+    "lon": 137.396,
+    "lat": -4.729,
+    "why": "The most clay-rich rocks Curiosity has drilled, with sulfur-bearing organics",
+    "source": "PMC9286800; USGS 2022"
+  },
+  {
+    "id": "woodland-bay",
+    "name": "Woodland Bay",
+    "lon": 137.382,
+    "lat": -4.732,
+    "why": "Clay-bearing outcrop with active rippled sand nearby",
+    "source": "HiRISE ESP_060207_1750"
+  }
+]
