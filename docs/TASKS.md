@@ -146,8 +146,9 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-12 · AI explanation + live space weather APIs
 - **Owner:** Teammate · **Time box:** Sat 13:00
-- **Status:** IN PROGRESS (Teammate, 17:11): **code done, waiting on a build + deploy check**
+- **Status:** DONE (aabf276, verified by Moss's Claude 17:20)
 - **Result so far (Teammate's Claude, 17:30):** `web/app/api/explain/route.ts`, `web/app/api/space-weather/route.ts`, logic in `web/lib/explain.ts` + `web/lib/space-weather.ts` (DONKI port credited), `web/lib/explain-fallback.ts`. Contracts are in ARCHITECTURE.md. Tests with mocked network: `cd web && node --test app/api/_tests/api.test.mjs` → **9/9 pass** (no key → fallback, invented number → fallback, timeout, DONKI CME window + cache + "not checked"). **Not checked yet:** `next build` (no node_modules in the Teammate sandbox) and the live endpoints (sandbox has no internet).
+- **Checked by Moss's Claude (Fri 17:20):** `npm run build` ✅ (both routes compile as dynamic `ƒ`). `node --test app/api/_tests/api.test.mjs` → 9/9 ✅. Live `GET /api/space-weather` → `ok:true`, real DONKI data: **CME forecast to have reached Mars 13 Nov 12:00 UTC, 726 km/s, glancing**, status `warn` (great for the demo). `POST /api/explain` → `recommended: SCIENCE`, `source: fallback` (no key yet), template text correct. **Remaining: keys only Moss can add** (see T-19).
 - **Left, for Moss's Claude (5 min, has node_modules + internet):** (1) `cd web && npm run build`. If a route file fails to compile, fix it or tell Teammate. (2) `npx next start -p 3123`, then `curl -s localhost:3123/api/space-weather | head -c 400` (expect `"ok":true`) and `curl -s -X POST localhost:3123/api/explain -H 'content-type: application/json' -d '{"region":"gale","routes":[{"strategy":"SAFE","distanceKm":4.9,"durationMin":91,"o2MarginPct":71,"maxSlopeDeg":6.2,"verdict":"go"},{"strategy":"FAST","distanceKm":4.7,"durationMin":84,"o2MarginPct":72,"maxSlopeDeg":13.4,"verdict":"caution"},{"strategy":"SCIENCE","distanceKm":4.9,"durationMin":111,"o2MarginPct":66,"maxSlopeDeg":6.2,"verdict":"go","poisVisited":["Yellowknife Bay"]}]}'` (expect `"recommended":"SCIENCE"` with `"source":"fallback"` until a key is set). (3) Add `ANTHROPIC_API_KEY` and `NASA_API_KEY` (free at api.nasa.gov) in Vercel → Settings → Environment Variables. Paste the curl output here.
 - **Steps:**
   1. `web/app/api/explain/route.ts` per "AI explanation contract" in ARCHITECTURE.md. Claude API, key from `ANTHROPIC_API_KEY` (add it to Vercel env vars). The system prompt forbids numbers that weren't given. 10 s timeout.
@@ -231,3 +232,13 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
   3. Add a test for the case above. Run `cd planner && npm test`.
   4. If you add `note`, Moss's Claude will show it on the SCIENCE card (add it to `PlannedRoute` in `web/lib/plan-client.ts` in the same commit).
 - **Done when:** the Bradbury → Yellowknife Bay SCIENCE route is GO, or shows the note instead of a NO-GO detour.
+
+## T-19 · Add the API keys to Vercel (Moss, 5 min)
+- **Owner:** Moss (human: needs your accounts)
+- **Status:** TODO
+- **Steps:**
+  1. **Claude key:** https://console.anthropic.com → API Keys → Create key. Copy it.
+  2. **NASA key (free, instant):** https://api.nasa.gov → fill in name + email → the key arrives on screen and by email. (Without it the app uses `DEMO_KEY`, which is rate-limited but works.)
+  3. https://vercel.com/cutsandedges21s-projects/nasa-eva-planner/settings/environment-variables → add `ANTHROPIC_API_KEY` and `NASA_API_KEY` for **Production + Preview**. Or paste both keys to Moss's Claude and it runs `vercel env add`.
+  4. Redeploy (Moss's Claude does it).
+- **Done when:** `curl -X POST <live-url>/api/explain …` returns `"source":"claude"`.

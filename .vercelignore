@@ -1,0 +1,7 @@
+# Only web/ and planner/ are needed to build the app (web imports ../planner).
+/docs
+/data
+/.playwright-mcp
+web/.playwright-mcp
+**/node_modules
+**/.next
