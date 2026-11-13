@@ -73,7 +73,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Steps:**
   1. `npx create-next-app@latest web --ts --tailwind --app --eslint --src-dir=false --import-alias "@/*" --use-npm`, then `cd web && npm i maplibre-gl`.
   2. Full-screen MapLibre map with the OpenPlanetaryMap Mars basemap (URL in `docs/ARCHITECTURE.md`), dark mission-control UI shell: left panel (mission setup), right panel (dashboard), top bar (title + Mars clock placeholder).
-  3. Write `planner/scripts/make-demo-region.mjs`, which writes a synthetic region in the data-contract format to `web/public/data/demo/` (512×512, 60 m cells, hills + a crater + 4 fake POIs labelled "DEMO"). Load it and draw its `visible.jpg` as a MapLibre image overlay.
+  3. Write `web/scripts/make-demo-region.mjs`, which writes a synthetic region in the data-contract format to `web/public/data/demo/` (512×512, 60 m cells, hills + a crater + 4 fake POIs labelled "DEMO"). Load it and draw its `visible.jpg` as a MapLibre image overlay.
   4. Deploy on Vercel (root directory `web/`). Put the live URL at the top of `README.md`.
 - **Done when:** the Vercel URL shows the Mars basemap with the demo region overlay, on desktop and phone.
 
