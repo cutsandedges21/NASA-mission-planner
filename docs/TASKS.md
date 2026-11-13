@@ -85,3 +85,12 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Status:** TODO (after T-06)
 - **Steps:** work through `docs/OPEN-QUESTIONS.md` → Brainstorm agenda with Moss. Log every decision, turn every agreed feature into a task on this board.
 - **Done when:** each agenda item is answered in DECISIONS or turned into a task.
+
+## T-08 · Fill in the challenge checklist
+- **Owner:** Moss's Claude, with Moss
+- **Status:** TODO (after T-04 and T-06)
+- **Steps:**
+  1. Open `docs/CHALLENGE.md`.
+  2. For every row O1–O8 and C1–C6, write one line in "How we answer it", naming the feature and the NASA dataset behind it.
+  3. Any row with no answer becomes a new task on this board (owner, steps, done-check), or gets an explicit "skip" with a reason.
+- **Done when:** no empty "How we answer it" cells remain in `docs/CHALLENGE.md`.

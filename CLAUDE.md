@@ -19,6 +19,7 @@ Two-person team. Both of us work with Claude, so **this repo is our shared memor
 1. [docs/PLAN.md](docs/PLAN.md): what we're building, why, features by tier, the demo, who does what
 2. [docs/DECISIONS.md](docs/DECISIONS.md): every decision already made, with dates. Don't re-open these without a good reason.
 3. [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md): what's still undecided and what we want help brainstorming
+4. [docs/CHALLENGE.md](docs/CHALLENGE.md): NASA's official ask + requirement checklist. **The challenge is about astronauts on foot (Marswalk).**
 
 ## One-line summary
 

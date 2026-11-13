@@ -25,3 +25,9 @@ Why: the biggest risk is an over-ambitious, half-finished project.
 
 **2026-11-13: Team is two people, both working with Claude. The repo `docs/` folder is the shared source of truth** (Moss)
 Why: each person's Claude needs the full context without chat history.
+
+**2026-11-13: Sol Atlas is reference only, not our base** (Moss)
+Why: Sol Atlas (friend's repo, `saracen66/the-sol-explorers`) is a live 2026 entry for the **same challenge**. Forking it risks two near-identical submissions and hurts both teams. We adapted its routing, EVA, Mars-time, space-weather and data-pipeline code.
+
+**2026-11-13: Routes are scored for astronauts on foot (Marswalk / EVA), not just rovers** (Moss's Claude, from the official challenge wording; Moss can overrule)
+Why: NASA's ask is to help "a human explorer plan and carry out a successful Marswalk". SAFE / FAST / SCIENCE routes get an O₂ / time / slope / daylight budget from `eva.js`. Rover driving stays an optional mode. See `docs/CHALLENGE.md`.

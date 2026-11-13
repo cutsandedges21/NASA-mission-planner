@@ -46,6 +46,7 @@ It's a **mission planner**, not "a map of Mars". Judges should experience *plann
 
 This is the moment we want judges to remember:
 
+0. (The challenge is about astronauts **walking**. Routes are EVA routes, scored on O₂, time, slope and daylight. See `CHALLENGE.md`.)
 1. Select a **base** (e.g. a research site near Olympus Mons) and a **destination**.
 2. The app generates three routes:
    - **SAFE**: lower terrain risk, longer distance
