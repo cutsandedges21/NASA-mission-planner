@@ -1,0 +1,102 @@
+{
+  "id": "gale",
+  "name": "Gale Crater: Curiosity field site",
+  "lon": [
+    137.3,
+    137.5
+  ],
+  "lat": [
+    -4.8,
+    -4.55
+  ],
+  "cellTargetM": 25,
+  "imageMaxPx": 2048,
+  "thermalMaxPx": 1024,
+  "base": {
+    "name": "Bradbury Landing",
+    "lon": 137.4417,
+    "lat": -4.5895,
+    "why": "Curiosity's 2012 touchdown site: a proven safe landing"
+  },
+  "datasets": {
+    "dem_msl": {
+      "key": "mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+      "dataset": "MSL Gale Merged DEM v3 (Parker & Calef, USGS 2016)",
+      "mission": "MRO HiRISE / CTX, Mars Express HRSC, MGS MOLA",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m"
+    },
+    "dem_hrsc": {
+      "key": "mosaic/Mars/HRSC_MOLA_Blend/Mars_HRSC_MOLA_BlendDEM_Global_200mp_v2.tif",
+      "dataset": "Mars HRSC + MOLA Blended DEM Global v2 (USGS)",
+      "mission": "Mars Express HRSC + MGS MOLA",
+      "resolution": "200 m/px"
+    },
+    "hirise_color": {
+      "key": "mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif",
+      "dataset": "MSL Gale HiRISE LRGB colour mosaic (USGS)",
+      "mission": "MRO HiRISE",
+      "resolution": "25 cm/px (source)",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm"
+    },
+    "viking_color": {
+      "key": "wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "dataset": "Viking MDIM 2.1 colour mosaic (NASA Ames recolour)",
+      "mission": "Viking Orbiter",
+      "resolution": "~232 m/px"
+    },
+    "themis_night": {
+      "key": "wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "dataset": "THEMIS Night IR controlled mosaic v2 (USGS)",
+      "mission": "Mars Odyssey THEMIS",
+      "resolution": "100 m/px"
+    }
+  },
+  "pois": [
+    {
+      "id": "yellowknife",
+      "name": "Yellowknife Bay",
+      "lon": 137.453,
+      "lat": -4.626,
+      "approx": true,
+      "why": "Curiosity's first drill holes: mudstone from an ancient freshwater lake that could have supported microbial life",
+      "source": "HiRISE ESP_032436_1755 (image centre); NASA MSL"
+    },
+    {
+      "id": "pahrump",
+      "name": "Pahrump Hills",
+      "lon": 137.379,
+      "lat": -4.676,
+      "approx": true,
+      "why": "Base of Mount Sharp: lake-bed layers of the Murray formation, where the rover first drilled into the mountain",
+      "source": "HiRISE ESP_039280_1755 (image centre)"
+    },
+    {
+      "id": "vera-rubin",
+      "name": "Vera Rubin Ridge",
+      "lon": 137.357,
+      "lat": -4.714,
+      "approx": true,
+      "why": "Hematite-capped ridge mapped from orbit by CRISM. It records groundwater altering old lake sediments",
+      "source": "HiRISE ESP_052176_1750 (image centre)"
+    },
+    {
+      "id": "glen-torridon",
+      "name": "Glen Torridon (clay unit)",
+      "lon": 137.396,
+      "lat": -4.729,
+      "approx": true,
+      "why": "The most clay-rich rocks Curiosity has drilled, with sulfur-bearing organic molecules: a prime biosignature target",
+      "source": "Glen Torridon ridges study map centre (PMC9286800); USGS 2022 overview"
+    },
+    {
+      "id": "woodland-bay",
+      "name": "Woodland Bay",
+      "lon": 137.382,
+      "lat": -4.732,
+      "approx": true,
+      "why": "Clay-bearing outcrop with Vera Rubin Ridge to the northwest and active rippled sand nearby",
+      "source": "HiRISE ESP_060207_1750 (image centre)"
+    }
+  ]
+}
