@@ -43,3 +43,6 @@ Why: Gale was proposed as a NASA human Exploration Zone at the 2015 workshop (an
 
 **2026-11-13: Routes are scored as a round trip by default (out to the destination and back to the airlock)** (Teammate's Claude, T-05; Moss can overrule with `roundTrip: false`)
 Why: a Marswalk starts and ends at the habitat, and the challenge is about getting the explorer home safely. A* minimises the cost of both directions on every step, and "O₂ left" is what remains at the airlock. Consequence: a useful single-EVA range is about 6 km one way. Demo pair updated in `docs/DATASETS.md`.
+
+**2026-11-13: Map is 2D by default, with an optional 3D view** (Moss)
+Why: 2D is clearer for planning and works best on phones. 3D is the "show" mode for the demo. It's built with MapLibre terrain fed by our own elevation grid (no second 3D library). Details in `docs/ARCHITECTURE.md` → Map.

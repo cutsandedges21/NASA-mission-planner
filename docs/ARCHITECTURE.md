@@ -5,7 +5,7 @@
 | Layer | Choice | Why |
 |---|---|---|
 | App | **Next.js (App Router) + TypeScript + Tailwind**, in `web/` | Moss ships fastest in it |
-| Map | **MapLibre GL JS** | Smooth pan/zoom, layer toggles, GeoJSON route lines, animated markers. A clean 2D "mission control" look, deliberately different from Sol Atlas's 3D game HUD |
+| Map | **MapLibre GL JS. 2D by default, with a 3D toggle** (decided by Moss, Fri 17:25). 3D = MapLibre terrain + camera tilt, fed by OUR elevation grid: a custom `elev://` protocol turns `elev.i16` into terrarium-encoded DEM tiles in the browser, so no tile server or extra 3D library is needed. Route lines and markers drape onto the terrain automatically. | Smooth pan/zoom, layer toggles, GeoJSON route lines, animated markers. A clean 2D "mission control" look, deliberately different from Sol Atlas's 3D game HUD |
 | Mars basemap | **OpenPlanetaryMap Mars tiles** (web-mercator raster, checked live 13 Nov): `https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png`. Fallback hillshade: `https://s3.us-east-2.amazonaws.com/opmmarstiles/hillshade-tiles/{z}/{x}/{y}.png` | Whole-planet context for free. Our region's NASA layers sit on top |
 | Region layers | Images baked by our data pipeline, added as MapLibre `image` sources with lon/lat corners | No tile server needed |
 | Routing | `planner/` (pure JS, T-05), run in a **Web Worker** from the web app | 30 ms–1 s per route. The UI never freezes |
