@@ -13,3 +13,4 @@ target/
 .DS_Store
 data-cache/
 run_pipeline.log
+.vercel

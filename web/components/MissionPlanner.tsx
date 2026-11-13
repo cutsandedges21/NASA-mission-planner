@@ -395,6 +395,7 @@ function RouteCard({ r, active, onSelect, poiName }: { r: PlannedRoute; active: 
       {r.poisVisited.length > 0 && (
         <div className="mt-2 text-xs text-violet-200/90">Stops: {r.poisVisited.map(poiName).join(' → ')}</div>
       )}
+      {r.note && <div className="mt-2 text-xs text-zinc-400">{r.note}</div>}
       {active && r.verdict.issues.length > 0 && (
         <ul className="mt-2 space-y-0.5 text-xs text-zinc-300">
           {r.verdict.issues.map((i, k) => (
