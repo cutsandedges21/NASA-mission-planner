@@ -220,7 +220,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-18 · SCIENCE route makes a silly detour when no site is near the path
 - **Owner:** Teammate · **Time box:** 20 min · **Priority:** before M1 (it shows in the demo)
-- **Status:** TODO
+- **Status:** IN PROGRESS (Teammate, 17:08)
 - **Seen by Moss's Claude, Fri 17:05 (demo region):** base Bradbury → target Yellowknife Bay. SAFE/FAST = 4.9 km, GO. SCIENCE = 24.6 km, 8h07m, **NO-GO**, because it detoured to Pahrump Hills. Cause: `pickScienceStops()` falls back to "visit the cheapest POI even if it's over the detour limit".
 - **Steps:**
   1. In `planner/src/plan.js` → `pickScienceStops`, only use the fallback POI if the resulting EVA would still be feasible. Simplest version: drop the fallback, and if no POI fits the detour limit, SCIENCE = the SAFE route with `poisVisited: []` plus a flag `note: 'No science site within reach of this route'`.
