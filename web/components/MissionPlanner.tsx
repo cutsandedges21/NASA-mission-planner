@@ -19,7 +19,7 @@ export const ROUTE_STYLE: Record<Strategy, { color: string; label: string; blurb
 const fmtKm = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
 const fmtDur = (s: number) => {
   const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
-  return h ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min`;
+  return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
 };
 
 type Placing = 'dest' | 'base';
@@ -209,10 +209,28 @@ export default function MissionPlanner() {
     src.setData({ type: 'FeatureCollection', features });
   }, [mapReady, routes, selected, region]);
 
-  // 8. 2D / 3D
+  // 7b. frame the routes when a new plan arrives
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp || !region || !routes) return;
+    const pts = routes.flatMap((r) => r.path ?? []).map(([x, y]) => toLonLat(region.meta, x, y));
+    if (base) pts.push(base);
+    if (!pts.length) return;
+    const b = new maplibregl.LngLatBounds(pts[0], pts[0]);
+    pts.forEach((p) => b.extend(p));
+    const wide = window.innerWidth >= 768;
+    mp.fitBounds(b, { padding: wide ? { top: 110, bottom: 60, left: 340, right: 370 } : { top: 90, bottom: window.innerHeight * 0.5, left: 30, right: 30 }, duration: 1200, maxZoom: 14 });
+  }, [mapReady, routes, region]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 8. 2D / 3D (skip the very first run so the intro flight isn't cancelled)
+  const viewInit = useRef(false);
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp) return;
+    if (!viewInit.current) {
+      viewInit.current = true;
+      if (!view3d) return;
+    }
     if (view3d) {
       mp.setTerrain({ source: 'dem', exaggeration: 2.2 });
       mp.easeTo({ pitch: 62, bearing: -25, duration: 1400 });
