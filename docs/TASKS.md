@@ -159,7 +159,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-13 · Mission context: daylight, Earth delay, AI panel
 - **Owner:** Moss's Claude · **Time box:** Sat 13:00 · **Needs:** T-11, T-12
-- **Status:** TODO
+- **Status:** IN PROGRESS (Moss, 17:22)
 - **Steps:**
   1. Copy Sol Atlas's `marstime.js` → `web/lib/marstime.js` (credit header). Top bar: sol, local solar time at the region, season, Earth–Mars signal delay.
   2. Add a start-time picker, then compute sunrise/sunset at the region. Add "ends X h before sunset" to each route card, and NO-GO if the walk ends after dark (pass `sun` into `verdict()`).
