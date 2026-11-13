@@ -170,11 +170,11 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Steps:** an astronaut marker moves along the chosen route (time-compressed, ~20 s for the whole EVA), with a live HUD of elapsed time, O₂ remaining gauge (from `budget().timeline`) and distance. Pause at POIs with their "why it matters" card. The camera follows smoothly.
 - **Done when:** one button plays the whole EVA end to end without stutter on a phone.
 
-## T-16 · Phone layout + polish pass
+## T-16 · Desktop polish pass (phone = just not broken)
 - **Owner:** Moss's Claude · **Time box:** Sat 19:00
 - **Status:** TODO
-- **Steps:** panels become bottom sheets on phones. Loading states, empty states, a "Data & credits" panel (every NASA source + the Sol Atlas credit). Test at 390×844.
-- **Done when:** the whole demo flow works one-handed on a phone.
+- **Steps:** **Desktop first** (1440×900 and 1920×1080): loading states, empty states, a "Data & credits" panel (every NASA source + the Sol Atlas credit). Phone (390×844) is secondary: just make sure nothing overlaps or breaks.
+- **Done when:** the demo flow looks polished at 1440×900, and on a phone nothing is broken.
 
 ## T-08 · Fill in the challenge checklist
 - **Owner:** Moss's Claude, with Moss · **When:** Sat 19:00–21:00

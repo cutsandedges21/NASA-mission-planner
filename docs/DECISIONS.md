@@ -46,3 +46,6 @@ Why: a Marswalk starts and ends at the habitat, and the challenge is about getti
 
 **2026-11-13: Map is 2D by default, with an optional 3D view** (Moss)
 Why: 2D is clearer for planning and works best on phones. 3D is the "show" mode for the demo. It's built with MapLibre terrain fed by our own elevation grid (no second 3D library). Details in `docs/ARCHITECTURE.md` → Map.
+
+**2026-11-13: Desktop is the primary view, phone is secondary** (Moss)
+Why: judges and the demo video use a desktop. Design and polish desktop first. Phones only need to work (no broken layout), not to shine. T-16 was downgraded accordingly.
