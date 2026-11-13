@@ -37,3 +37,6 @@ Why: about 43 hours for 2 people. The schedule is at the top of `docs/TASKS.md`.
 
 **2026-11-13: Stack = Next.js + TypeScript + Tailwind + MapLibre GL + OpenPlanetaryMap Mars basemap, planner in a Web Worker, Claude API for explanations, Vercel** (Moss's Claude; Moss can overrule)
 Why: fastest for Moss, a clean 2D mission-control look that's deliberately unlike Sol Atlas's 3D game view, no tile server needed. Full detail and the data contract in `docs/ARCHITECTURE.md`.
+
+**2026-11-13: Region = Gale Crater, Curiosity field site, lon 137.30–137.50 °E, lat −4.80 → −4.55 ° (region id `gale`)** (Teammate's Claude, T-04; Teammate/Moss can overrule)
+Why: Gale was proposed as a NASA human Exploration Zone at the 2015 workshop (answers O2). It has the sharpest public terrain on Mars (USGS MSL Gale Merged DEM, 1 m) plus a HiRISE colour mosaic, both in the same USGS bucket Sol Atlas's pipeline reads. Every science POI has been ground-truthed by Curiosity. Not Jezero. Base = Bradbury Landing; demo walk Bradbury → Glen Torridon ≈ 8.7 km. Datasets, POIs and pipeline notes in `docs/DATASETS.md`. Fallback DEM if the 1 m read is too slow: HRSC+MOLA 200 m.

@@ -43,7 +43,8 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-04 · Pick the Mars region (fast version)
 - **Owner:** Teammate · **Time box:** 60 min, **decide by Fri 18:00**
-- **Status:** IN PROGRESS (Teammate, 16:48)
+- **Status:** DONE (see commit "T-04 done")
+- **Result:** **Gale Crater, Curiosity field site** (`gale`, 137.30–137.50 °E, −4.80 → −4.55 °). Primary DEM = USGS MSL Gale Merged DEM 1 m, colour = MSL HiRISE LRGB mosaic, thermal = THEMIS night IR. 5 science POIs. Everything in `docs/DATASETS.md`. **Moss:** base = Bradbury Landing (137.4417 °E, −4.5895 °). The demo walk is Bradbury → Glen Torridon (~8.7 km).
 - **Rules:** not Jezero (that's Sol Atlas's region). The area must hold a walkable EVA zone (~10–30 km) with science targets. Favour a NASA 2015 human **Exploration Zone** (it answers challenge objective O2).
 - **Steps:**
   1. Read Sol Atlas's `build_data.py`: the `S3 = ...` bucket and the dataset keys in `stage_global`, `stage_region`, `stage_crater`.
@@ -83,7 +84,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Owner:** Teammate · **Time box:** Sat 01:00 · **Needs:** T-04
 - **Status:** TODO
 - **Steps:**
-  1. Copy Sol Atlas's `build_data.py` → `data/build_region.py` (credit header). Keep only the stages you need. Set the bounds from `docs/DATASETS.md`.
+  1. Copy Sol Atlas's `build_data.py` → `data/build_region.py` (credit header). Keep only the stages you need. Set the bounds, dataset keys and grid size from `docs/DATASETS.md`, and read its "Pipeline notes for T-10" first (the 1 m DEM is in projected metres and needs `reproject`, not a lon/lat window). Start by opening each key with `rasterio.open` to confirm it exists.
   2. Add an export step that writes **exactly** the data contract in `docs/ARCHITECTURE.md`: `meta.json`, `elev.i16`, `slope.png`, `visible.jpg`, `thermal.jpg`, `pois.json` → `web/public/data/<region-id>/`.
   3. `pip install rasterio numpy pillow scipy`, run it, and check that the files load (dimensions match `meta.json`, elevations plausible).
   4. Keep the total under 15 MB (resize images to ≤ 2048 px). Commit the outputs (not the download cache: add `data-cache/` to `.gitignore`).
