@@ -23,15 +23,23 @@ echo.
 call :step "1/5  Getting the latest code" git pull --rebase --autostash || goto fail
 if not exist "data\build_region.py" (echo data\build_region.py still missing after git pull >> "%LOG%" & echo data\build_region.py still missing after git pull & goto fail)
 
+REM Find a real Python (the Microsoft Store "python" stub doesn't count), else install one with winget.
 set PY=
-where py >nul 2>nul && set PY=py -3
-if not defined PY where python >nul 2>nul && set PY=python
+py -3 -c "import sys" >nul 2>&1 && set PY=py -3
+if not defined PY python -c "import sys" >nul 2>&1 && set PY=python
+if not defined PY if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" set PY=%LOCALAPPDATA%\Programs\Python\Python312\python.exe
 if not defined PY (
-  echo Python is not installed. Install it from https://www.python.org/downloads/ >> "%LOG%"
-  echo Python is not installed. Install it from https://www.python.org/downloads/
-  echo and tick "Add Python to PATH", then double-click this file again.
+  call :step "2a/5 Python not found: installing Python 3.12 with winget (a few minutes)" winget install --id Python.Python.3.12 -e --scope user --silent --accept-package-agreements --accept-source-agreements
+  if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" set PY=%LOCALAPPDATA%\Programs\Python\Python312\python.exe
+)
+if not defined PY (
+  echo Could not install Python automatically. >> "%LOG%"
+  echo Could not install Python automatically.
+  echo Install it from https://www.python.org/downloads/ and tick "Add Python to PATH", then double-click this file again.
   goto fail
 )
+echo Using Python: %PY% >> "%LOG%"
+echo Using Python: %PY%
 call :step "2/5  Installing numpy, rasterio, scipy, pillow" %PY% -m pip install --upgrade rasterio numpy pillow scipy || goto fail
 call :step "3/5  Building the Gale region (10-20 min, needs internet)" %PY% data\build_region.py gale
 if errorlevel 1 (
@@ -66,5 +74,5 @@ set CMDLINE=%CMDLINE% %1
 shift
 goto collect
 :run
-powershell -NoProfile -Command "& { cmd /c '%CMDLINE% 2>&1' | Tee-Object -FilePath '%LOG%' -Append; exit $LASTEXITCODE }"
+powershell -NoProfile -Command "& { cmd /c '%CMDLINE% 2>&1' | ForEach-Object { $_; Add-Content -LiteralPath '%LOG%' -Value $_ -Encoding UTF8 }; exit $LASTEXITCODE }"
 exit /b %errorlevel%
