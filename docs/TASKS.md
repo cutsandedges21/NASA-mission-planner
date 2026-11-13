@@ -43,7 +43,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-04 · Pick the Mars region (fast version)
 - **Owner:** Teammate · **Time box:** 60 min, **decide by Fri 18:00**
-- **Status:** TODO
+- **Status:** IN PROGRESS (Teammate, 16:48)
 - **Rules:** not Jezero (that's Sol Atlas's region). The area must hold a walkable EVA zone (~10–30 km) with science targets. Favour a NASA 2015 human **Exploration Zone** (it answers challenge objective O2).
 - **Steps:**
   1. Read Sol Atlas's `build_data.py`: the `S3 = ...` bucket and the dataset keys in `stage_global`, `stage_region`, `stage_crater`.
@@ -55,7 +55,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-05 · Planner module with SAFE / FAST / SCIENCE
 - **Owner:** Teammate · **Time box:** Fri 21:00 (M0)
-- **Status:** TODO (start right after T-04, or in parallel)
+- **Status:** IN PROGRESS (Teammate, 16:48)
 - **Steps:**
   1. Read `docs/ARCHITECTURE.md` → "Planner API".
   2. Create `planner/package.json` (`"type": "module"`, `"test": "node --test"`). Copy Sol Atlas's `eva.js` → `planner/src/eva.js` and `pathfinding.js` → `planner/src/route.js`. Add a header comment to each: "Adapted from Sol Atlas by The SOL Explorers. Changes: …".
