@@ -83,7 +83,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-10 · Bake the real region data
 - **Owner:** Teammate · **Time box:** Sat 01:00 · **Needs:** T-04
-- **Status:** TODO
+- **Status:** IN PROGRESS (Teammate, 17:45): Claude writes + tests `data/build_region.py`; **Gianluca runs it on his laptop** (bucket blocked in the sandbox)
 - **Bucket check (Moss's Claude, Fri 17:10):** all 5 keys in `docs/DATASETS.md` answer HTTP 200 from Moss's machine (1 m DEM 3.9 GB, HiRISE COG 1.0 GB, HRSC+MOLA 11.4 GB, Viking 0.65 GB, THEMIS 4.4 GB). Teammate's Claude sandbox gets 403, so **run the pipeline on a real laptop** (Teammate's local terminal), not in a sandbox. If that's impossible, set this task to `BLOCKED (sandbox)` and Moss's Claude will run it.
 - **Steps:**
   1. Copy Sol Atlas's `build_data.py` → `data/build_region.py` (credit header). Keep only the stages you need. Set the bounds, dataset keys and grid size from `docs/DATASETS.md`, and read its "Pipeline notes for T-10" first (the 1 m DEM is in projected metres and needs `reproject`, not a lon/lat window). Start by opening each key with `rasterio.open` to confirm it exists.
