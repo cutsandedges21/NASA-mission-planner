@@ -13,6 +13,7 @@
   "imageMaxPx": 2048,
   "thermalMaxPx": 1024,
   "base": {
+    "id": "bradbury",
     "name": "Bradbury Landing",
     "lon": 137.4417,
     "lat": -4.5895,
