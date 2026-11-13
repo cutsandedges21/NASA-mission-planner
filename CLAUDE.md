@@ -2,7 +2,19 @@
 
 Two-person team. Both of us work with Claude, so **this repo is our shared memory.** If it isn't written in `docs/`, the other person's Claude doesn't know it.
 
-## Read these before doing anything
+## Start here, every session
+
+1. `git pull --rebase`
+2. Open **[docs/TASKS.md](docs/TASKS.md)**, the live task board. It says what to do next, step by step, and how to claim a task.
+3. Ask your human whether they're **Moss** or **the Teammate**, then take the first `TODO` task for that person.
+
+**Stay in sync while you work.** Both people work at the same time. Commit and push after every finished step (about every 2 minutes), and pull before each step. To get alerted to the other side's changes, your human can run this in your session:
+
+```
+/loop 2m git pull --rebase, re-read docs/TASKS.md, and tell me if anything assigned to me or blocking me changed
+```
+
+## Background docs (read before your first task)
 
 1. [docs/PLAN.md](docs/PLAN.md): what we're building, why, features by tier, the demo, who does what
 2. [docs/DECISIONS.md](docs/DECISIONS.md): every decision already made, with dates. Don't re-open these without a good reason.
@@ -14,6 +26,7 @@ A web-based **Mars mission-planning platform** for the challenge *Interplanetary
 
 ## Rules for Claude sessions in this repo
 
+- **Every step you write must be actionable.** When you add a task or a plan, give the owner, the exact files, the commands, and a "done when" check, so the other Claude can pick it up cold and act immediately. No vague "look into X".
 - **Keep the docs current.** When a decision is made, add it to `docs/DECISIONS.md` (date, decision, why, who). When a question gets answered, move it out of `OPEN-QUESTIONS.md`. Commit doc changes with the code that caused them.
 - **Pull before you start, push when you finish.** Two people and two Claudes are working in parallel. Small commits, clear messages.
 - **AI is a component, not the product.** Routes, hazards and stats must be *computed* from data. AI explains the results. It never makes them up.
