@@ -54,16 +54,44 @@ test('round trip is the default; one-way halves the distance', () => {
   assert.ok(one.totalT < b.totalT);
 });
 
-test('SCIENCE with no POIs still returns a route', () => {
-  const r = planMission({ ...base, pois: [] }).find((x) => x.strategy === 'SCIENCE');
-  assert.ok(r.path.length > 1);
+test('SCIENCE with no POIs = SAFE path plus a note', () => {
+  const rs = planMission({ ...base, pois: [] });
+  const r = rs.find((x) => x.strategy === 'SCIENCE');
+  assert.deepEqual(r.path, rs.find((x) => x.strategy === 'SAFE').path);
   assert.deepEqual(r.poisVisited, []);
+  assert.match(r.note, /No science site/);
+});
+
+test('T-18: no far-away detour when no POI is near the route (Bradbury -> Yellowknife case)', () => {
+  // short walk, the only other POI is far off to the side: SCIENCE must not go there
+  const far = { id: 'far', x: 30, y: 190 };
+  const rs = planMission({ ...base, start: [20, 100], end: [60, 100], pois: [far] });
+  const sci = rs.find((r) => r.strategy === 'SCIENCE');
+  const safe = rs.find((r) => r.strategy === 'SAFE');
+  assert.deepEqual(sci.poisVisited, []);
+  assert.ok(sci.budget.distance <= safe.budget.distance + 1e-6);
+  assert.notEqual(sci.verdict.lvl, 'nogo');
+  assert.ok(sci.note);
+});
+
+test('T-18: a POI at the destination (within 2 cells) counts as the science stop', () => {
+  const target = { id: 'tgt', x: 61, y: 98 };
+  const far = { id: 'far', x: 30, y: 190 };
+  const rs = planMission({ ...base, start: [20, 100], end: [60, 100], pois: [far, target] });
+  const sci = rs.find((r) => r.strategy === 'SCIENCE');
+  assert.deepEqual(sci.poisVisited, ['tgt']);
+  assert.equal(sci.note, undefined);
+  assert.ok(sci.budget.stopT > 0);
+  assert.notEqual(sci.verdict.lvl, 'nogo');
+  // the destination POI is never also used as an on-the-way stop
+  assert.equal(sci.stops.length, 1);
 });
 
 test('pickScienceStops prefers small detours and orders stops along the way', () => {
   const pois = [{ id: 'far', x: 100, y: 0 }, { id: 'b', x: 140, y: 95 }, { id: 'a', x: 60, y: 105 }];
-  const s = pickScienceStops([20, 100], [180, 100], pois, CELL, CELL, 2);
-  assert.deepEqual(s.map((p) => p.id), ['a', 'b']);
+  const { stops, target } = pickScienceStops([20, 100], [180, 100], pois, CELL, CELL, 2);
+  assert.deepEqual(stops.map((p) => p.id), ['a', 'b']);
+  assert.equal(target, null);
 });
 
 test('out-of-grid start throws a clear error', () => {

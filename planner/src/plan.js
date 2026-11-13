@@ -20,7 +20,7 @@ export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
  * @param {object} [a.params]   overrides for EVA_DEFAULTS (crew mass, O2 capacity, …)
  * @param {boolean} [a.roundTrip=true]  walk back to the start along the same route (a Marswalk ends at the airlock)
  * @param {number} [a.maxStops=2]  most POIs the SCIENCE route visits
- * @returns {Array<{strategy, path, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms}>}
+ * @returns {Array<{strategy, path, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
  */
 export function planMission(a) {
   const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null,
@@ -34,38 +34,52 @@ export function planMission(a) {
 
   const fast = timed(() => legs(ctx, [start, end], 'FAST'));
   const safe = timed(() => legs(ctx, [start, end], 'SAFE'));
-  const chosen = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
-  const sci = timed(() => legs(ctx, [start, ...chosen.map((p) => [p.x, p.y]), end], 'ENERGY'));
-
+  const { stops: chosen, target } = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
+  let science;
+  if (!chosen.length && !target) {
+    // No science site worth the walk: reuse the SAFE path rather than force a big detour.
+    science = score(ctx, 'SCIENCE', safe.value, [], null, safe.ms);
+    science.note = 'No science site within reach of this route';
+  } else {
+    const sci = timed(() => legs(ctx, [start, ...chosen.map((p) => [p.x, p.y]), end], 'ENERGY'));
+    science = score(ctx, 'SCIENCE', sci.value, chosen, target, sci.ms);
+  }
   return [
-    score(ctx, 'SAFE', safe.value, [], safe.ms),
-    score(ctx, 'FAST', fast.value, [], fast.ms),
-    score(ctx, 'SCIENCE', sci.value, chosen, sci.ms),
+    score(ctx, 'SAFE', safe.value, [], null, safe.ms),
+    score(ctx, 'FAST', fast.value, [], null, fast.ms),
+    science,
   ];
 }
 
+/** Cells within this many cells (Chebyshev) of a POI count as "at" the POI (clicking a marker). */
+export const POI_SNAP_CELLS = 2;
+
 /**
- * Choose which POIs the SCIENCE route visits: the ones that add the least straight-line detour,
- * up to `maxStops`, within a detour budget of max(1 km, 50 % of the direct distance). If none fit
- * the budget, the single cheapest POI is still visited (a SCIENCE route should do science).
- * Returned in the order they're met walking from start to end.
+ * Choose which POIs the SCIENCE route visits.
+ * - `target`: the POI at the destination (within POI_SNAP_CELLS of `end`), if any. Visiting it is the
+ *   point of the walk, so it always counts as a science stop.
+ * - `stops`: on-the-way POIs that add the least straight-line detour, up to `maxStops`, within a
+ *   detour budget of max(1 km, 50 % of the direct distance). No fallback: if nothing fits the budget,
+ *   there are no on-the-way stops (a huge detour would only turn the route NO-GO).
+ * POIs at the start are ignored. Stops come back in the order they're met walking start → end.
  */
 export function pickScienceStops(start, end, pois, cellX, cellY, maxStops = 2) {
   const m = ([ax, ay], [bx, by]) => Math.hypot((ax - bx) * cellX, (ay - by) * cellY);
+  const near = (p, c) => Math.max(Math.abs(p.x - c[0]), Math.abs(p.y - c[1])) <= POI_SNAP_CELLS;
   const direct = m(start, end);
-  const same = (p, c) => p.x === c[0] && p.y === c[1];
-  const cands = pois
-    .filter((p) => !same(p, start) && !same(p, end))
-    .map((p) => ({ ...p, detour: m(start, [p.x, p.y]) + m([p.x, p.y], end) - direct }))
-    .sort((a, b) => a.detour - b.detour);
-  if (!cands.length) return [];
+  const atEnd = pois.filter((p) => near(p, end)).sort((a, b) => m([a.x, a.y], end) - m([b.x, b.y], end));
+  const target = atEnd[0] || null;
   const limit = Math.max(1000, 0.5 * direct);
-  let picked = cands.filter((p) => p.detour <= limit).slice(0, Math.max(0, maxStops));
-  if (!picked.length && maxStops > 0) picked = [cands[0]];
-  // order along the start → end direction
+  const picked = pois
+    .filter((p) => !near(p, start) && !near(p, end))
+    .map((p) => ({ ...p, detour: m(start, [p.x, p.y]) + m([p.x, p.y], end) - direct }))
+    .filter((p) => p.detour <= limit)
+    .sort((a, b) => a.detour - b.detour)
+    .slice(0, Math.max(0, maxStops));
   const [ux, uy] = [(end[0] - start[0]) * cellX, (end[1] - start[1]) * cellY];
   const t = (p) => ((p.x - start[0]) * cellX * ux + (p.y - start[1]) * cellY * uy) / (direct * direct || 1);
-  return picked.sort((a, b) => t(a) - t(b)).map(({ detour, ...p }) => p);
+  const stops = picked.sort((a, b) => t(a) - t(b)).map(({ detour, ...p }) => p);
+  return { stops, target };
 }
 
 function legs(ctx, waypoints, strategy) {
@@ -88,7 +102,7 @@ export function toSamples(path, elev, w, cellX, cellY, d0 = 0) {
   });
 }
 
-function score(ctx, strategy, path, stopsPois, ms) {
+function score(ctx, strategy, path, stopsPois, target, ms) {
   if (!path) {
     return {
       strategy, path: null, budget: null, poisVisited: [], stops: [], ms,
@@ -107,6 +121,7 @@ function score(ctx, strategy, path, stopsPois, ms) {
     while (k < path.length && !(path[k][0] === p.x && path[k][1] === p.y)) k++;
     if (k < path.length) stops.push({ id: p.id, d: out[k].d });
   }
+  if (target) stops.push({ id: target.id, d: out.at(-1).d }); // work at the destination site
   const b = budget(samples, stops.map((s) => s.d), params);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;

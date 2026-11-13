@@ -22,6 +22,8 @@ export type PlannedRoute = {
   budget: Budget;
   verdict: Verdict;
   poisVisited: string[];
+  /** Set on SCIENCE when no science site is within reach: the route is the SAFE path. Show it on the card. */
+  note?: string;
   stops: { id: string; d: number }[];
   ms: number;
 };
