@@ -9,7 +9,7 @@ Nothing below is decided yet. When something gets answered, log it in `DECISIONS
 3. **Which NASA datasets.** Terrain/elevation (e.g. MOLA, HiRISE / CTX DEMs), imagery, hazards, landmarks. Pick ones that are realistic to integrate in a weekend.
 4. **Which region of Mars.** One well-chosen region with good data beats the whole planet with poor data. Olympus Mons was only an example. **Not Jezero** (Sol Atlas uses it). Being researched in T-04.
 5. **AI provider and how its output stays grounded** (it may only cite numbers we computed).
-6. **Hackathon dates and the hour-by-hour plan.** Sol Atlas's notes say the 2026 global hackathon is **14–15 Nov**, with the NASA project page due at the end of 15 Nov. Confirm our local event's deadlines.
+6. **Hackathon dates and the hour-by-hour plan.** Sol Atlas's notes say the 2026 global hackathon is **14–15 Nov** (local events can differ: Bangladesh ran 13–14 Nov). Confirm our own event's deadlines and when the NASA project page is due.
 
 ## Brainstorm agenda (what we want Claude's help with)
 
