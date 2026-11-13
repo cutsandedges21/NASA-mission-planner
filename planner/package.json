@@ -1,0 +1,10 @@
+{
+  "name": "mission-planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SAFE / FAST / SCIENCE Marswalk route planner. Pure ES modules, runs in Node and in a browser Web Worker.",
+  "main": "src/plan.js",
+  "exports": { ".": "./src/plan.js", "./route": "./src/route.js", "./eva": "./src/eva.js" },
+  "scripts": { "test": "node --test" }
+}

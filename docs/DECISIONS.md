@@ -40,3 +40,6 @@ Why: fastest for Moss, a clean 2D mission-control look that's deliberately unlik
 
 **2026-11-13: Region = Gale Crater, Curiosity field site, lon 137.30–137.50 °E, lat −4.80 → −4.55 ° (region id `gale`)** (Teammate's Claude, T-04; Teammate/Moss can overrule)
 Why: Gale was proposed as a NASA human Exploration Zone at the 2015 workshop (answers O2). It has the sharpest public terrain on Mars (USGS MSL Gale Merged DEM, 1 m) plus a HiRISE colour mosaic, both in the same USGS bucket Sol Atlas's pipeline reads. Every science POI has been ground-truthed by Curiosity. Not Jezero. Base = Bradbury Landing; demo walk Bradbury → Glen Torridon ≈ 8.7 km. Datasets, POIs and pipeline notes in `docs/DATASETS.md`. Fallback DEM if the 1 m read is too slow: HRSC+MOLA 200 m.
+
+**2026-11-13: Routes are scored as a round trip by default (out to the destination and back to the airlock)** (Teammate's Claude, T-05; Moss can overrule with `roundTrip: false`)
+Why: a Marswalk starts and ends at the habitat, and the challenge is about getting the explorer home safely. A* minimises the cost of both directions on every step, and "O₂ left" is what remains at the airlock. Consequence: a useful single-EVA range is about 6 km one way. Demo pair updated in `docs/DATASETS.md`.

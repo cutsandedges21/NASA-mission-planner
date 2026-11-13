@@ -51,11 +51,17 @@ Loading in the browser: `new Int16Array(await (await fetch(url)).arrayBuffer())`
 ## Planner API (T-05 builds it, the web app calls it)
 
 ```js
-planMission({ elev, w, h, cellX, cellY, fineSlope, start: [x, y], end: [x, y], pois: [{ x, y, id }] })
-// → [{ strategy: 'SAFE'|'FAST'|'SCIENCE', path: [[x, y], …], budget, verdict }]
-// budget = eva.js budget(): distance, totalT, o2, marginPct, gain, loss, maxSlope, timeline
+import { planMission } from '../../planner/src/plan.js';   // pure ES module, works in a Web Worker
+planMission({ elev, w, h, cellX, cellY, fineSlope, start: [x, y], end: [x, y], pois: [{ x, y, id }],
+              sun /* optional { endMarginH } */, params /* optional EVA_DEFAULTS overrides */,
+              roundTrip = true /* walk back to the airlock */, maxStops = 2 /* SCIENCE stops */ })
+// → [{ strategy: 'SAFE'|'FAST'|'SCIENCE', path: [[x, y], …] | null, budget, verdict, poisVisited: [id], stops: [{ id, d }], ms }]
+// budget = eva.js budget(): distance (m, whole EVA), oneWay (m), roundTrip, walkT, stopT, totalT (s), o2 (kg),
+//          marginPct (O2 left at the airlock, %), gain, loss, maxSlope (deg), timeline [{ d, t, o2 }]
 // verdict = eva.js verdict(): { lvl: 'go'|'caution'|'nogo', issues: [{ lvl, msg }] }
+// path === null → no walkable route; verdict is NO-GO with a message. Out-of-grid start/end throws RangeError.
 ```
+Strategies: **FAST** = least walking time · **SAFE** = least O₂ with a penalty that grows quadratically above 10° and a 15° routing limit · **SCIENCE** = least-O₂ legs through up to 2 POIs that add the least detour (≤ max(1 km, 50 % of the direct distance)), 20 min work at each stop. With `roundTrip` (default) A* minimises the cost of going *and* coming back, and the budget covers the whole out-and-back EVA.
 
 ## AI explanation contract
 

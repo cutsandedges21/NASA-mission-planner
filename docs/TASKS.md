@@ -56,7 +56,8 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-05 · Planner module with SAFE / FAST / SCIENCE
 - **Owner:** Teammate · **Time box:** Fri 21:00 (M0)
-- **Status:** IN PROGRESS (Teammate, 16:48)
+- **Status:** DONE (see commit "T-05 done")
+- **Result:** `planner/` works. `cd planner && npm test` → **10/10 pass** (Node 22, no dependencies). On the synthetic 4 km grid (round trip): SAFE 7.26 km, 134 min, max slope 0.9°, 72 % O₂ left, GO · FAST 7.03 km, 131 min, max slope 4.3°, 70 %, GO · SCIENCE 8.39 km, 175 min (incl. a 20 min stop), 65 %, GO. 512×512 grid: all three routes in ~0.5 s. **Moss:** the API is in ARCHITECTURE.md → Planner API. Routes are scored as **out-and-back by default** (`roundTrip: true`), so "O₂ left" means at the airlock. Import `planner/src/plan.js` straight into the worker.
 - **Steps:**
   1. Read `docs/ARCHITECTURE.md` → "Planner API".
   2. Create `planner/package.json` (`"type": "module"`, `"test": "node --test"`). Copy Sol Atlas's `eva.js` → `planner/src/eva.js` and `pathfinding.js` → `planner/src/route.js`. Add a header comment to each: "Adapted from Sol Atlas by The SOL Explorers. Changes: …".
