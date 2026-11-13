@@ -68,7 +68,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-09 · Web app skeleton, live on Vercel
 - **Owner:** Moss's Claude · **Time box:** Fri 20:00
-- **Status:** TODO
+- **Status:** IN PROGRESS (Moss, 17:00)
 - **Steps:**
   1. `npx create-next-app@latest web --ts --tailwind --app --eslint --src-dir=false --import-alias "@/*" --use-npm`, then `cd web && npm i maplibre-gl`.
   2. Full-screen MapLibre map with the OpenPlanetaryMap Mars basemap (URL in `docs/ARCHITECTURE.md`), dark mission-control UI shell: left panel (mission setup), right panel (dashboard), top bar (title + Mars clock placeholder).
