@@ -56,6 +56,7 @@ export default function MissionPlanner() {
   useEffect(() => {
     if (!region || !mapEl.current || map.current) return;
     const m = region.meta;
+    maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
     registerRegionTerrain(region);
     const centre: [number, number] = [(m.lon[0] + m.lon[1]) / 2, (m.lat[0] + m.lat[1]) / 2];
     const mp = new maplibregl.Map({
@@ -232,7 +233,9 @@ export default function MissionPlanner() {
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-[#07080a] text-zinc-100">
-      <div ref={mapEl} className="absolute inset-0" />
+      <div className="absolute inset-0">
+        <div ref={mapEl} className="h-full w-full" />
+      </div>
 
       {/* top bar */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3 sm:p-4">
