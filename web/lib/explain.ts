@@ -15,6 +15,9 @@ export type ExplainRoute = {
   verdict: Lvl | { lvl: Lvl; issues?: { lvl: Lvl; msg: string }[] };
   poisVisited?: string[];
   note?: string;
+  /** Optional: budget.doseMSv (whole EVA, mSv) and budget.steepPct (% of route steeper than 15°). */
+  doseMSv?: number;
+  steepPct?: number;
 };
 
 export type ExplainRequest = {
@@ -101,6 +104,8 @@ export function allowedNumbers(req: ExplainRequest): Set<string> {
     else if (v && typeof v === 'object') Object.values(v).forEach(walk);
   };
   walk(req);
+  // every number exactly as the model sees it in the prompt (e.g. dose rounded to 3 decimals)
+  for (const m of userPrompt(req, pickRecommended(req.routes)).match(/\d+(?:\.\d+)?/g) || []) out.add(m);
   // differences the briefing may naturally quote ("saves 12 min", "3.4 km longer")
   const rs = req.routes;
   for (const a of rs) for (const b of rs) {
@@ -133,6 +138,8 @@ export function userPrompt(req: ExplainRequest, recommended: Strategy): string {
     routes: req.routes.map((r) => ({
       strategy: r.strategy, verdict: VERDICT_WORD[lvlOf(r)], distanceKm: r1(r.distanceKm), durationMin: r0(r.durationMin),
       o2LeftAtReturnPct: r0(r.o2MarginPct), maxSlopeDeg: r1(r.maxSlopeDeg), scienceStops: r.poisVisited || [],
+      radiationDoseMSv: r.doseMSv === undefined ? undefined : Math.round(r.doseMSv * 1000) / 1000,
+      steepGroundPct: r.steepPct === undefined ? undefined : r0(r.steepPct),
       issues: typeof r.verdict === 'object' ? (r.verdict.issues || []).map((i) => i.msg) : [], note: r.note,
     })),
     daylight: req.daylight ?? undefined,

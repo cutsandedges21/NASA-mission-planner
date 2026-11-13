@@ -116,3 +116,22 @@ test('prints the synthetic-grid numbers for the task board', () => {
       `max slope ${b.maxSlope.toFixed(1)}°, O2 left ${b.marginPct.toFixed(0)} %, ${r.verdict.lvl.toUpperCase()}, ${r.ms.toFixed(0)} ms`);
   }
 });
+
+test('radiation dose = Curiosity RAD rate x EVA time; steepPct from fineSlope', () => {
+  const r = by.FAST;
+  assert.ok(Math.abs(r.budget.doseMSv - r.budget.totalT / 86400 * 0.64) < 1e-12);
+  assert.equal(r.budget.steepPct, 0); // no fineSlope given
+  const fs = new Float32Array(W * H).fill(20); // everything steep
+  const rs = planMission({ ...base, fineSlope: fs });
+  for (const x of rs) assert.ok(Math.abs(x.budget.steepPct - 100) < 1e-6);
+});
+
+test('space-weather warning turns GO into CAUTION with a reason', () => {
+  const rs = planMission({ ...base, spaceWeather: { lvl: 'warn', short: 'CME due in 28 h' } });
+  for (const r of rs) {
+    assert.notEqual(r.verdict.lvl, 'go');
+    assert.ok(r.verdict.issues.some((i) => /CME due in 28 h/.test(i.msg)));
+  }
+  const calm = planMission({ ...base, spaceWeather: { lvl: 'ok', short: 'no CME due' } });
+  assert.deepEqual(calm.map((r) => r.verdict.lvl), routes.map((r) => r.verdict.lvl));
+});

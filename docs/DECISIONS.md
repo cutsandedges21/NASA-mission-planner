@@ -52,3 +52,6 @@ Why: judges and the demo video use a desktop. Design and polish desktop first. P
 
 **2026-11-13: The recommended route is picked by a fixed rule, and the AI briefing is number-checked** (Teammate's Claude, T-12; Moss can overrule)
 Why: "AI explains, never decides." The rule is best verdict → SCIENCE if it visits a site → SAFE → FAST. Claude writes the 3-sentence explanation; if it quotes any number that isn't in the computed data, the server swaps in the template briefing. Judges can see the AI can't make things up. Details in ARCHITECTURE.md → AI explanation contract.
+
+**2026-11-13: A space-weather warning makes every route at least CAUTION (never NO-GO on its own)** (Teammate's Claude; Moss can overrule)
+Why: the challenge says safety first (O6), and a CME forecast to reach Mars is exactly what a flight controller flags. It stays a CAUTION because a DONKI forecast window spans days and doesn't by itself make a short EVA unsafe. Each route also reports its radiation dose from Curiosity RAD's measured Gale surface rate (0.64 mSv/day).

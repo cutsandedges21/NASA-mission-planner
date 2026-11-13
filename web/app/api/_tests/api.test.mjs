@@ -92,3 +92,10 @@ test('space weather: fetch, cache, and "not checked" when DONKI is down', async 
   assert.equal(down.status.lvl, 'off');
   assert.match(down.status.short, /not checked/);
 });
+
+test('dose and steep-ground numbers may be quoted (rounded as sent)', async () => {
+  const r2 = parseRequest({ routes: routes.map((r) => ({ ...r, doseMSv: 0.0493, steepPct: 3.6 })) });
+  const text = 'SCIENCE is the call: 0.049 mSv of radiation and only 4% steep ground.';
+  const out = await explain(r2, { ANTHROPIC_API_KEY: 'k' }, claudeReply(text));
+  assert.equal(out.source, 'claude');
+});

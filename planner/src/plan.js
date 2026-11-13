@@ -3,9 +3,11 @@
 // Routing and EVA oxygen model adapted from Sol Atlas by The SOL Explorers.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { CostGrid } from './route.js';
-import { budget, verdict, EVA_DEFAULTS } from './eva.js';
+import { budget, verdict, evaDoseMSv, RAD_MSV_PER_DAY, EVA_DEFAULTS } from './eva.js';
 
-export { EVA_DEFAULTS };
+export { EVA_DEFAULTS, RAD_MSV_PER_DAY };
+/** Slope (deg) above which ground counts as steep for budget.steepPct. */
+export const STEEP_DEG = 15;
 export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
 
 /**
@@ -17,20 +19,21 @@ export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
  * @param {[number,number]} a.start, a.end  grid cells [x, y]
  * @param {Array<{x:number,y:number,id:string}>} [a.pois]
  * @param {{endMarginH:number}} [a.sun]  daylight margin at the end of the EVA, passed to verdict()
+ * @param {{lvl:string, short?:string}} [a.spaceWeather]  status from /api/space-weather; 'warn' adds a CAUTION to every route
  * @param {object} [a.params]   overrides for EVA_DEFAULTS (crew mass, O2 capacity, …)
  * @param {boolean} [a.roundTrip=true]  walk back to the start along the same route (a Marswalk ends at the airlock)
  * @param {number} [a.maxStops=2]  most POIs the SCIENCE route visits
  * @returns {Array<{strategy, path, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
  */
 export function planMission(a) {
-  const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null,
+  const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null, spaceWeather = null,
     roundTrip = true, maxStops = 2 } = a;
   const params = { ...EVA_DEFAULTS, ...(a.params || {}) };
   for (const [x, y] of [start, end]) {
     if (!(x >= 0 && y >= 0 && x < w && y < h)) throw new RangeError(`cell [${x}, ${y}] is outside the ${w}×${h} grid`);
   }
   const grid = new CostGrid(elev, w, h, cellX, cellY, fineSlope);
-  const ctx = { grid, elev, w, cellX, cellY, params, sun, roundTrip };
+  const ctx = { grid, elev, w, cellX, cellY, fineSlope, params, sun, spaceWeather, roundTrip };
 
   const fast = timed(() => legs(ctx, [start, end], 'FAST'));
   const safe = timed(() => legs(ctx, [start, end], 'SAFE'));
@@ -125,7 +128,26 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   const b = budget(samples, stops.map((s) => s.d), params);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;
-  return { strategy, path, budget: b, verdict: verdict(b, sun, params), poisVisited: stops.map((s) => s.id), stops, ms };
+  // Radiation: surface dose rate measured by Curiosity's RAD in Gale crater × time outside.
+  b.doseMSv = evaDoseMSv(b.totalT);
+  // Terrain risk: share of the outbound distance on cells whose steepest fine-scale slope > STEEP_DEG.
+  b.steepPct = steepShare(path, out, ctx.fineSlope, w);
+  const v = verdict(b, sun, params);
+  if (ctx.spaceWeather && ctx.spaceWeather.lvl === 'warn') {
+    v.issues.push({ lvl: 'caution', msg: `Space weather: ${ctx.spaceWeather.short || 'solar storm forecast at Mars'}. Check before egress, keep the shelter close` });
+    if (v.lvl === 'go') v.lvl = 'caution';
+  }
+  return { strategy, path, budget: b, verdict: v, poisVisited: stops.map((s) => s.id), stops, ms };
+}
+
+function steepShare(path, out, fineSlope, w) {
+  if (!fineSlope || path.length < 2) return 0;
+  let steep = 0;
+  for (let i = 1; i < path.length; i++) {
+    const [x, y] = path[i];
+    if (fineSlope[y * w + x] > STEEP_DEG) steep += out[i].d - out[i - 1].d;
+  }
+  return (steep / (out.at(-1).d || 1)) * 100;
 }
 
 function timed(fn) {

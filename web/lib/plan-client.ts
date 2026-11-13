@@ -14,6 +14,10 @@ export type Budget = {
   loss: number;
   maxSlope: number;
   timeline: { d: number; t: number; o2: number }[];
+  /** Radiation dose for the whole EVA (mSv), from Curiosity RAD's measured Gale surface rate. */
+  doseMSv?: number;
+  /** % of the outbound distance on ground steeper than 15° (from slope.png). Terrain risk for the card. */
+  steepPct?: number;
 };
 export type Strategy = 'SAFE' | 'FAST' | 'SCIENCE';
 export type PlannedRoute = {
@@ -38,6 +42,8 @@ export type PlanArgs = {
   end: [number, number];
   pois: { x: number; y: number; id: string }[];
   sun?: { endMarginH: number } | null;
+  /** Pass `status` from /api/space-weather: 'warn' adds a CAUTION to every route. */
+  spaceWeather?: { lvl: string; short?: string } | null;
   roundTrip?: boolean;
   maxStops?: number;
 };

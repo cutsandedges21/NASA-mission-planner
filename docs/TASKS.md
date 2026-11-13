@@ -183,6 +183,17 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Owner:** Moss's Claude, with Moss · **When:** Sat 19:00–21:00
 - **Status:** TODO
 - **Steps:** in `docs/CHALLENGE.md`, write one line per row O1–O8 / C1–C6 naming the feature and the NASA dataset behind it. Empty rows become quick tasks or an explicit "skip" with a reason.
+- **Teammate's Claude draft answers (Fri 17:55), paste into CHALLENGE.md and edit freely:**
+  - O1: web planner (tablet/laptop in the hab): pick base + target → 3 EVA routes scored on O₂, time, slope, radiation; NASA/USGS data throughout.
+  - O2: Gale Crater, proposed as a human Exploration Zone at NASA's 2015 workshop (abstracts #1022, #1040); base at Bradbury Landing (proven safe landing).
+  - O3: science first. Targets = Curiosity's ground-truthed habitability sites (lake mudstone, clays + organics, hematite), and the SCIENCE route is built to reach them.
+  - O4: the best-studied site on Mars (Curiosity, 2012–today).
+  - O5: topographic (MSL 1 m DEM), optical (HiRISE colour, Viking), thermal (THEMIS night IR), radiation (Curiosity RAD dose rate), space weather (DONKI). That's 5 kinds.
+  - O6: radiation dose per EVA from RAD's Gale measurement + live DONKI CME forecasts that turn routes to CAUTION (T-20).
+  - O7: suit model: Pandolf metabolic cost at Mars g with a pressure-suit penalty, 20° walking limit, 8 h suit rating, O₂ reserve; carried kit via `params.kitKg`.
+  - O8: SAFE avoids steep ground (quadratic penalty > 10°, limit 15°) using the steepest slope inside each 25 m cell from the finer DEM. Individual boulders are below 25 m: say so (honest limit), or add the rock-hazard layer if T-07 picks it.
+  - C2: generator: a new region = one JSON file in `data/regions/` + `python data/build_region.py <id>`. The planner works on any grid.
+  - C4: live, for today's date (space weather), planning "now".
 - **Done when:** no empty "How we answer it" cells remain.
 
 ## T-17 · README for judges
@@ -242,3 +253,13 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
   3. https://vercel.com/cutsandedges21s-projects/nasa-eva-planner/settings/environment-variables → add `ANTHROPIC_API_KEY` and `NASA_API_KEY` for **Production + Preview**. Or paste both keys to Moss's Claude and it runs `vercel env add`.
   4. Redeploy (Moss's Claude does it).
 - **Done when:** `curl -X POST <live-url>/api/explain …` returns `"source":"claude"`.
+
+## T-20 · Show radiation, terrain risk and space-weather caution on the route cards
+- **Owner:** Moss's Claude · **Time box:** 20 min · **When:** with T-13 (Sat 13:00)
+- **Status:** TODO
+- **Why:** answers challenge O6 (radiation + space weather) and the PLAN's "risk" dashboard number, with data we already compute.
+- **Steps:**
+  1. Planner now returns `budget.doseMSv` and `budget.steepPct` (types already in `web/lib/plan-client.ts`). On each route card add two stats: **Radiation** `${doseMSv.toFixed(2)} mSv` (tooltip: "Curiosity RAD measured 0.64 mSv/day at Gale's surface (Hassler et al. 2014)") and **Steep ground** `${steepPct.toFixed(0)} %` (tooltip: "share of the route steeper than 15°").
+  2. Pass the space-weather status into planning: `plan({ ..., spaceWeather: sw.status })`. With `lvl: 'warn'` every route gets a CAUTION issue quoting `status.short` (e.g. today's CME).
+  3. In the `/api/explain` body add `doseMSv` and `steepPct` to each route (optional fields, already accepted and number-checked).
+- **Done when:** a card shows Radiation + Steep ground, and with today's CME warning the verdict reads CAUTION with the CME reason.

@@ -54,11 +54,13 @@ Loading in the browser: `new Int16Array(await (await fetch(url)).arrayBuffer())`
 ```js
 import { planMission } from '../../planner/src/plan.js';   // pure ES module, works in a Web Worker
 planMission({ elev, w, h, cellX, cellY, fineSlope, start: [x, y], end: [x, y], pois: [{ x, y, id }],
-              sun /* optional { endMarginH } */, params /* optional EVA_DEFAULTS overrides */,
+              sun /* optional { endMarginH } */, spaceWeather /* optional status from /api/space-weather: 'warn' → CAUTION on every route */,
+              params /* optional EVA_DEFAULTS overrides, e.g. { kitKg: 10 } for carried science gear */,
               roundTrip = true /* walk back to the airlock */, maxStops = 2 /* SCIENCE stops */ })
 // → [{ strategy: 'SAFE'|'FAST'|'SCIENCE', path: [[x, y], …] | null, budget, verdict, poisVisited: [id], stops: [{ id, d }], ms }]
 // budget = eva.js budget(): distance (m, whole EVA), oneWay (m), roundTrip, walkT, stopT, totalT (s), o2 (kg),
-//          marginPct (O2 left at the airlock, %), gain, loss, maxSlope (deg), timeline [{ d, t, o2 }]
+//          marginPct (O2 left at the airlock, %), gain, loss, maxSlope (deg), timeline [{ d, t, o2 }],
+//          doseMSv (radiation for the whole EVA, Curiosity RAD Gale rate 0.64 mSv/day), steepPct (% of route on ground > 15°, from fineSlope)
 // verdict = eva.js verdict(): { lvl: 'go'|'caution'|'nogo', issues: [{ lvl, msg }] }
 // path === null → no walkable route; verdict is NO-GO with a message. Out-of-grid start/end throws RangeError.
 ```
