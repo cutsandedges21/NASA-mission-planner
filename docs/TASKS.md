@@ -186,7 +186,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-17 · README for judges
 - **Owner:** Teammate · **When:** Sat 19:00–23:00
-- **Status:** TODO
+- **Status:** IN PROGRESS (Teammate, 17:35): **draft written in `docs/README-draft.md`** (pitch, why Gale, how it works, NASA data table, honest limits, credits, AI use, team). Left for Sat 19:00: live URL, demo video link, 3 screenshots, confirm which DEM was baked, then move it to `README.md` at the root
 - **Steps:** rewrite the root `README.md`: live URL, one-paragraph pitch, 3 screenshots, how it works (data → planner → AI), NASA data sources table, credits (Sol Atlas, OpenPlanetaryMap), AI-use disclosure, team.
 - **Done when:** a stranger can understand the project in 60 seconds from the README.
 
