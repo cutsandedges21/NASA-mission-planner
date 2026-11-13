@@ -20,6 +20,35 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 | **M4 FEATURE FREEZE** | **Sat 23:00** | Bugs only after this. Challenge checklist filled. README + credits | T-08, T-17 |
 | **M5 Submit** | **Sun 11:00** | Demo video + NASA project page submitted. 11:00–12:00 is buffer only | T-14 |
 
+## 📣 Latest from Moss's Claude (Fri 17:05). Read this first
+
+**What changed since your last pull:**
+1. **The web app exists and plans routes.** `web/` = Next.js 16.4 (Turbopack) + MapLibre GL 6. Click a science site (or the map), and your `planMission()` runs in a Web Worker: 3 coloured routes + 3 dashboard cards with GO / CAUTION / NO-GO. Tested in a real browser on demo data.
+2. **It imports your planner directly**: `web/workers/plan.worker.ts` imports `../../planner/src/plan.js`. `web/next.config.ts` sets `turbopack.root` to the repo root so that works. **Keep `planner/src/` pure ES modules, no Node imports, and keep the `planMission` return shape**, or the UI breaks. If you change the shape, update `web/lib/plan-client.ts` types in the same commit.
+3. **2D by default, 3D toggle** (Moss's decision, logged in DECISIONS). 3D uses MapLibre terrain fed by `elev.i16` through a custom `elev://` protocol (`web/lib/terrain.ts`). So **`elev.i16` drives both routing and 3D**. Get it right and both work.
+4. **Demo region** `web/public/data/demo/`: same bounds/grid (472×592, 25 m) and POIs as `gale`, invented terrain, `"synthetic": true` in meta.json (the UI shows a "Demo terrain" banner). Regenerate with `cd web && npm run demo-data`.
+5. **Your T-10 output must land in `web/public/data/gale/`** in the exact contract format. The UI switches regions with the env var `NEXT_PUBLIC_REGION=gale` (default `demo`). Tell Moss when the files are pushed and Moss's Claude flips it.
+6. **Design references** in `docs/design-references/`: 6 images + 1 video from Moss. **Visual polish comes later. Build first.** Don't restyle anything yet. A summary of the visual direction will be added to `docs/design-references/README.md`.
+
+**New files (Moss's side, don't edit without telling Moss):**
+| File | What |
+|---|---|
+| `web/components/MissionPlanner.tsx` | The whole planner screen: map, markers, routes, 2D/3D, dashboard cards |
+| `web/components/PlannerShell.tsx` | Client-only wrapper (MapLibre needs the browser) |
+| `web/lib/region.ts` | Loads `meta.json` / `elev.i16` / `slope.png` / `pois.json`; lon/lat ↔ cell helpers |
+| `web/lib/plan-client.ts` | Promise wrapper around the planner worker + TypeScript types for your return shape |
+| `web/lib/terrain.ts` | `elev://` protocol: DEM tiles for 3D + hillshade, built in the browser |
+| `web/workers/plan.worker.ts` | Runs your `planMission` off the main thread |
+| `web/scripts/make-demo-region.mjs` | Writes the synthetic demo region |
+
+**Running it:** `cd web && npm install && npm run build && npx next start -p 3123` → http://localhost:3123. (`npm run dev` works but is very slow inside OneDrive.) `prebuild` copies MapLibre's worker into `public/` automatically.
+
+**Unblocking T-10:** the USGS bucket works from **Moss's** machine (checked: all 5 keys answer HTTP 200). If Gianluca can't run `data/run_pipeline.bat` soon, set T-10 to `BLOCKED (sandbox)` and Moss's Claude will run it.
+
+**Your next tasks (Teammate):** finish T-10, then **T-12** (`web/app/api/explain` + `web/app/api/space-weather`). The UI will call them with the contract in ARCHITECTURE.md.
+
+---
+
 ## How to work this board (every Claude, every session)
 
 1. `git pull --rebase --autostash`, then read this file top to bottom.
@@ -69,7 +98,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-09 · Web app skeleton, live on Vercel
 - **Owner:** Moss's Claude · **Time box:** Fri 20:00
-- **Status:** IN PROGRESS (Moss, 17:00)
+- **Status:** IN PROGRESS (Moss): app built + tested locally; **only the Vercel deploy is left**
 - **Steps:**
   1. `npx create-next-app@latest web --ts --tailwind --app --eslint --src-dir=false --import-alias "@/*" --use-npm`, then `cd web && npm i maplibre-gl`.
   2. Full-screen MapLibre map with the OpenPlanetaryMap Mars basemap (URL in `docs/ARCHITECTURE.md`), dark mission-control UI shell: left panel (mission setup), right panel (dashboard), top bar (title + Mars clock placeholder).
@@ -96,7 +125,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-11 · Plan a mission in the UI (Tier 1 core)
 - **Owner:** Moss's Claude · **Time box:** Sat 01:00 · **Needs:** T-09, and T-05 for real routes (stub `planMission` with straight lines until it lands)
-- **Status:** TODO
+- **Status:** IN PROGRESS (Moss): steps 1–5 work on demo data (3 routes + cards, real planner in a worker). Left: swap to the real `gale` region once T-10 lands
 - **Steps:**
   1. `web/lib/region.ts`: load `meta.json` + `elev.i16` → `Float32Array`, plus lon/lat ↔ grid-cell helpers.
   2. `web/workers/plan.worker.ts`: imports `planner/src/plan.js` and runs `planMission` off the main thread.
