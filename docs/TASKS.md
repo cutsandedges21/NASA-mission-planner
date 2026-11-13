@@ -146,7 +146,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-12 · AI explanation + live space weather APIs
 - **Owner:** Teammate · **Time box:** Sat 13:00
-- **Status:** TODO
+- **Status:** IN PROGRESS (Teammate, 17:11)
 - **Steps:**
   1. `web/app/api/explain/route.ts` per "AI explanation contract" in ARCHITECTURE.md. Claude API, key from `ANTHROPIC_API_KEY` (add it to Vercel env vars). The system prompt forbids numbers that weren't given. 10 s timeout.
   2. Export `fallbackExplanation(routes)` from `web/lib/explain-fallback.ts` (a template sentence from the same numbers) for when the API fails.
