@@ -217,3 +217,14 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 ## T-06 · Stack + architecture
 - **Status:** DONE (commit 5ab98c8)
 - **Result:** `docs/ARCHITECTURE.md`: Next.js + MapLibre + OpenPlanetaryMap basemap + planner in a Web Worker + Claude API explanations + Vercel. Includes the data contract both sides build against.
+
+## T-18 · SCIENCE route makes a silly detour when no site is near the path
+- **Owner:** Teammate · **Time box:** 20 min · **Priority:** before M1 (it shows in the demo)
+- **Status:** TODO
+- **Seen by Moss's Claude, Fri 17:05 (demo region):** base Bradbury → target Yellowknife Bay. SAFE/FAST = 4.9 km, GO. SCIENCE = 24.6 km, 8h07m, **NO-GO**, because it detoured to Pahrump Hills. Cause: `pickScienceStops()` falls back to "visit the cheapest POI even if it's over the detour limit".
+- **Steps:**
+  1. In `planner/src/plan.js` → `pickScienceStops`, only use the fallback POI if the resulting EVA would still be feasible. Simplest version: drop the fallback, and if no POI fits the detour limit, SCIENCE = the SAFE route with `poisVisited: []` plus a flag `note: 'No science site within reach of this route'`.
+  2. Also skip a POI if it **is** the target (already handled for exact cells; make it "within 2 cells" so clicking a POI marker counts).
+  3. Add a test for the case above. Run `cd planner && npm test`.
+  4. If you add `note`, Moss's Claude will show it on the SCIENCE card (add it to `PlannedRoute` in `web/lib/plan-client.ts` in the same commit).
+- **Done when:** the Bradbury → Yellowknife Bay SCIENCE route is GO, or shows the note instead of a NO-GO detour.
