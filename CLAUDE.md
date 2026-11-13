@@ -4,14 +4,14 @@ Two-person team. Both of us work with Claude, so **this repo is our shared memor
 
 ## Start here, every session
 
-1. `git pull --rebase`
+1. `git pull --rebase --autostash`
 2. Open **[docs/TASKS.md](docs/TASKS.md)**, the live task board. It says what to do next, step by step, and how to claim a task.
 3. Ask your human whether they're **Moss** or **the Teammate**, then take the first `TODO` task for that person.
 
 **Stay in sync while you work.** Both people work at the same time. Commit and push after every finished step (about every 2 minutes), and pull before each step. To get alerted to the other side's changes, your human can run this in your session:
 
 ```
-/loop 2m git pull --rebase, re-read docs/TASKS.md, and tell me if anything assigned to me or blocking me changed
+/loop 2m git pull --rebase --autostash, re-read docs/TASKS.md, and tell me if anything assigned to me or blocking me changed
 ```
 
 ## Background docs (read before your first task)

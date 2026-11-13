@@ -8,11 +8,11 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## How to work this board (every Claude, every session)
 
-1. `git pull --rebase`, then read this file top to bottom.
+1. `git pull --rebase --autostash`, then read this file top to bottom.
 2. Ask your human which person they are (Moss or Teammate) if you don't know yet.
 3. Pick the **first** `TODO` task whose Owner is your person (or `Either`). Skip tasks that are `BLOCKED` or `IN PROGRESS` by someone else.
 4. **Claim it:** change its status to `IN PROGRESS (Moss|Teammate, HH:MM)`, then commit `claim T-xx` and push **right away**, so the other Claude sees it.
-5. Do the steps in order. **Commit and push after every step** (about every 2 minutes of work): `git pull --rebase && git push`.
+5. Do the steps in order. **Commit and push after every step** (about every 2 minutes of work): `git pull --rebase --autostash && git push`.
 6. When the done-check passes, set `DONE (commit hash)`, add one line under **Result**, and push.
 7. Found new work? Add a new task at the bottom with an owner, steps and a done-check. Don't silently do extra work.
 
@@ -38,7 +38,8 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-03 · Check the vendored Sol Atlas routing runs
 - **Owner:** Moss's Claude
-- **Status:** IN PROGRESS (Moss, now)
+- **Status:** DONE (see commit "T-03")
+- **Result:** route detours around the 400 m hill (highest point 8 m), 4.30 km, found in ~30 ms on a 200×200 grid; EVA 80 min, O₂ margin 83 %, GO. Mars clock + sun maths work. Vendored code is usable as-is.
 - **Steps:** write `smoke-test.mjs` (synthetic hill, route around it, O₂ budget) and run it with `node`.
 - **Done when:** `node smoke-test.mjs` prints `OK`.
 
