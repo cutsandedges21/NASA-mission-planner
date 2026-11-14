@@ -407,8 +407,8 @@ export default function MissionPlanner() {
 
       {/* phone: route cards as a bottom sheet */}
       {scored.length > 0 && (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex snap-x gap-2 overflow-x-auto p-3 md:hidden">
-          {scored.map((r) => (
+        <div className="absolute inset-x-0 bottom-0 z-10 flex snap-x gap-2 overflow-x-auto p-3 [scrollbar-width:none] md:hidden">
+          {[...scored].sort((a, b) => (a.strategy === selected ? -1 : b.strategy === selected ? 1 : 0)).map((r) => (
             <button
               key={r.strategy}
               onClick={() => setSelected(r.strategy)}
