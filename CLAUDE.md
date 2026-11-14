@@ -6,6 +6,7 @@ Two-person team. Both of us work with Claude, so **this repo is our shared memor
 
 ## Start here, every session
 
+0. **Sat 14 Nov: Moss's Claude is offline (weekly limit). Gianluca's Claude owns everything: read [docs/HANDOFF.md](docs/HANDOFF.md) first.**
 1. `git pull --rebase --autostash`
 2. Open **[docs/TASKS.md](docs/TASKS.md)**, the live task board. It says what to do next, step by step, and how to claim a task.
 3. Ask your human whether they're **Moss** or **the Teammate**, then take the first `TODO` task for that person.

@@ -1,5 +1,7 @@
 # Task Board (live)
 
+> **🚨 Sat 16:57 EST: Moss's Claude chats are stopping (weekly limit). Gianluca's Claude owns EVERYTHING now. Read [docs/HANDOFF.md](HANDOFF.md) first: state, the ordered task list, and the steps only the humans can do (deploy = Moss runs `bash tools/deploy.sh`).**
+
 **This is the live to-do list for both people and both Claudes.** Pull often. It changes every few minutes.
 
 People: **Moss** (product, frontend, UI/UX) and **Teammate** (data, routing, backend, AI pipeline). The split is still a proposal: see T-01.
@@ -18,6 +20,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 | Time (EST) | Who | What | Files / outputs the other side needs |
 |---|---|---|---|
+| Sat 16:57 | Moss's Claude (path chat) | **HANDOFF.** Deployed `main` 80f2b9b to production (live checks OK). All tests green (planner 28/28, API 15/15, timeline, rover-terrain, tsc). Wrote `docs/HANDOFF.md` (everything left, in order) and `tools/deploy.sh`. **T-29 (Blender) is NOT delivered**: Moss stopped that chat; nothing on GitHub; treat as CUT. No Vercel env vars are set (AI briefing = template) | **Gianluca's Claude: start at HANDOFF.md §2 Step 1.** Moss's chats won't answer from here on |
 | Sat 11:47 | Moss's Claude (path chat) | **Geology wired; `MissionPlanner.tsx` + `map/SetupPanel.tsx` are free again.** Environment → **Geology: Off / Rock units** (+ legend + "approximate" note) under your Map type grid; tint sits under the hillshade so the relief shades it like PIA26042; labels face the camera, the ridge label follows the ridge and never flips. Curiosity's line is now **solid, thin, pale** (no dashes) as in the reference. Checked through the real UI in 2D and 3D: `docs/graphics/t34-geology-3d.jpg` | **Teammate:** T-34 "For Teammate" items (2)–(4): credits, DATASETS, AI-USE. Optional for your route style: the reference draws the route as a thin pale line; ours keep strategy colours (your call with Gianluca) |
 | Sat 11:43 | Moss's Claude (path chat) | Read "T-33 wiring pushed". **Now editing `MissionPlanner.tsx` + `map/SetupPanel.tsx`** (about 20 min): Geology toggle under the Map type grid, and Curiosity's line drawn solid + thin like PIA26042 (it is still dashed). Checked geology in a browser: works in 2D + 3D, tuning tint order and labels | Please leave those two files until I log "geology wired" |
 | Sat 12:35 | Teammate's Claude | **T-33 wiring pushed. `MissionPlanner.tsx` and `map/SetupPanel.tsx` are free again.** NASA Trek map types (Colour / Height / Thermal / Slope), a Globe button and a hover readout (lat/lon, elevation, model temperature) | **Moss's Claude:** (1) SetupPanel props changed: `mapType`/`onMapType` replace `showSlope`/`onSlope`. (2) Your Geology toggle: put it under the Map type grid in SetupPanel's Environment section (`setGeologyVisible`). (3) The basemap is now NASA Trek (OpenPlanetaryMap removed; `credits.ts` and ARCHITECTURE updated). (4) Restyle `map/HoverReadout.tsx` freely (it sits at `bottom-[52px] left-[332px]`) |
