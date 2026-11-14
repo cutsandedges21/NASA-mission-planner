@@ -7,8 +7,9 @@
 // HONESTY: the walking/O2 physics is the same EVA model as the planner (eva.js). The *chances*
 // and *sizes* of the random events below are TEAM ASSUMPTIONS, not NASA measurements. They are all
 // in SIM_DEFAULTS, each with a `why`, and the UI lists them next to the results.
-import { walkSpeed, metabolicW, o2KgPerSec, evaDoseMSv, verdict, EVA_DEFAULTS } from './eva.js';
+import { walkSpeed, metabolicW, o2KgPerSec, verdict, EVA_DEFAULTS } from './eva.js';
 import { toSamples } from './plan.js';
+import { doseRateMSvDay } from './radiation.js';
 
 /** Every knob of the simulator. `value` is used; `why` is shown in the UI. */
 export const SIM_ASSUMPTIONS = {
@@ -103,6 +104,8 @@ export function runOnce(route, a, c, o = {}) {
   const stops = (route.stops || []).map((x) => ({ ...x, done: false }));
   const events = [];
   let t = 0, o2 = 0, slow = 1, turnedBackAtM = null, homeBound = false, gain = 0, loss = 0, arriveS = null;
+  // Dose like the route cards (plan.js + radiation.js): each segment at the rate of its mean elevation.
+  let dose = 0;
   // Optional hidden-ground field (candidates.js): Pandolf terrain factor per cell instead of one value per run.
   const field = o.field || null;
   let terrSum = 0, terrM = 0;
@@ -116,6 +119,7 @@ export function runOnce(route, a, c, o = {}) {
     const v = (p.rover ? p.roverMs * c.pace : walkSpeed(g, p)) * factor;
     const dt = dd / v;
     t += dt;
+    dose += (doseRateMSvDay((a0.e + b0.e) / 2) * dt) / 86400;
     o2 += o2KgPerSec(p.rover ? p.rideW * c.effort : metabolicW(v, (dh / dd) * 100, p)) * dt;
     if (dh > 0) gain += dh; else loss -= dh;
   };
@@ -159,6 +163,7 @@ export function runOnce(route, a, c, o = {}) {
       if (!st.done && st.d <= out[i].d + 1e-6) {
         st.done = true;
         t += p.stopMin * 60;
+        dose += (doseRateMSvDay(out[i].e) * p.stopMin * 60) / 86400;
         o2 += o2KgPerSec(p.stopW * c.effort) * p.stopMin * 60;
       }
     }
@@ -179,7 +184,7 @@ export function runOnce(route, a, c, o = {}) {
   const remaining = p0.o2CapKg - o2;
   const b = {
     distance, totalT: t, o2, remaining, reserveKg, marginPct: (remaining / p0.o2CapKg) * 100,
-    maxSlope: route.budget.maxSlope, gain, loss, doseMSv: evaDoseMSv(t),
+    maxSlope: route.budget.maxSlope, gain, loss, doseMSv: dose,
   };
   const sun = a.sun ? { endMarginH: a.sun.endMarginH - (t - route.budget.totalT) / 3600 } : null;
   const vp = p0.rover ? { ...p0, maxSlope: p0.roverMaxSlope ?? 20 } : p0;

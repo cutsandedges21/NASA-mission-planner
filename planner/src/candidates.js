@@ -9,9 +9,10 @@
 //   the other runs stay available as alternatives.
 // Physics = the planner's EVA model. Event chances: MDAD dust data + labelled assumptions (simulate.js).
 // Pure ES module, no Node-only imports: runs in the browser Web Worker.
-import { stepCost, walkSpeed, metabolicW, budget, verdict, evaDoseMSv, EVA_DEFAULTS } from './eva.js';
+import { stepCost, walkSpeed, metabolicW, budget, verdict, EVA_DEFAULTS } from './eva.js';
 import { toSamples, STEEP_DEG, PIT_STOP_ID } from './plan.js';
 import { smoothLine } from './smooth.js';
+import { relRate, RAD_AVOID, routeDoseMSv } from './radiation.js';
 import { rng, drawConditions, runOnce, dustRate, SIM_DEFAULTS, SIM_ASSUMPTIONS } from './simulate.js';
 
 export const CANDIDATE_DEFAULTS = { runs: 5, seed: 2026, fieldCells: 10 };
@@ -53,8 +54,9 @@ export function findBlend(g, ax, ay, bx, by, p, safety, field, roundTrip = true)
   const limit = (p.rover ? (p.roverMaxSlope ?? 20) : p.maxSlope) - 5 * safety;
   const maxTan = Math.tan(limit * DEG);
   const P0 = p.rover ? p.rideW : metabolicW(p.vFlat, 0, p); // W on flat ground: J → seconds of flat walking
-  let fMin = Infinity;
+  let fMin = Infinity, zMin = Infinity;
   for (let i = 0; i < field.length; i++) if (field[i] < fMin) fMin = field[i];
+  for (let i = 0; i < elev.length; i++) if (elev[i] < zMin) zMin = elev[i];
   const rel = (i) => field[i] / p.terrain;
   const tPerM = p.rover ? 1 / p.roverMs : roundTrip ? 2 / p.vFlat : 1 / (p.vFlat * Math.exp(0.175));
   const ePerM = (p.rover ? p.rideW / p.roverMs : stepCost(1, 0, p)) * (roundTrip ? 2 : 1);
@@ -109,7 +111,9 @@ export function findBlend(g, ax, ay, bx, by, p, safety, field, roundTrip = true)
       }
       const [t1, e1] = one(dist, dh);
       const [t2, e2] = roundTrip ? one(dist, -dh) : [0, 0];
-      const step = ((1 - safety) * (t1 + t2) + safety * slopePen * rel(ni) * (e1 + e2) / P0) * pen;
+      // The safety side also avoids higher-dose ground, like SAFE in route.js (radiation.js: factor >= 1, LB stays valid).
+      const radPen = relRate(elev[ni], zMin) ** RAD_AVOID;
+      const step = ((1 - safety) * (t1 + t2) + safety * slopePen * radPen * rel(ni) * (e1 + e2) / P0) * pen;
       const c = cost[cur] + step;
       if (c < cost[ni]) { cost[ni] = c; from[ni] = cur; push(c + heur(ni), ni); }
     }
@@ -154,7 +158,7 @@ function scoreCandidate(a, p, path, viaPoi) {
   b.gradeMaxSlope = b.maxSlope;
   b.fineMaxSlope = fineSlope ? Math.max(0, ...path.map(([x, y]) => fineSlope[y * w + x])) : 0;
   b.maxSlope = Math.max(b.gradeMaxSlope, b.fineMaxSlope);
-  b.doseMSv = evaDoseMSv(b.totalT);
+  b.doseMSv = routeDoseMSv(samples, b.timeline, stops.map((st) => samples.find((x) => x.d >= st.d)?.e ?? out.at(-1).e), p.stopMin * 60);
   const steep = steepStretches(path, out, fineSlope, w);
   b.steepPct = (steep.reduce((t, s) => t + Math.max(s.toM - s.fromM, 25), 0) / (b.oneWay || 1)) * 100;
   b.mode = p.rover ? 'rover' : 'foot';

@@ -30,6 +30,7 @@ test('a calm run with nominal pace reproduces the planner budget', () => {
     assert.ok(Math.abs(run.totalT - r.budget.totalT) < 1e-6 * r.budget.totalT, `${r.strategy} time ${run.totalT} vs ${r.budget.totalT}`);
     assert.ok(Math.abs(run.o2 - r.budget.o2) < 1e-6 * r.budget.o2, `${r.strategy} O2`);
     assert.ok(Math.abs(run.distance - r.budget.distance) < 1e-6);
+    assert.ok(Math.abs(run.doseMSv - r.budget.doseMSv) < 1e-6 * r.budget.doseMSv, `${r.strategy} dose ${run.doseMSv} vs ${r.budget.doseMSv}`);
   }
 });
 
