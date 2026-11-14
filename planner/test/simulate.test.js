@@ -127,3 +127,46 @@ test('dust.json rate: season lookup, forced storms, and MDAD text in the recomme
   assert.equal(real.routes[0].summary.dustRuns, 0, 'MDAD: no storm over Gale at Ls 90-120');
   assert.match(describeRecommendation(real), /orbiter maps/);
 });
+
+// ---- five seeded simulations (candidates.js) ----
+test('simulateCandidates: 5 seeded routes, FASTEST/SAFEST/BALANCED + alternatives, replayable', async () => {
+  const { simulateCandidates, pickRoles, describeCandidate, groundField } = await import('../src/candidates.js');
+  const res = simulateCandidates(base, { runs: 5 });
+  assert.equal(res.runs.length, 5);
+  const roles = [res.fastest, res.safest, res.balanced, ...res.alternatives].filter((v) => v != null);
+  assert.equal(new Set(roles).size, roles.length, 'each run has one role');
+  assert.equal(roles.length, 5, 'all five runs are reachable in the UI');
+  const ok = res.runs.filter((x) => x.run && x.run.arriveS != null && x.run.lvl !== 'nogo');
+  const F = res.runs[res.fastest];
+  for (const x of ok) assert.ok(F.run.arriveS <= x.run.arriveS + 1e-9, 'FASTEST is first to Point 2');
+  const S = res.runs[res.safest];
+  for (const x of res.runs.filter((y) => y.run && y.run.arriveS != null)) assert.ok(S.problemScore <= x.problemScore, 'SAFEST has the fewest problems');
+  for (const x of res.runs) {
+    assert.ok(x.safety >= 0 && x.safety <= 1);
+    assert.deepEqual(x.route.path[0], base.start);
+    assert.deepEqual(x.route.path.at(-1), base.end);
+    assert.ok(describeCandidate(x, res.runs[res.balanced], 'BALANCED').length > 50);
+  }
+  // risk appetite spreads over [0, 1]: one per fifth
+  assert.deepEqual(res.runs.map((x) => Math.floor(x.safety * 5)).sort(), [0, 1, 2, 3, 4]);
+  const again = simulateCandidates(base, { runs: 5 });
+  assert.deepEqual(again.runs.map((x) => x.run.totalT), res.runs.map((x) => x.run.totalT), 'same seeds, same results');
+  const f = groundField(3, 50, 40, 1.1, 1.5);
+  assert.ok(Math.min(...f) >= 1.1 - 1e-6 && Math.max(...f) <= 1.5 + 1e-6);
+  // a turned-back run is never SAFEST while another run reached Point 2
+  const fake = (i, arriveS, problems, margin = 50) => ({ i, run: { arriveS, lvl: 'go', marginPct: margin, totalT: 1000 + i }, route: { budget: { maxSlope: 5 } }, problems: [], problemScore: problems });
+  const roles2 = pickRoles([fake(0, 100, 1), fake(1, null, 0), fake(2, 120, 0), fake(3, 130, 2), fake(4, 90, 3)]);
+  assert.equal(roles2.fastest, 4);
+  assert.equal(roles2.safest, 2);
+  assert.notEqual(roles2.balanced, 1);
+});
+
+test('simulateCandidates with a pit stop: every simulated route passes it', async () => {
+  const { simulateCandidates } = await import('../src/candidates.js');
+  const via = [100, 160];
+  const res = simulateCandidates({ ...base, via }, { runs: 5 });
+  for (const x of res.runs) {
+    assert.ok(x.route.path.some(([px, py]) => px === via[0] && py === via[1]));
+    assert.ok(x.route.stops.some((s) => s.id === 'pitstop'));
+  }
+});

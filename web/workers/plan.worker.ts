@@ -5,6 +5,7 @@
 import { planMission } from '../../planner/src/plan.js';
 import { simulateMission, describeRun, describeRecommendation } from '../../planner/src/simulate.js';
 import { describeSteps } from '../../planner/src/steps.js';
+import { simulateCandidates, describeCandidate } from '../../planner/src/candidates.js';
 
 type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 let last: { args: Any; routes: Any[] } | null = null;
@@ -13,6 +14,25 @@ self.onmessage = (e: MessageEvent) => {
   const { id, args, kind, opts } = e.data;
   const post = (m: Any) => (self as unknown as Worker).postMessage({ id, ...m });
   try {
+    if (kind === 'candidates') {
+      // Five seeded simulations Point 1 → Point 2 (planner/src/candidates.js): FASTEST / SAFEST / BALANCED + 2 more.
+      if (!last) throw new Error('plan a route before simulating');
+      const names: Record<string, string> = opts?.names || {};
+      const res = simulateCandidates(last.args, opts || {});
+      const role = (i: number) =>
+        i === res.fastest && i === res.safest ? 'FASTEST + SAFEST' : i === res.fastest ? 'FASTEST' : i === res.safest ? 'SAFEST' : i === res.balanced ? 'BALANCED' : 'ALTERNATIVE';
+      const ref = res.balanced != null ? res.runs[res.balanced] : null;
+      const runs = res.runs.map((x: Any) => ({
+        i: x.i, seed: x.seed, safety: x.safety, problems: x.problems, problemScore: x.problemScore,
+        role: x.run ? role(x.i) : 'NO ROUTE',
+        route: x.route && { strategy: x.route.strategy, path: x.route.path, line: x.route.line, budget: { ...x.route.budget, timeline: undefined }, verdict: x.route.verdict, stops: x.route.stops },
+        run: x.run,
+        text: describeCandidate(x, ref, role(x.i).startsWith('FASTEST') ? 'FASTEST' : role(x.i)),
+        steps: x.route ? describeSteps(x.route, last!.args, names) : [],
+      }));
+      post({ result: { ...res, runs } });
+      return;
+    }
     if (kind === 'simulate') {
       if (!last) throw new Error('plan a route before simulating');
       const names: Record<string, string> = opts?.names || {};

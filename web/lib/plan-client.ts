@@ -192,3 +192,45 @@ export function simulate(opts: SimOpts = {}): Promise<SimResult> {
     getWorker().postMessage({ id, kind: 'simulate', opts });
   });
 }
+
+// ---- Five seeded simulations Point 1 → Point 2 (T-35, planner/src/candidates.js) ----
+export type CandidateRole = 'FASTEST' | 'SAFEST' | 'FASTEST + SAFEST' | 'BALANCED' | 'ALTERNATIVE' | 'NO ROUTE';
+export type Candidate = {
+  i: number;
+  seed: number;
+  /** 0 = pure speed … 1 = most cautious: this seed's risk appetite. */
+  safety: number;
+  role: CandidateRole;
+  problems: { w: number; msg: string }[];
+  problemScore: number;
+  route: { strategy: string; path: [number, number][]; line: [number, number][]; budget: Omit<Budget, 'timeline'>; verdict: Verdict; stops: { id: string; d: number }[] } | null;
+  run: (SimRun & { arriveS: number | null }) | null;
+  /** Plain-language paragraph from the numbers (worker). */
+  text: string;
+  steps: StepLeg[];
+};
+export type CandidatesResult = {
+  runs: Candidate[];
+  fastest: number | null;
+  safest: number | null;
+  balanced: number | null;
+  alternatives: number[];
+  bothFastestAndSafest?: boolean;
+  assumptions: Record<string, { value: number; why: string }>;
+  dustRate: SimResult['dustRate'];
+  dustSource: string | null;
+  forceDust: boolean;
+};
+export type CandidateOpts = Omit<SimOpts, 'strategies' | 'sunByStrategy'> & {
+  /** Local solar hours: leave at startH, sunset at sunsetH. Each simulation's daylight margin comes from its own duration. */
+  daylight?: { startH: number; sunsetH: number };
+};
+
+/** Five seeded simulations of the last plan() call's Point 1 → Point 2 (+ pit stop). ~0.5–2 s in the worker. */
+export function simulateCandidates(opts: CandidateOpts = {}): Promise<CandidatesResult> {
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    getWorker().postMessage({ id, kind: 'candidates', opts });
+  });
+}

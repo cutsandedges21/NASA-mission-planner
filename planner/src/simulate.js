@@ -102,11 +102,15 @@ export function runOnce(route, a, c, o = {}) {
   const oneWay = out.at(-1).d;
   const stops = (route.stops || []).map((x) => ({ ...x, done: false }));
   const events = [];
-  let t = 0, o2 = 0, slow = 1, turnedBackAtM = null, homeBound = false, gain = 0, loss = 0;
+  let t = 0, o2 = 0, slow = 1, turnedBackAtM = null, homeBound = false, gain = 0, loss = 0, arriveS = null;
+  // Optional hidden-ground field (candidates.js): Pandolf terrain factor per cell instead of one value per run.
+  const field = o.field || null;
+  let terrSum = 0, terrM = 0;
 
-  const step = (a0, b0, factor) => {
+  const step = (a0, b0, factor, cell) => {
     const dd = Math.abs(b0.d - a0.d);
     if (dd <= 0) return;
+    if (field && cell) { p.terrain = field[cell[1] * a.w + cell[0]]; terrSum += p.terrain * dd; terrM += dd; }
     const dh = b0.e - a0.e;
     const g = Math.atan2(dh, dd);
     const v = (p.rover ? p.roverMs * c.pace : walkSpeed(g, p)) * factor;
@@ -120,7 +124,7 @@ export function runOnce(route, a, c, o = {}) {
     let back = false;
     if (c.dust && !c.dust.seen && t >= c.dust.tOnS) {
       c = { ...c, dust: { ...c.dust, seen: true } };
-      const heavy = c.dust.tau > (route.strategy === 'SAFE' ? s.safePushMaxTau : s.pushMaxTau);
+      const heavy = c.dust.tau > (route.strategy === 'SAFE' || o.safeRule ? s.safePushMaxTau : s.pushMaxTau);
       const decision = heavy ? (outbound ? 'turn back' : 'push home slowly') : 'keep going';
       slow = c.dust.tau > s.pushMaxTau ? s.heavyDustSlow : s.dustSlow;
       if (heavy && outbound) back = true;
@@ -149,7 +153,8 @@ export function runOnce(route, a, c, o = {}) {
   // Outbound
   let i = 1;
   for (; i < out.length; i++) {
-    step(out[i - 1], out[i], slow);
+    step(out[i - 1], out[i], slow, route.path[i]);
+    if (i === out.length - 1) arriveS = t; // reached Point 2 (before any work at the target)
     for (const st of stops) {
       if (!st.done && st.d <= out[i].d + 1e-6) {
         st.done = true;
@@ -159,11 +164,12 @@ export function runOnce(route, a, c, o = {}) {
     }
     if (check(out[i].d, true)) { turnedBackAtM = out[i].d; homeBound = true; break; }
   }
+  if (out.length === 1) arriveS = 0;
   const lastOut = Math.min(i, out.length - 1);
   // Return along the same route (a Marswalk ends at the airlock). Always walk home after a turn-back.
   if (a.roundTrip !== false || homeBound) {
     for (let j = lastOut; j > 0; j--) {
-      step(out[j], out[j - 1], slow);
+      step(out[j], out[j - 1], slow, route.path[j - 1]);
       check(out[j - 1].d, false);
     }
   }
@@ -181,7 +187,7 @@ export function runOnce(route, a, c, o = {}) {
   const stopsDone = stops.filter((x) => x.done).map((x) => x.id);
   const outcome = v.lvl === 'nogo' ? 'unsafe' : turnedBackAtM != null ? 'turned back' : 'completed';
   return {
-    seed: c.seed, pace: c.pace, terrain: c.terrain, effort: c.effort,
+    seed: c.seed, pace: c.pace, terrain: field ? (terrM ? terrSum / terrM : c.terrain) : c.terrain, effort: c.effort, arriveS,
     events, turnedBackAtM, outcome, lvl: v.lvl, issues: v.issues,
     stopsDone, stopsMissed: stops.filter((x) => !x.done).map((x) => x.id),
     endMarginH: sun ? sun.endMarginH : null, ...b,
