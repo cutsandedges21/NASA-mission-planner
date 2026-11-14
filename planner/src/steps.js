@@ -136,7 +136,7 @@ function legText(l, names, last) {
   const parts = [`Head ${l.compass} for ${m(l.distM)} (~${min} min, ${(l.o2Kg * 1000).toFixed(0)} g O₂).`];
   if (Math.abs(l.dhM) < 5) parts.push('Nearly level.');
   else parts.push(`${l.dhM > 0 ? 'Climb' : 'Descend'} ${Math.round(Math.abs(l.dhM))} m (${Math.abs(l.avgGradePct).toFixed(1)} % average grade).`);
-  parts.push(`Steepest ground ${l.maxSlope.toFixed(0)}°${l.steep ? `: steep, ${Math.round(l.steepM)} m above 15°` : ''}.`);
+  parts.push(`Steepest ground ${l.maxSlope.toFixed(0)}°${l.steep ? (l.steepM >= 1 ? `: steep, ${Math.round(l.steepM)} m above 15°` : ': one steep pitch') : ''}.`);
   if (l.climb) parts.push(`Goes over a ${Math.round(l.riseM)} m rise: the planner found this cheaper than going around.`);
   if (l.stopAtEnd) parts.push(`Stop: ${l.stopAtEnd === 'pitstop' ? 'your pit stop' : names[l.stopAtEnd] || l.stopAtEnd}.`);
   if (!last && Math.abs(l.turn) >= 10) parts.push(`Then turn ${l.turn > 0 ? 'right' : 'left'} ${Math.abs(l.turn)}°.`);

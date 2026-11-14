@@ -23,6 +23,7 @@ import RouteCards from './map/RouteCards';
 import DockCard from './map/DockCard';
 import Credits from './map/Credits';
 import { useSimulation } from './Simulation';
+import ScenarioPanel from './ScenarioPanel';
 import { ROUTE_STYLE } from './map/format';
 import { setGeologyVisible } from '@/lib/geology-layer';
 
@@ -41,7 +42,7 @@ function fitWorld(mp: MLMap) {
 }
 
 /** What the next map click does: set the destination, move the base, or fill in a new bookmark. */
-type Placing = 'dest' | 'base' | 'bookmark';
+type Placing = 'dest' | 'base' | 'bookmark' | 'pitstop';
 
 /** Routes shown in the app (Gianluca, Sat 14 Nov: SCIENCE removed from the UI; the planner still computes it). */
 const SHOWN: Strategy[] = ['SAFE', 'FAST'];
@@ -49,7 +50,7 @@ const SHOWN: Strategy[] = ['SAFE', 'FAST'];
 export default function MissionPlanner() {
   const mapEl = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
-  const markers = useRef<{ base?: maplibregl.Marker; dest?: maplibregl.Marker }>({});
+  const markers = useRef<{ base?: maplibregl.Marker; dest?: maplibregl.Marker; pitstop?: maplibregl.Marker }>({});
   const [region, setRegion] = useState<Region | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [base, setBase] = useState<[number, number] | null>(null);
@@ -63,6 +64,8 @@ export default function MissionPlanner() {
   const [error, setError] = useState<string | null>(null);
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
+  // pit stop between Point 1 and Point 2 (T-35): lng/lat, every route passes through it
+  const [pitStop, setPitStop] = useState<[number, number] | null>(null);
   // map type (T-33): colour / height / thermal / slope. Slope keeps the colour base + the slope overlay.
   const [mapType, setMapType] = useState<MapType>('colour');
   const showSlope = mapType === 'slope';
@@ -142,6 +145,8 @@ export default function MissionPlanner() {
           traverse: { type: 'geojson', data: region.traverse ?? { type: 'FeatureCollection', features: [] } },
           routes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
           trail: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+          // Mission simulator (T-35): the simulation picked in ScenarioPanel
+          'sim-route': { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
@@ -171,6 +176,16 @@ export default function MissionPlanner() {
             id: 'routes', type: 'line', source: 'routes',
             layout: { 'line-join': 'round', 'line-cap': 'round', 'line-sort-key': ['case', ['get', 'selected'], 1, 0] },
             paint: { 'line-color': ['get', 'color'], 'line-width': ['case', ['get', 'selected'], 2.8, 1.6], 'line-opacity': ['case', ['get', 'selected'], 1, 0.5] },
+          },
+          {
+            id: 'sim-route-casing', type: 'line', source: 'sim-route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#05060a', 'line-width': 6.5, 'line-opacity': 0.75 },
+          },
+          {
+            id: 'sim-route', type: 'line', source: 'sim-route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#ffffff', 'line-width': 2.8, 'line-dasharray': [2, 1.2] },
           },
           {
             id: 'trail', type: 'line', source: 'trail',
@@ -253,6 +268,11 @@ export default function MissionPlanner() {
         return;
       }
       setError(null);
+      if (placing === 'pitstop') {
+        setPitStop([lng, lat]);
+        setPlacing('dest');
+        return;
+      }
       if (placing === 'base') {
         setBase([lng, lat]);
         setPlacing('dest');
@@ -272,7 +292,7 @@ export default function MissionPlanner() {
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp) return;
-    const put = (key: 'base' | 'dest', pos: [number, number] | null, cls: string, text: string) => {
+    const put = (key: 'base' | 'dest' | 'pitstop', pos: [number, number] | null, cls: string, text: string) => {
       markers.current[key]?.remove();
       markers.current[key] = undefined;
       if (!pos) return;
@@ -283,7 +303,8 @@ export default function MissionPlanner() {
     };
     put('base', base, 'pin pin-base', 'BASE');
     put('dest', dest, 'pin pin-dest', 'TARGET');
-  }, [mapReady, base, dest]);
+    put('pitstop', pitStop, 'pin pin-pitstop', 'PIT STOP');
+  }, [mapReady, base, dest, pitStop]);
 
   // 6. plan routes whenever base + destination are set
   useEffect(() => {
@@ -292,6 +313,7 @@ export default function MissionPlanner() {
     const start = toCell(m, base[0], base[1]);
     const end = toCell(m, dest[0], dest[1]);
     if (!start || !end) return;
+    const via = pitStop ? toCell(m, pitStop[0], pitStop[1]) : null;
     const pois = region.pois
       .map((p) => ({ p, c: toCell(m, p.lon, p.lat) }))
       .filter((q): q is { p: Poi; c: [number, number] } => !!q.c)
@@ -300,14 +322,27 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for async planning
     setBusy(true);
     setError(null);
-    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, pois, spaceWeather: weather, params: rover ? { rover: true } : undefined })
+    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, via, pois, spaceWeather: weather, params: rover ? { rover: true } : undefined })
       .then((r) => !cancelled && setRoutes(r))
       .catch((e) => !cancelled && setError(`Route planning failed: ${e.message}`))
       .finally(() => !cancelled && setBusy(false));
     return () => {
       cancelled = true;
     };
-  }, [region, base, dest, weather, rover]);
+  }, [region, base, dest, weather, rover, pitStop]);
+
+  // 6b. draw the simulation picked in the Mission simulator panel (T-35)
+  const previewSim = useCallback(
+    (line: [number, number][] | null) => {
+      const src = map.current?.getSource('sim-route') as GeoJSONSource | undefined;
+      if (!src || !region) return;
+      src.setData({
+        type: 'FeatureCollection',
+        features: line ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: line.map(([x, y]) => toLonLat(region.meta, x, y)) } }] : [],
+      });
+    },
+    [region],
+  );
 
   // 7. draw routes
   useEffect(() => {
@@ -416,7 +451,7 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the globe toggle only
   }, [mapReady, globe]);
 
-  const poiName = useCallback((id: string) => region?.pois.find((p) => p.id === id)?.name ?? id, [region]);
+  const poiName = useCallback((id: string) => (id === 'pitstop' ? 'your pit stop' : region?.pois.find((p) => p.id === id)?.name ?? id), [region]);
 
   // daylight at the base: sunrise/sunset for today's solar declination
   const clock = useMemo(() => (base ? marsClock(base[0], base[1]) : null), [base]);
@@ -445,7 +480,7 @@ export default function MissionPlanner() {
       doseMSv: r.budget.doseMSv,
       steepPct: r.budget.steepPct,
       verdict: r.verdict,
-      poisVisited: r.poisVisited.map(poiName),
+      poisVisited: r.poisVisited.filter((id) => id !== 'pitstop').map(poiName), // the pit stop isn't a science site
       note: r.note ?? (rover ? 'Rover assist: the crew drives an unpressurised rover between sites and works on foot at each site' : undefined),
     }));
     const rec = scored.find((r) => r.strategy === pickRecommended(routesIn));
@@ -553,6 +588,23 @@ export default function MissionPlanner() {
       />
 
       <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />
+
+      {scored.length > 0 && !simulation.running && (
+        <ScenarioPanel
+          routes={scored}
+          poiName={poiName}
+          Ls={clock?.Ls}
+          spaceWeatherLvl={weather?.lvl}
+          daylight={clock ? { startH: startClamped, sunsetH: clock.set } : null}
+          pitStop={pitStop}
+          placingPitStop={placing === 'pitstop'}
+          onTogglePitStop={() => setPlacing(placing === 'pitstop' ? 'dest' : 'pitstop')}
+          onClearPitStop={() => setPitStop(null)}
+          onPreview={mapReady ? previewSim : undefined}
+          regionId={region?.meta.id ?? 'gale'}
+          className="absolute left-1/2 top-20 z-10 hidden max-h-[calc(100vh-345px)] w-[400px] -translate-x-1/2 overflow-y-auto md:block"
+        />
+      )}
 
       <DockCard
         base={base}

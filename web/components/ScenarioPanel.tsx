@@ -56,6 +56,8 @@ export default function ScenarioPanel({
   const [tab, setTab] = useState<Tab>('what');
   const [pick, setPick] = useState<{ key: CandidatesResult | null; i: number | null }>({ key: null, i: null });
   const [open, setOpen] = useState(true);
+  // Compact by default so the map stays visible; picking a simulation opens its details.
+  const [details, setDetails] = useState(false);
   const [stress, setStress] = useState(false);
   const [dust, setDust] = useState<{ id: string; data: unknown } | null>(null);
 
@@ -107,7 +109,7 @@ export default function ScenarioPanel({
     return (
       <button
         key={x.i}
-        onClick={() => setPick({ key: r, i: x.i })}
+        onClick={() => { setPick({ key: r, i: x.i }); setDetails(true); }}
         className={`rounded-xl border text-left transition ${on ? 'border-white/60 bg-white/[0.06]' : 'border-white/10 hover:border-white/25'} ${big ? 'p-2.5' : 'flex w-full items-center gap-3 px-2.5 py-1.5'}`}
         data-testid={`scenario-run-${x.i}`}
         aria-pressed={on}
@@ -120,9 +122,8 @@ export default function ScenarioPanel({
             <>
               <span className="mt-1 block text-[15px] font-semibold text-white">{x.run.arriveS != null ? fmtDur(x.run.arriveS) : 'turned back'}</span>
               <span className="block text-[10px] text-zinc-500">to Point 2</span>
-              <span className="mt-1 block text-[11px] text-zinc-300">
-                {x.problems.length} problem{x.problems.length === 1 ? '' : 's'} · O₂ {x.run.marginPct.toFixed(0)} %
-              </span>
+              <span className="mt-1 block text-[11px] text-zinc-300">{x.problems.length} problem{x.problems.length === 1 ? '' : 's'}</span>
+              <span className="block text-[11px] text-zinc-400">O₂ left {x.run.marginPct.toFixed(0)}%</span>
               <span className={`block text-[10px] font-semibold ${lvl[1]}`}>{lvl[0]}</span>
             </>
           ) : (
@@ -151,8 +152,8 @@ export default function ScenarioPanel({
 
       {open && (
         <>
-          <p className="mt-2 text-[12px] leading-relaxed text-zinc-400" data-testid="scenario-summary">
-            Five simulations from Point 1 to Point 2. Each seed has its own risk appetite, hidden ground and weather, so each finds its own route. Pick one to see it on the map.
+          <p className="mt-1.5 text-[11.5px] leading-snug text-zinc-400" data-testid="scenario-summary">
+            Five seeded simulations, Point 1 → Point 2: each has its own risk appetite, hidden ground and weather. Pick one to see it on the map.
           </p>
           {err && <p className="mt-2 text-[12px] text-red-300">Simulator: {err}</p>}
           {!r && !err && <p className="mt-2 text-[12px] text-zinc-500">Simulating 5 EVAs…</p>}
@@ -195,8 +196,14 @@ export default function ScenarioPanel({
           </div>
 
           {r && cur && (
+            <button className="mt-2 text-[11px] text-zinc-400 hover:text-white" onClick={() => setDetails(!details)} data-testid="scenario-details">
+              {details ? 'Hide details ▴' : `Details for simulation ${cur.i + 1} ▾`}
+            </button>
+          )}
+
+          {r && cur && details && (
             <>
-              <div className="mt-3 flex gap-1 text-[11px]" role="tablist">
+              <div className="mt-2 flex gap-1 text-[11px]" role="tablist">
                 {(['what', 'steps', 'assumptions'] as Tab[]).map((t) => (
                   <button
                     key={t}

@@ -28,6 +28,7 @@ html, body { background: #07080a; color: #f4f4f5; font-family: var(--font-geist-
 .pin span { font: 700 9px var(--font-geist-mono), monospace; letter-spacing: 0.15em; padding: 3px 6px; border-radius: 6px; color: #07080a; }
 .pin::after { content: ""; width: 2px; height: 14px; background: currentColor; }
 .pin-base { color: #e5e7eb; } .pin-base span { background: #e5e7eb; }
+.pin-pitstop { color: #fdba74; } .pin-pitstop span { background: #fdba74; }
 .pin-dest { color: #fb923c; } .pin-dest span { background: #fb923c; }
 
 .maplibregl-ctrl-group { background: #0c0e12cc !important; border: 1px solid rgb(255 255 255 / 0.1); backdrop-filter: blur(12px); }
