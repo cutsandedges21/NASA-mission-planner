@@ -19,7 +19,8 @@ export type Region = {
   elev: Float32Array;
   fineSlope: Float32Array | null;
   pois: Poi[];
-  /** Curiosity's real drive path inside the region (NASA/JPL MSL waypoints), if the region has one. */
+  /** Curiosity's real drive path inside the region, for drawing: NASA/JPL's detailed MSL traverse line
+   *  (traverse-detail.json, T-34) when the region has it, else the end-of-drive stops (traverse.json). */
   traverse: GeoJSON.GeoJSON | null;
   url: (file: string) => string;
 };
@@ -46,6 +47,15 @@ async function loadSlope(url: string, w: number, h: number): Promise<Float32Arra
   }
 }
 
+/** The detailed line looks like NASA's own maps; the stops file is the fallback (and what the planner validation uses). */
+async function loadTraverse(url: (file: string) => string): Promise<GeoJSON.GeoJSON | null> {
+  for (const file of ['traverse-detail.json', 'traverse.json']) {
+    const t = await fetch(url(file)).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (t) return t;
+  }
+  return null;
+}
+
 export async function loadRegion(id = new URLSearchParams(window.location.search).get('region') ?? REGION_ID): Promise<Region> {
   const url = (file: string) => `/data/${id}/${file}`;
   const meta: RegionMeta = await (await fetch(url('meta.json'))).json();
@@ -53,7 +63,7 @@ export async function loadRegion(id = new URLSearchParams(window.location.search
     fetch(url('elev.i16')).then((r) => r.arrayBuffer()),
     fetch(url('pois.json')).then((r) => (r.ok ? r.json() : [])),
     loadSlope(url('slope.png'), meta.width, meta.height),
-    fetch(url('traverse.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    loadTraverse(url),
   ]);
   const i16 = new Int16Array(buf);
   const elev = Float32Array.from(i16);
