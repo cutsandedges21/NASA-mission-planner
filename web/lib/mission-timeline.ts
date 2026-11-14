@@ -33,6 +33,8 @@ export type Mission = {
   totalT: number;
   totalO2: number;
   at: (u: number) => Frame;
+  /** Inverse of `at(u).tau`: the animation time at which the mission clock reads `tau` (used to switch pacing without losing your place). */
+  uAtTau: (tau: number) => number;
 };
 
 export type MissionOptions = {
@@ -136,7 +138,35 @@ export function buildMission(route: PlannedRoute, opts: MissionOptions = {}): Mi
     };
   };
 
-  return { duration, oneWay, total: b.distance, totalT: b.totalT, totalO2: b.o2, at };
+  const taus = keys.map((k) => k.tau);
+  const uAtTau = (tau: number): number => {
+    if (tau <= taus[0]) return ks[0].u;
+    if (tau >= taus[taus.length - 1]) return duration;
+    let lo = 0, hi = ks.length - 1;
+    while (hi - lo > 1) {
+      const m = (lo + hi) >> 1;
+      if (taus[m] <= tau) lo = m;
+      else hi = m;
+    }
+    const span = taus[hi] - taus[lo];
+    return span > 1e-9 ? ks[lo].u + ((tau - taus[lo]) / span) * (ks[hi].u - ks[lo].u) : ks[lo].u;
+  };
+
+  return { duration, oneWay, total: b.distance, totalT: b.totalT, totalO2: b.o2, at, uAtTau };
+}
+
+/** Point at distance `d` along a polyline, given its cumulative distances. */
+export function pointOnPolyline(cum: number[], pts: [number, number][], d: number): [number, number] {
+  const oneWay = cum[cum.length - 1];
+  const x = Math.min(Math.max(d, 0), oneWay);
+  let lo = 0, hi = cum.length - 1;
+  while (hi - lo > 1) {
+    const m = (lo + hi) >> 1;
+    if (cum[m] <= x) lo = m;
+    else hi = m;
+  }
+  const f = (x - cum[lo]) / (cum[hi] - cum[lo] || 1);
+  return [pts[lo][0] + (pts[hi][0] - pts[lo][0]) * f, pts[lo][1] + (pts[hi][1] - pts[lo][1]) * f];
 }
 
 /** Position along a path of [x, y] cells given the distance walked on the out-and-back (path walked out, then reversed). */
@@ -146,22 +176,19 @@ export function makePathLocator(path: [number, number][], cellX: number, cellY: 
     cum.push(cum[i - 1] + Math.hypot((path[i][0] - path[i - 1][0]) * cellX, (path[i][1] - path[i - 1][1]) * cellY));
   }
   const coords = path.map(([x, y]) => toLonLat(x, y));
+  /** The same path in metres east / south of the region's north-west corner (the first-person view's frame). */
+  const metresPts = path.map(([x, y]): [number, number] => [(x + 0.5) * cellX, (y + 0.5) * cellY]);
   const oneWay = cum[cum.length - 1];
-  const out = (dOut: number): [number, number] => {
-    const d = Math.min(Math.max(dOut, 0), oneWay);
-    let lo = 0, hi = cum.length - 1;
-    while (hi - lo > 1) {
-      const m = (lo + hi) >> 1;
-      if (cum[m] <= d) lo = m;
-      else hi = m;
-    }
-    const f = (d - cum[lo]) / (cum[hi] - cum[lo] || 1);
-    return [coords[lo][0] + (coords[hi][0] - coords[lo][0]) * f, coords[lo][1] + (coords[hi][1] - coords[lo][1]) * f];
-  };
+  const out = (dOut: number): [number, number] => pointOnPolyline(cum, coords, dOut);
+  const back = (d: number) => (d <= oneWay ? d : 2 * oneWay - d);
   return {
     oneWay,
+    cum,
+    metresPts,
     /** Position after walking `d` metres of the round trip. */
-    at: (d: number) => out(d <= oneWay ? d : 2 * oneWay - d),
+    at: (d: number) => out(back(d)),
+    /** Same, in metres east (x) and south (z) of the region's north-west corner. */
+    metres: (d: number) => pointOnPolyline(cum, metresPts, back(d)),
     /** The part of the route walked so far, as a line (out, then back along the same cells). */
     trail: (d: number): [number, number][] => {
       const dOut = Math.min(d, oneWay);
@@ -169,9 +196,9 @@ export function makePathLocator(path: [number, number][], cellX: number, cellY: 
       for (let i = 0; i < cum.length && cum[i] < dOut; i++) pts.push(coords[i]);
       pts.push(out(dOut));
       if (d > oneWay) {
-        const back = 2 * oneWay - d;
-        for (let i = cum.length - 1; i >= 0; i--) if (cum[i] > back) pts.push(coords[i]);
-        pts.push(out(back));
+        const b = 2 * oneWay - d;
+        for (let i = cum.length - 1; i >= 0; i--) if (cum[i] > b) pts.push(coords[i]);
+        pts.push(out(b));
       }
       return pts;
     },

@@ -52,6 +52,23 @@ for (const r of routes) {
   assert.ok(close(loc.at(loc.oneWay), [ex, ey]), 'reaches destination');
   assert.ok(close(loc.at(2 * loc.oneWay), [bx, by]), 'returns to base');
   assert.ok(loc.trail(loc.oneWay * 1.5).length > 2, 'trail has points');
+  // metres frame (used by the first-person view): start/target cell centres, and the way back
+  const cx = (c) => [(c[0] + 0.5) * meta.cellM[0], (c[1] + 0.5) * meta.cellM[1]];
+  const near = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]) < 1e-6;
+  assert.ok(near(loc.metres(0), cx(start)), 'metres() starts at the base cell centre');
+  assert.ok(near(loc.metres(loc.oneWay), cx(end)), 'metres() reaches the target cell centre');
+  assert.ok(near(loc.metres(2 * loc.oneWay), cx(start)), 'metres() returns to the base');
+  // time conversion between pacings: uAtTau is the inverse of at(u).tau
+  const slow = buildMission(r, { walkSeconds: 55, stopDwell: 5 });
+  assert.ok(slow.duration > m.duration, 'slower pacing is longer');
+  for (let i = 0; i <= 200; i++) {
+    const u = (m.duration * i) / 200;
+    const back = m.uAtTau(m.at(u).tau);
+    assert.ok(Math.abs(back - u) < 1e-3, `${r.strategy}: uAtTau round trip at ${u} gave ${back}`);
+    // switching pacing keeps the mission clock
+    const u2 = slow.uAtTau(m.at(u).tau);
+    assert.ok(Math.abs(slow.at(u2).tau - m.at(u).tau) < 1e-3, `${r.strategy}: pacing switch keeps tau`);
+  }
   console.log(`${r.strategy.padEnd(7)} ok: ${(r.budget.distance / 1000).toFixed(1)} km, ${(r.budget.totalT / 3600).toFixed(1)} h mission → ${m.duration.toFixed(1)} s playback, stops ${stopIds.join(', ') || 'none'}`);
   checked++;
 }

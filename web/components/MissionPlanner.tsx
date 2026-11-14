@@ -47,6 +47,7 @@ export default function MissionPlanner() {
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
   const [showSlope, setShowSlope] = useState(false);
+  const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
   const [hero, setHero] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
@@ -231,14 +232,14 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for async planning
     setBusy(true);
     setError(null);
-    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, pois, spaceWeather: weather })
+    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, pois, spaceWeather: weather, params: rover ? { rover: true } : undefined })
       .then((r) => !cancelled && setRoutes(r))
       .catch((e) => !cancelled && setError(`Route planning failed: ${e.message}`))
       .finally(() => !cancelled && setBusy(false));
     return () => {
       cancelled = true;
     };
-  }, [region, base, dest, weather]);
+  }, [region, base, dest, weather, rover]);
 
   // 7. draw routes
   useEffect(() => {
@@ -321,7 +322,7 @@ export default function MissionPlanner() {
       steepPct: r.budget.steepPct,
       verdict: r.verdict,
       poisVisited: r.poisVisited.map(poiName),
-      note: r.note,
+      note: r.note ?? (rover ? 'Rover assist: the crew drives an unpressurised rover between sites and works on foot at each site' : undefined),
     }));
     const rec = scored.find((r) => r.strategy === pickRecommended(routesIn));
     return {
@@ -330,7 +331,10 @@ export default function MissionPlanner() {
       daylight: clock && rec?.daylight ? { endMarginH: +rec.daylight.endMarginH.toFixed(1), sunsetLocal: hm(clock.set) } : null,
       spaceWeather: weather ? { lvl: weather.lvl, short: weather.short } : null,
     };
-  }, [scored, region, clock, weather, poiName]);
+  }, [scored, region, clock, weather, poiName, rover]);
+
+
+  const baseName = region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—';
 
   // Simulate Mission: marker, trail, camera follow and HUD (see Simulation.tsx)
   const simulation = useSimulation({
@@ -342,9 +346,8 @@ export default function MissionPlanner() {
     startH: startClamped,
     sunsetH: clock?.set ?? 18,
     routeStyle: ROUTE_STYLE,
+    baseName,
   });
-
-  const baseName = region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—';
   const pickPoi = (p: Poi) => {
     setDest([p.lon, p.lat]);
     setDestName(p.name);
@@ -356,6 +359,7 @@ export default function MissionPlanner() {
       <div className="absolute inset-0">
         <div ref={mapEl} className="h-full w-full" />
       </div>
+      {simulation.viewLayer}
 
       <TopNav
         tab={hero ? 'sites' : navTab}
@@ -369,6 +373,8 @@ export default function MissionPlanner() {
         onToggle3d={() => setView3d((v) => !v)}
       />
 
+      {!simulation.immersive && (
+        <>
       <SetupPanel
         meta={region?.meta ?? null}
         pois={region?.pois ?? []}
@@ -386,6 +392,8 @@ export default function MissionPlanner() {
         onSlope={setShowSlope}
         weather={weather}
         base={base}
+        rover={rover}
+        onRover={setRover}
         hasTraverse={!!region?.traverse}
       />
 
@@ -403,7 +411,6 @@ export default function MissionPlanner() {
         onSimulate={simulation.canStart ? simulation.start : undefined}
         hidden={simulation.running}
       />
-      {simulation.panel}
 
       {/* phone: route cards as a bottom sheet */}
       {scored.length > 0 && (
@@ -434,6 +441,10 @@ export default function MissionPlanner() {
           </span>
         </div>
       )}
+
+        </>
+      )}
+      {simulation.panel}
 
       {placing === 'base' && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>

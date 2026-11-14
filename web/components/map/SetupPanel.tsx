@@ -32,8 +32,13 @@ export default function SetupPanel({
   weather,
   base,
   hasTraverse = false,
+  rover = false,
+  onRover,
 }: {
   hasTraverse?: boolean;
+  /** Rover assist: plan and time the mission with an unpressurised rover. */
+  rover?: boolean;
+  onRover?: (v: boolean) => void;
   meta: RegionMeta | null;
   pois: Poi[];
   destName: string | null;
@@ -52,7 +57,7 @@ export default function SetupPanel({
   base: [number, number] | null;
 }) {
   const [tab, setTab] = useState<'mission' | 'conditions'>('mission');
-  const [open, setOpen] = useState({ sites: true, route: true, env: true });
+  const [open, setOpen] = useState({ sites: true, mode: true, route: true, env: true });
   const flip = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
   // live clock for the Conditions tab
@@ -114,6 +119,25 @@ export default function SetupPanel({
                 <span className="text-[10px] text-zinc-500">{placingBase ? 'cancel' : 'move'}</span>
               </button>
             </Section>
+
+            {/* mode: on foot or rover assist */}
+            {onRover && (
+              <Section icon={<IRover size={15} />} title="Mode" open={open.mode} onFlip={() => flip('mode')}>
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <button onClick={() => onRover(false)} className={`sp-tile ${!rover ? 'sp-on' : ''}`}>
+                    On foot
+                  </button>
+                  <button onClick={() => onRover(true)} className={`sp-tile ${rover ? 'sp-on' : ''}`}>
+                    Rover assist
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                  {rover
+                    ? 'Unpressurised rover at 1.4 m/s with a 20° slope limit; the crew works on foot at each site. Press Simulate to ride it in first person.'
+                    : 'The crew walks the whole way. Switch to a rover to reach the far sites.'}
+                </p>
+              </Section>
+            )}
 
             {/* route */}
             <Section icon={<ISun size={15} />} title="Daylight" open={open.route} onFlip={() => flip('route')}>
@@ -210,6 +234,17 @@ export default function SetupPanel({
         )}
       </div>
     </aside>
+  );
+}
+
+function IRover({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 15h18M5 15v-4l3-3h8l3 3v4" />
+      <circle cx="7.5" cy="17.2" r="2.2" />
+      <circle cx="16.5" cy="17.2" r="2.2" />
+      <path d="M12 8V5l3-1" />
+    </svg>
   );
 }
 

@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EVA_DEFAULTS } from '../../planner/src/eva.js';
 import { hm, MARS_HOUR_S } from '@/lib/mars-context';
-import type { Frame, Mission } from '@/lib/mission-timeline';
+import type { Frame } from '@/lib/mission-timeline';
 import type { PlannedRoute, Strategy } from '@/lib/plan-client';
 import type { Poi } from '@/lib/region';
 import DotNum from './ui/DotNum';
 import { IPlay } from './map/icons';
+import Segmented from './ui/Segmented';
+import type { Missions, SimView } from './Simulation';
 
-const SPEEDS = [1, 2, 4] as const;
+/** Map view plays fast (the walk in ~22 s); the first-person ride is slower so the ground doesn't blur past. */
+const SPEEDS: Record<SimView, number[]> = { map: [1, 2, 4], rover: [0.5, 1, 2] };
 const START_DELAY = 0.9; // seconds: lets the camera settle on the base before the walk begins
 
 const two = (n: number) => String(Math.max(0, Math.floor(n))).padStart(2, '0');
@@ -25,7 +28,9 @@ const fmtKm = (m: number) => (m / 1000).toFixed(1);
  */
 export default function SimulationHUD({
   route,
-  mission,
+  missions,
+  view,
+  onView,
   startH,
   sunsetH,
   pois,
@@ -35,7 +40,9 @@ export default function SimulationHUD({
   onClose,
 }: {
   route: PlannedRoute;
-  mission: Mission;
+  missions: Missions;
+  view: SimView;
+  onView: (v: SimView) => void;
   startH: number;
   sunsetH: number;
   pois: Poi[];
@@ -47,7 +54,8 @@ export default function SimulationHUD({
 }) {
   const [u, setU] = useState(-START_DELAY);
   const [playing, setPlaying] = useState(true);
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const [speed, setSpeed] = useState(1);
+  const mission = missions[view];
   const raf = useRef(0);
   const last = useRef(0);
   const uRef = useRef(u);
@@ -96,6 +104,17 @@ export default function SimulationHUD({
     uRef.current = v;
     setU(v);
   };
+  // switching view swaps the pacing; keep the mission clock where it is
+  const switchView = (next: SimView) => {
+    if (next === view) return;
+    const nu = u < 0 ? -START_DELAY : missions[next].uAtTau(missions[view].at(Math.min(u, missions[view].duration)).tau);
+    uRef.current = nu;
+    setU(nu);
+    setSpeed(1);
+    onView(next);
+  };
+  const roverMode = route.budget?.mode === 'rover';
+  const timelapse = Math.max(1, Math.round(mission.totalT / mission.duration));
   const toggle = () => {
     if (done) {
       seek(-START_DELAY);
@@ -115,8 +134,17 @@ export default function SimulationHUD({
         <div className="sim-k">
           <i style={{ background: color }} />
           MISSION SIMULATION · {label.toUpperCase()}
+          {roverMode ? ' · ROVER' : ''}
         </div>
         <div className="flex items-center gap-2">
+          <Segmented<SimView>
+            value={view}
+            onChange={switchView}
+            options={[
+              { value: 'map', label: 'Map' },
+              { value: 'rover', label: roverMode ? 'Rover view' : 'First person' },
+            ]}
+          />
           <span className="sim-phase">{phase}</span>
           <button onClick={onClose} aria-label="Close simulation" className="sim-x">
             ✕
@@ -180,7 +208,10 @@ export default function SimulationHUD({
           aria-label="Playback position"
         />
         <div className="flex items-center gap-0.5 rounded-full border border-white/10 bg-black/40 p-0.5 text-[11px]">
-          {SPEEDS.map((s) => (
+          <span className="px-2 font-mono text-[10px] text-zinc-500" title="Mission seconds per second of playback">
+            ×{timelapse}
+          </span>
+          {SPEEDS[view].map((s) => (
             <button key={s} onClick={() => setSpeed(s)} className={`rounded-full px-2.5 py-1 transition ${speed === s ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
               {s}×
             </button>
