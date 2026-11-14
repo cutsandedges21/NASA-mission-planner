@@ -29,14 +29,14 @@ export default function TopNav({
 }) {
   const tabs: { id: NavTab; label: string }[] = [
     { id: 'plan', label: 'Mission planner' },
-    { id: 'sites', label: 'Science sites' },
+    { id: 'sites', label: 'Targets' },
     { id: 'data', label: 'Data & credits' },
   ];
   const warn = weather?.lvl === 'warn';
   return (
     <header className="topnav pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pb-10 pt-4 sm:px-6">
       <div className="pointer-events-auto flex items-center gap-3">
-        <button onClick={() => onTab('sites')} className="round-btn h-11 w-11" title={`Science sites${regionName ? ` · ${regionName}` : ''}`}>
+        <button onClick={() => onTab('sites')} className="round-btn h-11 w-11" title={`Targets and bookmarks${regionName ? ` · ${regionName}` : ''}`}>
           <IGlobe size={18} />
         </button>
       </div>

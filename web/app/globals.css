@@ -34,3 +34,18 @@ html, body { background: #07080a; color: #f4f4f5; font-family: var(--font-geist-
 .maplibregl-ctrl-group button + button { border-top-color: rgb(255 255 255 / 0.1) !important; }
 .maplibregl-ctrl-icon { filter: invert(1); }
 .maplibregl-ctrl-scale { background: #0c0e12aa !important; color: #d4d4d8 !important; border-color: #d4d4d8 !important; }
+
+/* bookmark form (landing page + planner Quick targets) */
+.bm-form { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 14px; background: rgb(13 13 15 / 0.96); border: 1px solid rgb(245 200 75 / 0.35); }
+.bm-k { font-size: 10.5px; color: #a1a1aa; margin-top: 4px; }
+.bm-in { height: 32px; border-radius: 8px; padding: 0 10px; font-size: 12.5px; color: #f4f4f5; background: rgb(255 255 255 / 0.05); border: 1px solid rgb(255 255 255 / 0.1); outline: none; }
+.bm-in:focus { border-color: #f5c84b; }
+.bm-bad { border-color: #f87171 !important; }
+.bm-hint { font-size: 10.5px; line-height: 1.4; color: #71717a; margin-top: 2px; }
+.bm-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.bm-btn { height: 30px; padding: 0 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; background: #fff; color: #07080a; }
+.bm-btn:disabled { opacity: 0.35; }
+.bm-ghost { background: transparent; color: #d4d4d8; font-weight: 500; }
+.bm-ghost:hover { color: #fff; background: rgb(255 255 255 / 0.06); }
+/* bookmark markers on the map (gold, like the selected state elsewhere) */
+.bm-dot { background: #f5c84b; border-color: #fff7d6; box-shadow: 0 0 0 4px rgb(245 200 75 / 0.25); }

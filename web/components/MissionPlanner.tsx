@@ -14,7 +14,8 @@ import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from
 import type { BriefingRequest } from '@/lib/briefing';
 import { pickRecommended } from '@/lib/briefing';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
-import Hero from './Hero';
+import Hero, { type Target } from './Hero';
+import { useBookmarks } from '@/lib/bookmarks';
 import Loading from './Loading';
 import TopNav, { type NavTab } from './map/TopNav';
 import SetupPanel from './map/SetupPanel';
@@ -30,8 +31,20 @@ export { ROUTE_STYLE };
 
 /** 3D relief is drawn 1.5x taller than true scale so slopes read clearly. (MapLibre assumes Earth, see mars-scale.ts.) */
 const VERTICAL_EXAGGERATION = 1.5;
+/**
+ * Zoom out only as far as the edges of the map: the whole planet (Web Mercator, 512 px at zoom 0) always
+ * covers the window. (maxBounds would do it, but MapLibre 6.18 throws in calcMatrices with it.)
+ */
+function fitWorld(mp: MLMap) {
+  const c = mp.getContainer();
+  mp.setMinZoom(Math.max(0, Math.log2(Math.max(c.clientWidth, c.clientHeight) / 512)));
+}
 
-type Placing = 'dest' | 'base';
+/** What the next map click does: set the destination, move the base, or fill in a new bookmark. */
+type Placing = 'dest' | 'base' | 'bookmark';
+
+/** Routes shown in the app (Gianluca, Sat 14 Nov: SCIENCE removed from the UI; the planner still computes it). */
+const SHOWN: Strategy[] = ['SAFE', 'FAST'];
 
 export default function MissionPlanner() {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -43,7 +56,9 @@ export default function MissionPlanner() {
   const [dest, setDest] = useState<[number, number] | null>(null);
   const [destName, setDestName] = useState<string | null>(null);
   const [routes, setRoutes] = useState<PlannedRoute[] | null>(null);
-  const [selected, setSelected] = useState<Strategy>('SCIENCE');
+  const [selected, setSelected] = useState<Strategy>('SAFE');
+  const [bookmarkAt, setBookmarkAt] = useState<[number, number] | null>(null); // a map click picked for a new bookmark
+  const bookmarks = useBookmarks();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view3d, setView3d] = useState(false);
@@ -54,7 +69,7 @@ export default function MissionPlanner() {
   const setShowSlope = useCallback((v: boolean) => setMapType(v ? 'slope' : 'colour'), []);
   const [globe, setGlobe] = useState(false);
   const [mapInst, setMapInst] = useState<MLMap | null>(null); // for children that listen to the map (HoverReadout)
-  const [geology, setGeology] = useState(false); // T-34: approximate rock units after NASA/JPL PIA26042
+  const [geology] = useState(false); // T-34: approximate rock units after NASA/JPL PIA26042
   const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
@@ -108,6 +123,8 @@ export default function MissionPlanner() {
       zoom: 4,
       attributionControl: false,
       maxPitch: 75,
+      // you can zoom out only as far as the edges of the map (no empty space around Mars)
+      renderWorldCopies: false,
       style: {
         version: 8,
         sources: {
@@ -166,6 +183,7 @@ export default function MissionPlanner() {
     mp.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
     mp.addControl(new MarsScaleControl(), 'bottom-left');
     mp.on('load', () => {
+      fitWorld(mp);
       setMapReady(true);
       setMapInst(mp);
       mp.flyTo({ center: centre, zoom: 11.6, duration: 2600, essential: true });
@@ -196,12 +214,40 @@ export default function MissionPlanner() {
     return () => ms.forEach((m) => m.remove());
   }, [mapReady, region]);
 
+  // 3b. bookmark markers (gold): click to plan to it (inside the region) or just to look
+  const pickTargetRef = useRef<(t: Target) => void>(() => {});
+  useEffect(() => {
+    if (!mapReady || !map.current) return;
+    const ms = bookmarks.map((b) => {
+      const el = document.createElement('button');
+      el.className = 'poi-marker bm-marker';
+      el.title = b.name;
+      const dot = document.createElement('span');
+      dot.className = 'poi-dot bm-dot';
+      const label = document.createElement('span');
+      label.className = 'poi-label';
+      label.textContent = b.name; // typed by the user: never innerHTML
+      el.append(dot, label);
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        pickTargetRef.current(b);
+      };
+      return new maplibregl.Marker({ element: el }).setLngLat([b.lon, b.lat]).addTo(map.current!);
+    });
+    return () => ms.forEach((m) => m.remove());
+  }, [mapReady, bookmarks]);
+
   // 4. click to place base / destination
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp || !region) return;
     const onClick = (e: maplibregl.MapMouseEvent) => {
       const { lng, lat } = e.lngLat;
+      if (placing === 'bookmark') {
+        setBookmarkAt([lng, lat]);
+        setPlacing('dest');
+        return;
+      }
       if (!toCell(region.meta, lng, lat)) {
         setError('That spot is outside the mapped region. Pick a point inside the highlighted area.');
         return;
@@ -268,6 +314,7 @@ export default function MissionPlanner() {
     const src = map.current?.getSource('routes') as GeoJSONSource | undefined;
     if (!mapReady || !src || !region) return;
     const features = (routes ?? [])
+      .filter((r) => SHOWN.includes(r.strategy))
       .filter((r) => r.path)
       .map((r) => ({
         type: 'Feature' as const,
@@ -281,7 +328,7 @@ export default function MissionPlanner() {
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp || !region || !routes) return;
-    const pts = routes.flatMap((r) => r.path ?? []).map(([x, y]) => toLonLat(region.meta, x, y));
+    const pts = routes.filter((r) => SHOWN.includes(r.strategy)).flatMap((r) => r.path ?? []).map(([x, y]) => toLonLat(region.meta, x, y));
     if (base) pts.push(base);
     if (!pts.length) return;
     const b = new maplibregl.LngLatBounds(pts[0], pts[0]);
@@ -359,6 +406,8 @@ export default function MissionPlanner() {
       if (!globe) return;
     }
     mp.setProjection({ type: globe ? 'globe' : 'mercator' });
+    if (globe) mp.setMinZoom(0);
+    else fitWorld(mp);
     if (globe) {
       mp.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 1400 });
     } else {
@@ -376,7 +425,7 @@ export default function MissionPlanner() {
   // routes with each one's daylight window, and the verdict re-run with its own daylight margin
   const scored = useMemo(
     () =>
-      (routes ?? []).map((r) => {
+      (routes ?? []).filter((r) => SHOWN.includes(r.strategy)).map((r) => {
         const d: Daylight | null = clock ? routeDaylight(r, startClamped, clock.set) : null;
         return { ...r, verdict: verdictWithDaylight(r, d), daylight: d };
       }),
@@ -423,10 +472,25 @@ export default function MissionPlanner() {
     routeStyle: ROUTE_STYLE,
     baseName,
   });
-  const pickPoi = (p: Poi) => {
-    setDest([p.lon, p.lat]);
-    setDestName(p.name);
+  /** A bookmark (or a landing-page target): plan to it inside the region, otherwise just fly there. */
+  const pickTarget = (t: Target) => {
+    if (region && toCell(region.meta, t.lon, t.lat)) {
+      setError(null);
+      setDest([t.lon, t.lat]);
+      setDestName(t.name);
+      return;
+    }
+    const mp = map.current;
+    if (mp) {
+      if (view3d) setView3d(false);
+      mp.flyTo({ center: [t.lon, t.lat], zoom: Math.max(5, Math.min(mp.getZoom(), 8)), pitch: 0, duration: 2200, essential: true });
+    }
+    setError(`${t.name} is outside the Gale planning area: you can look around, but walks are planned only inside the NASA 1 m terrain.`);
+    setTimeout(() => setError(null), 6000);
   };
+  useEffect(() => {
+    pickTargetRef.current = pickTarget;
+  });
   const moveBase = () => setPlacing(placing === 'base' ? 'dest' : 'base');
 
   return (
@@ -461,9 +525,12 @@ export default function MissionPlanner() {
         <>
       <SetupPanel
         meta={region?.meta ?? null}
-        pois={region?.pois ?? []}
         destName={destName}
-        onPickPoi={pickPoi}
+        onPickTarget={pickTarget}
+        onPickBookmarkOnMap={() => setPlacing('bookmark')}
+        pickingBookmark={placing === 'bookmark'}
+        bookmarkAt={bookmarkAt}
+        onBookmarkDone={() => setBookmarkAt(null)}
         baseLabel={baseName}
         placingBase={placing === 'base'}
         onMoveBase={moveBase}
@@ -474,13 +541,15 @@ export default function MissionPlanner() {
         windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
         mapType={mapType}
         onMapType={setMapType}
-        weather={weather}
+        view3d={view3d}
+        onView3d={(v) => {
+          setGlobe(false);
+          setView3d(v);
+        }}
         base={base}
         rover={rover}
         onRover={setRover}
         hasTraverse={!!region?.traverse}
-        geology={geology}
-        onGeology={region?.meta.id === 'gale' ? setGeology : undefined}
       />
 
       <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />
@@ -523,7 +592,7 @@ export default function MissionPlanner() {
       {!scored.length && !hero && (
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center md:hidden">
           <span className="rounded-full border border-white/10 bg-black/80 px-4 py-2.5 text-[13px] text-zinc-200 backdrop-blur">
-            {busy ? 'Planning routes…' : 'Tap a science site to plan a walk'}
+            {busy ? 'Planning routes…' : 'Tap the map or a bookmark to plan a walk'}
           </span>
         </div>
       )}
@@ -535,6 +604,9 @@ export default function MissionPlanner() {
       {placing === 'base' && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>
       )}
+      {placing === 'bookmark' && (
+        <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the bookmark</div>
+      )}
 
       {navTab === 'data' && !hero && <Credits meta={region?.meta ?? null} onClose={() => setNavTab('plan')} />}
 
@@ -542,9 +614,9 @@ export default function MissionPlanner() {
         <Hero
           region={region}
           onSkip={() => setHero(false)}
-          onPick={(p) => {
-            pickPoi(p);
+          onPick={(t) => {
             setHero(false);
+            setTimeout(() => pickTarget(t), 50);
           }}
         />
       )}

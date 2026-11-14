@@ -1,26 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Poi, RegionMeta } from '@/lib/region';
+import type { RegionMeta } from '@/lib/region';
 import type { Strategy } from '@/lib/plan-client';
-import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import { hm, marsClock, type Daylight, type MarsClock } from '@/lib/mars-context';
+import { useBookmarks, removeBookmark, fmtCoord, type Bookmark } from '@/lib/bookmarks';
 import { ROUTE_STYLE, fmtLL } from './format';
 import type { MapType } from '@/lib/trek';
 import { IChevDown, IChevUp, IInfo, ILayers, IPin, ISun, IGrid, IClock } from './icons';
-import { GEOLOGY_LEGEND, GEOLOGY_NOTE } from '@/lib/geology-layer';
+import AddBookmark from './AddBookmark';
 
 // Mission setup, 1:1 with the Spherium panel reference (cosmos_979618069): near-black column, two tabs,
 // collapsible sections with an icon + title + chevron, small grey sub-labels, tile grids where the active
 // tile gets a gold outline, sliders with a gold pill thumb and the value in gold on the right.
+// Quick targets = the user's bookmarks (web/lib/bookmarks.ts), with "+" to add one.
 
 const pct = (h: number) => `${Math.min(100, Math.max(0, (h / 24) * 100))}%`;
 
 export default function SetupPanel({
   meta,
-  pois,
   destName,
-  onPickPoi,
+  onPickTarget,
+  onPickBookmarkOnMap,
+  pickingBookmark = false,
+  bookmarkAt = null,
+  onBookmarkDone,
   baseLabel,
   placingBase,
   onMoveBase,
@@ -31,25 +35,27 @@ export default function SetupPanel({
   windows,
   mapType,
   onMapType,
-  weather,
+  view3d,
+  onView3d,
   base,
   hasTraverse = false,
   rover = false,
   onRover,
-  geology = false,
-  onGeology,
 }: {
   hasTraverse?: boolean;
-  /** Geologic units overlay (T-34, approximate, after NASA/JPL PIA26042). The toggle shows only when onGeology is passed. */
-  geology?: boolean;
-  onGeology?: (v: boolean) => void;
   /** Rover assist: plan and time the mission with an unpressurised rover. */
   rover?: boolean;
   onRover?: (v: boolean) => void;
   meta: RegionMeta | null;
-  pois: Poi[];
   destName: string | null;
-  onPickPoi: (p: Poi) => void;
+  /** Plan to a bookmark (inside the region) or fly to it (elsewhere on Mars). */
+  onPickTarget: (b: Bookmark) => void;
+  /** Start "click the map to place the bookmark". */
+  onPickBookmarkOnMap?: () => void;
+  pickingBookmark?: boolean;
+  /** The point picked on the map for a new bookmark (pre-fills the form). */
+  bookmarkAt?: [number, number] | null;
+  onBookmarkDone?: () => void;
   baseLabel: string;
   placingBase: boolean;
   onMoveBase: () => void;
@@ -58,15 +64,23 @@ export default function SetupPanel({
   startH: number;
   onStart: (h: number) => void;
   windows: { strategy: Strategy; d: Daylight | null }[];
-  /** Map type (T-33): NASA Trek global layer + the region's matching layer; slope = colour + slope overlay. */
+  /** Map layer (T-33): colour, thermal or elevation (height). Slope lives in the dock card. */
   mapType: MapType;
   onMapType: (t: MapType) => void;
-  weather: SpaceWeatherStatus | null;
+  view3d: boolean;
+  onView3d: (v: boolean) => void;
   base: [number, number] | null;
 }) {
   const [tab, setTab] = useState<'mission' | 'conditions'>('mission');
   const [open, setOpen] = useState({ sites: true, mode: true, route: true, env: true });
   const flip = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+  const marks = useBookmarks();
+  const [adding, setAdding] = useState(false);
+  const showForm = adding || pickingBookmark || !!bookmarkAt;
+  const closeForm = () => {
+    setAdding(false);
+    onBookmarkDone?.();
+  };
 
   // live clock for the Conditions tab
   const [live, setLive] = useState<MarsClock | null>(clock);
@@ -81,6 +95,8 @@ export default function SetupPanel({
   const regionName = meta ? meta.name.replace(/\s*\(.*\)/, '') : 'Mars';
   const lo = clock ? Math.ceil(clock.rise * 4) / 4 : 6;
   const hi = clock ? Math.floor((clock.set - 1) * 4) / 4 : 17;
+  const inRegion = (b: Bookmark) => !!meta && b.lon >= meta.lon[0] && b.lon <= meta.lon[1] && b.lat >= meta.lat[0] && b.lat <= meta.lat[1];
+  const layer = mapType === 'thermal' || mapType === 'height' ? mapType : null;
 
   return (
     <aside className="sp absolute bottom-4 left-4 top-20 z-10 hidden w-[300px] flex-col md:flex">
@@ -107,17 +123,54 @@ export default function SetupPanel({
 
         {tab === 'mission' ? (
           <>
-            {/* science sites */}
-            <Section icon={<IGrid size={15} />} title="Science sites" open={open.sites} onFlip={() => flip('sites')}>
-              <Sub>Quick targets</Sub>
+            {/* quick targets = bookmarks */}
+            <Section icon={<IGrid size={15} />} title="Quick targets" open={open.sites} onFlip={() => flip('sites')}>
+              <Sub>Bookmarks</Sub>
               <div className="grid grid-cols-2 gap-1.5">
-                {pois.map((p) => (
-                  <button key={p.id} onClick={() => onPickPoi(p)} className={`sp-tile ${destName === p.name ? 'sp-on' : ''}`} title={p.why}>
-                    <span className="truncate">{p.name}</span>
-                  </button>
+                {marks.map((b) => (
+                  <div key={b.id} className="group relative">
+                    <button
+                      onClick={() => onPickTarget(b)}
+                      className={`sp-tile w-full ${destName === b.name ? 'sp-on' : ''}`}
+                      title={`${b.name} · ${fmtCoord(b.lon, b.lat)}${inRegion(b) ? '' : ' · outside the planning area: opens on the map'}`}
+                    >
+                      <span className="truncate">{b.name}</span>
+                    </button>
+                    <button
+                      onClick={() => removeBookmark(b.id)}
+                      className="sp-x"
+                      title={`Delete the bookmark “${b.name}”`}
+                      aria-label={`Delete ${b.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
-                <span className="sp-tile pointer-events-none text-zinc-500">or click the map</span>
+                {!showForm && (
+                  <button onClick={() => setAdding(true)} className="sp-tile sp-add" title="Add a bookmark: a name and coordinates, or a point picked on the map">
+                    + Add
+                  </button>
+                )}
+                {!showForm && marks.length === 0 && <span className="sp-tile pointer-events-none text-zinc-500">or click the map</span>}
               </div>
+              {showForm && (
+                <div className="mt-2">
+                  {pickingBookmark ? (
+                    <p className="rounded-lg border border-[#f5c84b]/40 bg-[#f5c84b]/[0.06] px-3 py-2 text-[11.5px] text-[#f5c84b]">Click anywhere on the map to place the bookmark…</p>
+                  ) : (
+                    <AddBookmark
+                      key={bookmarkAt ? bookmarkAt.join() : 'typed'}
+                      initial={bookmarkAt}
+                      onPickOnMap={onPickBookmarkOnMap}
+                      onDone={(b) => {
+                        closeForm();
+                        if (b) onPickTarget(b);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+              {marks.length > 0 && !showForm && <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">Pick a bookmark to plan a walk to it, or click the map. Saved in this browser.</p>}
               <Sub>Base</Sub>
               <button onClick={onMoveBase} className={`sp-tile w-full justify-between px-3 ${placingBase ? 'sp-on' : ''}`}>
                 <span className="flex items-center gap-2 truncate">
@@ -141,18 +194,18 @@ export default function SetupPanel({
                 </div>
                 <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
                   {rover
-                    ? 'Unpressurised rover at 1.4 m/s with a 20° slope limit; the crew works on foot at each site. Press Simulate to ride it in first person.'
+                    ? 'Unpressurised rover at 1.4 m/s with a 20° slope limit; the crew works on foot at the target. Press Simulate to ride it in first person.'
                     : 'The crew walks the whole way. Switch to a rover to reach the far sites.'}
                 </p>
               </Section>
             )}
 
-            {/* route */}
-            <Section icon={<ISun size={15} />} title="Daylight" open={open.route} onFlip={() => flip('route')}>
+            {/* leave at: EVA start time + daylight window */}
+            <Section icon={<ISun size={15} />} title="Leave at" open={open.route} onFlip={() => flip('route')}>
               {clock && (
                 <>
                   <div className="mt-3 flex items-baseline justify-between">
-                    <Sub flush>EVA start (local solar time)</Sub>
+                    <Sub flush>Leave the base at (local solar time)</Sub>
                     <span className="sp-val">{hm(startH)}</span>
                   </div>
                   <input
@@ -164,7 +217,7 @@ export default function SetupPanel({
                     onChange={(e) => onStart(+e.target.value)}
                     className="sp-range"
                     style={{ ['--p' as string]: `${((startH - lo) / Math.max(0.01, hi - lo)) * 100}%` }}
-                    aria-label="EVA start time, local solar time"
+                    aria-label="Time to leave the base, local solar time"
                   />
                   <div className="relative mt-3 h-8 overflow-hidden rounded-lg bg-black/60">
                     <div className="absolute inset-y-0 bg-[#f5c84b]/10" style={{ left: pct(clock.rise), width: `calc(${pct(clock.set)} - ${pct(clock.rise)})` }} />
@@ -176,7 +229,7 @@ export default function SetupPanel({
                           style={{
                             left: pct(d.startH),
                             width: `calc(${pct(d.endH)} - ${pct(d.startH)})`,
-                            top: 6 + i * 8,
+                            top: 8 + i * 9,
                             height: strategy === selected ? 5 : 3,
                             background: ROUTE_STYLE[strategy].color,
                             opacity: strategy === selected ? 1 : 0.4,
@@ -185,45 +238,36 @@ export default function SetupPanel({
                       ) : null,
                     )}
                   </div>
-                  <div className="mt-1 flex justify-between font-mono text-[10px] text-zinc-500">
+                  <div className="mt-1 flex justify-between text-[10px] text-zinc-500">
                     <span>sunrise {hm(clock.rise)}</span>
                     <span>sunset {hm(clock.set)}</span>
                   </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">The bars show each route&apos;s time outside, from leaving the base to getting back to the airlock. It has to end before sunset.</p>
                 </>
               )}
             </Section>
 
-            {/* environment */}
-            <Section icon={<ILayers size={15} />} title="Environment" open={open.env} onFlip={() => flip('env')}>
-              <Sub>Map type</Sub>
+            {/* map options */}
+            <Section icon={<ILayers size={15} />} title="Map" open={open.env} onFlip={() => flip('env')}>
+              <Sub>View</Sub>
               <div className="grid grid-cols-2 gap-1.5">
-                {MAP_TYPES.map((t) => (
-                  <button key={t.id} onClick={() => onMapType(t.id)} className={`sp-tile ${mapType === t.id ? 'sp-on' : ''}`} title={t.title}>
-                    {t.label}
-                  </button>
-                ))}
+                <button onClick={() => onView3d(false)} className={`sp-tile ${!view3d ? 'sp-on' : ''}`} title="Flat map, seen from above">
+                  2D
+                </button>
+                <button onClick={() => onView3d(true)} className={`sp-tile ${view3d ? 'sp-on' : ''}`} title="Tilted 3D terrain from the NASA elevation data">
+                  3D
+                </button>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{MAP_TYPES.find((t) => t.id === mapType)?.title}</p>
-              {onGeology && (
-                <>
-                  <Sub>Geology</Sub>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button onClick={() => onGeology(false)} className={`sp-tile ${!geology ? 'sp-on' : ''}`}>Off</button>
-                    <button onClick={() => onGeology(true)} className={`sp-tile ${geology ? 'sp-on' : ''}`} title={GEOLOGY_NOTE}>Rock units</button>
-                  </div>
-                  {geology && (
-                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-zinc-400">
-                      {GEOLOGY_LEGEND.map((u) => (
-                        <span key={u.id} className="flex items-center gap-1.5">
-                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: u.color }} />
-                          {u.name}
-                        </span>
-                      ))}
-                      <p className="col-span-2 mt-1 text-[10.5px] leading-relaxed text-zinc-500">{GEOLOGY_NOTE}</p>
-                    </div>
-                  )}
-                </>
-              )}
+              <Sub>Layer</Sub>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button onClick={() => onMapType(layer === 'thermal' ? 'colour' : 'thermal')} className={`sp-tile ${layer === 'thermal' ? 'sp-on' : ''}`} title={LAYER_INFO.thermal}>
+                  Thermal
+                </button>
+                <button onClick={() => onMapType(layer === 'height' ? 'colour' : 'height')} className={`sp-tile ${layer === 'height' ? 'sp-on' : ''}`} title={LAYER_INFO.height}>
+                  Elevation
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{LAYER_INFO[layer ?? 'colour']}</p>
               {hasTraverse && (
                 <div className="mt-3 flex items-center gap-2.5 text-[11.5px] text-zinc-400">
                   <svg width="26" height="4" aria-hidden>
@@ -243,27 +287,30 @@ export default function SetupPanel({
         ) : (
           <>
             <Section icon={<IClock size={15} />} title="Mars clock" open onFlip={() => {}}>
-              <Meter k="Curiosity sol" v={live ? live.sol.toLocaleString('en-US') : '—'} />
-              <Meter k="Local solar time" v={live ? hm(live.ltst) : '—'} frac={live ? live.ltst / 24 : 0} />
-              <Meter k="Season" v={live ? `${live.season.replace(/^(Northern|Southern) /, '')} · Ls ${live.Ls.toFixed(0)}°` : '—'} frac={live ? live.Ls / 360 : 0} />
+              <Meter k="Curiosity sol" v={live ? live.sol.toLocaleString('en-US') : '—'} title="Days (sols) since Curiosity landed in Gale Crater on 6 August 2012." />
+              <Meter k="Local solar time" v={live ? hm(live.ltst) : '—'} frac={live ? live.ltst / 24 : 0} title="Time of day at the base by the Sun (noon = Sun highest)." />
+              <Meter
+                k="Season"
+                v={live ? `${live.season.replace(/^(Northern|Southern) /, '')} · Ls ${live.Ls.toFixed(0)}°` : '—'}
+                frac={live ? live.Ls / 360 : 0}
+                title="Mars' position around the Sun (Ls 0° = northern spring). Dust storms are most common from Ls 180° to 330°."
+              />
               <Meter k="Signal to Earth" v={live ? `${live.delayMin.toFixed(1)} min` : '—'} frac={live ? live.delayMin / 22.3 : 0} title="One-way light time (3–22 min). Mission Control can't help in real time." />
-              {live && <Meter k="Daylight" v={`${hm(live.rise)} – ${hm(live.set)}`} frac={(live.set - live.rise) / 24} />}
+              {live && <Meter k="Daylight" v={`${hm(live.rise)} – ${hm(live.set)}`} frac={(live.set - live.rise) / 24} title="Sunrise to sunset at the base today. Every EVA must be back before sunset." />}
             </Section>
-            <Section icon={<IInfo size={15} />} title="Space weather" open onFlip={() => {}}>
-              <p className={`text-[12px] leading-relaxed ${weather?.lvl === 'warn' ? 'text-[#f5c84b]' : 'text-zinc-300'}`}>{weather?.long ?? 'Checking NASA DONKI…'}</p>
-              <p className="mt-2 text-[11px] text-zinc-500">Live CME forecasts from NASA DONKI (WSA-ENLIL). A storm heading for Mars turns every route to CAUTION.</p>
-            </Section>
-            {base && (
-              <p className="mt-4 font-mono text-[10px] text-zinc-500">
-                Base {fmtLL(base)}
-              </p>
-            )}
+            {base && <p className="mt-4 text-[10px] text-zinc-500">Base {fmtLL(base)}</p>}
           </>
         )}
       </div>
     </aside>
   );
 }
+
+const LAYER_INFO: Record<'colour' | 'thermal' | 'height', string> = {
+  colour: 'True colour: the Viking global mosaic (NASA Mars Trek), with HiRISE colour over Gale. Turn on Thermal or Elevation to see more.',
+  thermal: 'Thermal: THEMIS infrared (NASA Mars Odyssey). Warm colours = ground that holds heat (rock); dark = dust and sand that cool fast.',
+  height: 'Elevation: MOLA colour relief worldwide, the 1 m NASA terrain over Gale. Blue = low, red/white = high.',
+};
 
 function IRover({ size = 15 }: { size?: number }) {
   return (
@@ -308,10 +355,3 @@ function Meter({ k, v, frac, title }: { k: string; v: string; frac?: number; tit
     </div>
   );
 }
-
-const MAP_TYPES: { id: MapType; label: string; title: string }[] = [
-  { id: 'colour', label: 'Colour', title: 'Viking colour mosaic (NASA Trek) + HiRISE colour over Gale' },
-  { id: 'height', label: 'Height', title: 'MOLA colour relief (NASA Trek) + the 1 m NASA DEM over Gale' },
-  { id: 'thermal', label: 'Thermal', title: 'THEMIS day IR (NASA Trek) + THEMIS night IR over Gale: warm = rock that holds heat' },
-  { id: 'slope', label: 'Slope', title: 'Hazard: steepest ground in each 25 m cell, from the 1 m NASA DEM' },
-];

@@ -68,7 +68,7 @@ export default function HoverReadout({
     null;
 
   return (
-    <div className="pointer-events-none absolute bottom-[52px] left-[332px] z-10 hidden w-[208px] rounded-xl border border-white/[0.07] bg-[#0d0d0f]/90 px-3 py-2.5 font-mono text-[11px] leading-[1.55] text-zinc-300 shadow-lg backdrop-blur md:block">
+    <div className="pointer-events-none absolute bottom-[52px] left-[332px] z-10 hidden w-[208px] rounded-xl border border-white/[0.07] bg-[#0d0d0f]/90 px-3 py-2.5 text-[11.5px] tabular-nums leading-[1.55] text-zinc-300 shadow-lg backdrop-blur md:block">
       {p ? (
         <>
           <div className="flex justify-between"><span className="text-zinc-500">Lat</span><span>{fmtLat(p.lat)}</span></div>

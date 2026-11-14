@@ -38,6 +38,14 @@
 .hero-item-t { display: flex; flex-direction: column; font-size: 12.5px; font-weight: 600; line-height: 1.2; color: #fffc; white-space: nowrap; }
 .hero-item-on .hero-item-t { color: #fff; }
 .hero-item-s { font-size: 10.5px; font-weight: 400; color: #fff8; }
+.hero-rail { max-height: 72vh; overflow-y: auto; scrollbar-width: none; }
+.hero-item-wrap { position: relative; display: flex; align-items: center; }
+.hero-item-x { position: absolute; right: -26px; width: 22px; height: 22px; border-radius: 9999px; color: #fff8; font-size: 15px; line-height: 1; opacity: 0; transition: opacity 0.2s, background 0.2s; }
+.hero-item-wrap:hover .hero-item-x, .hero-item-x:focus-visible { opacity: 1; }
+.hero-item-x:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+.hero-plus { display: grid; place-items: center; background: transparent; border: 1.5px dashed #f5c84b99; color: #f5c84b; font-size: 24px; font-weight: 300; box-shadow: none; filter: none; }
+.hero-add:hover .hero-plus { border-style: solid; }
+.hero-add-form { width: 260px; }
 
 /* title block */
 .hero-copy { position: absolute; left: 24%; top: 21%; z-index: 10; width: min(430px, 30vw); }
@@ -69,9 +77,6 @@
 .hero-planet-site { box-shadow: inset -50px -40px 90px #000e, inset 24px 14px 50px #ffd9a033, 0 0 70px #f5c84b30; }
 .hero-target { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 9999px; border: 2px solid #f5c84b; box-shadow: 0 0 0 6px #f5c84b33, 0 0 20px #f5c84b; }
 .hero-target::after { content: ''; position: absolute; inset: 6px; border-radius: 9999px; background: #f5c84b; }
-.hero-outline { position: absolute; left: 30%; top: 38%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-.hero-outline-s { font-size: clamp(16px, 1.8vw, 26px); font-weight: 800; letter-spacing: 0.22em; color: transparent; -webkit-text-stroke: 1px #ffffff99; }
-.hero-outline-b { font-size: clamp(48px, 6.2vw, 92px); font-weight: 800; letter-spacing: 0.16em; line-height: 0.95; color: transparent; -webkit-text-stroke: 1.2px #ffffffb0; }
 .hero-call { position: absolute; display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: #fffd; white-space: nowrap; transform: translate(-4px, -50%); text-shadow: 0 1px 4px #000; }
 .hero-call i { flex: none; width: 7px; height: 7px; border-radius: 9999px; border: 1.5px solid #fff; background: #000; box-shadow: 0 0 0 2px #fff3; }
 
@@ -87,7 +92,8 @@
   .hero-copy { left: 6%; top: auto; bottom: 14%; width: 88%; }
   .hero-count { display: none; }
   .hero-planet-wrap { right: -25%; top: 6%; width: 100vw; transform: none; opacity: 0.85; }
-  .hero-call, .hero-outline { display: none; }
+  .hero-call { display: none; }
+  .hero-item-x, .hero-add-form { display: none; }
 }
 
 /* ---------- loading screen (planet-horizon reference) ---------- */
