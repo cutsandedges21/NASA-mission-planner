@@ -31,7 +31,8 @@ export type ExplainResponse = {
   recommended: Strategy;
   text: string;
   source: 'claude' | 'fallback';
-  reason?: string; // why we fell back (missing key, timeout, invented number, …)
+  reason?: string; // why we fell back (missing key, timeout, invented number, rate limited, …)
+  cached?: boolean; // true when the AI answer came from the 10-minute cache
 };
 
 const RANK: Record<Lvl, number> = { go: 0, caution: 1, nogo: 2 };
@@ -200,4 +201,87 @@ export async function explain(req: ExplainRequest, env: Env, fetchImpl: typeof f
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ---------------------------------------------------------------- abuse protection (T-27)
+// The site is public: without limits anyone could loop POST /api/explain and run up the Claude bill.
+// Limits are per serverless instance (module-level state): a speed bump, not a wall. Going over a limit
+// never errors: the caller gets the template briefing with reason 'rate limited', so the demo keeps working.
+
+export const LIMITS = {
+  maxBodyBytes: 20 * 1024, // bigger bodies → 413
+  perIpCalls: 12, // AI calls per IP…
+  perIpWindowMs: 10 * 60 * 1000, // …per 10 minutes
+  globalCallsPerHour: 300, // AI calls per hour per instance
+  cacheMs: 10 * 60 * 1000, // identical requests reuse the AI answer for 10 minutes
+  cacheMaxEntries: 500,
+};
+
+export class ExplainGate {
+  private perIp = new Map<string, number[]>();
+  private global: number[] = [];
+  private cache = new Map<string, { at: number; out: ExplainResponse }>();
+  private limits: typeof LIMITS;
+  private now: () => number;
+  constructor(limits: typeof LIMITS = LIMITS, now: () => number = Date.now) {
+    this.limits = limits;
+    this.now = now;
+  }
+
+  cached(key: string): ExplainResponse | null {
+    const hit = this.cache.get(key);
+    if (!hit) return null;
+    if (this.now() - hit.at > this.limits.cacheMs) { this.cache.delete(key); return null; }
+    return hit.out;
+  }
+  remember(key: string, out: ExplainResponse) {
+    if (this.cache.size >= this.limits.cacheMaxEntries) {
+      const t = this.now();
+      for (const [k, v] of this.cache) if (t - v.at > this.limits.cacheMs) this.cache.delete(k);
+      if (this.cache.size >= this.limits.cacheMaxEntries) this.cache.delete(this.cache.keys().next().value as string);
+    }
+    this.cache.set(key, { at: this.now(), out });
+  }
+  /** Reserve one AI call for `ip`. Returns null if allowed, else which limit was hit. */
+  take(ip: string): null | 'ip' | 'global' {
+    const t = this.now();
+    this.global = this.global.filter((x) => t - x < 3600 * 1000);
+    if (this.global.length >= this.limits.globalCallsPerHour) return 'global';
+    const mine = (this.perIp.get(ip) || []).filter((x) => t - x < this.limits.perIpWindowMs);
+    if (mine.length >= this.limits.perIpCalls) { this.perIp.set(ip, mine); return 'ip'; }
+    mine.push(t);
+    this.perIp.set(ip, mine);
+    this.global.push(t);
+    if (this.perIp.size > 10000) this.perIp.clear(); // bound memory under a spray of fake IPs
+    return null;
+  }
+}
+
+/** First hop of x-forwarded-for, else 'unknown'. */
+export function clientIp(headers: { get(name: string): string | null }): string {
+  return (headers.get('x-forwarded-for') || '').split(',')[0].trim() || headers.get('x-real-ip') || 'unknown';
+}
+
+/**
+ * The whole POST /api/explain, minus Next.js: raw body text in, { status, body } out.
+ * 413 for oversized bodies, 400 for bad JSON / contract, else 200 with a briefing (AI, cached AI, or template).
+ */
+export async function handleExplain(raw: string, ip: string, env: Env, gate: ExplainGate, fetchImpl: typeof fetch = fetch): Promise<{ status: number; body: unknown }> {
+  if (new TextEncoder().encode(raw).length > LIMITS.maxBodyBytes) return { status: 413, body: { error: `body larger than ${LIMITS.maxBodyBytes / 1024} KB` } };
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return { status: 400, body: { error: 'body must be JSON' } }; }
+  let req: ExplainRequest;
+  try { req = parseRequest(parsed); } catch (e) { return { status: 400, body: { error: (e as Error).message } }; }
+  if (!env.ANTHROPIC_API_KEY) return { status: 200, body: await explain(req, env, fetchImpl) }; // template, costs nothing
+  const key = JSON.stringify(req);
+  const hit = gate.cached(key);
+  if (hit) return { status: 200, body: { ...hit, cached: true } };
+  const blocked = gate.take(ip);
+  if (blocked) {
+    const recommended = pickRecommended(req.routes);
+    return { status: 200, body: { recommended, text: fallbackExplanation(req, recommended), source: 'fallback', reason: 'rate limited' } satisfies ExplainResponse };
+  }
+  const out = await explain(req, env, fetchImpl);
+  if (out.source === 'claude') gate.remember(key, out);
+  return { status: 200, body: out };
 }

@@ -1,6 +1,6 @@
 # Marswalk Mission Planner: Gale Crater
 
-**Live app:** {{LIVE_URL}} · **Demo video:** {{VIDEO_URL}} · **NASA Space Apps 2026:** *Interplanetary Survival Guide: Martian Map*
+**Live app:** https://nasa-eva-planner.vercel.app · **Demo video:** {{VIDEO_URL}} · **NASA Space Apps 2026:** *Interplanetary Survival Guide: Martian Map*
 
 **Pick a science site on Mars and get three Marswalk routes computed from real NASA terrain.** For each route the planner works out the walking time, the oxygen left when you're back at the airlock, the steepest ground, the radiation dose and the daylight margin, and gives a GO / CAUTION / NO-GO verdict. An AI flight controller explains the recommendation, but can't make anything up: the route is chosen by a fixed rule, and any number the AI invents is rejected.
 

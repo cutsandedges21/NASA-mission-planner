@@ -99,3 +99,67 @@ test('dose and steep-ground numbers may be quoted (rounded as sent)', async () =
   const out = await explain(r2, { ANTHROPIC_API_KEY: 'k' }, claudeReply(text));
   assert.equal(out.source, 'claude');
 });
+
+// ---- T-27 abuse protection
+import { handleExplain, ExplainGate, LIMITS, clientIp } from '../../../lib/explain.ts';
+const okBody = JSON.stringify({ region: 'gale', routes });
+const counting = () => { const f = async (_u, init) => { f.calls++; f.last = JSON.parse(init.body); return claudeReply('SCIENCE is the call: 4.9 km and 111 min, back with 66% O₂.')(); }; f.calls = 0; return f; };
+
+test('T-27 (a): bodies over 20 KB get 413, bad JSON 400', async () => {
+  const gate = new ExplainGate();
+  const big = JSON.stringify({ routes, pad: 'x'.repeat(LIMITS.maxBodyBytes) });
+  assert.equal((await handleExplain(big, '1.1.1.1', { ANTHROPIC_API_KEY: 'k' }, gate, counting())).status, 413);
+  assert.equal((await handleExplain('{nope', '1.1.1.1', { ANTHROPIC_API_KEY: 'k' }, gate, counting())).status, 400);
+});
+
+test('T-27 (b): 12 AI calls per IP per 10 min, then the template with reason "rate limited"', async () => {
+  let t = 0;
+  const gate = new ExplainGate(LIMITS, () => t);
+  const f = counting();
+  for (let i = 0; i < 12; i++) {
+    const body = JSON.stringify({ region: 'gale', routes, n: i }); // distinct bodies: no cache hits
+    const r = await handleExplain(body, '9.9.9.9', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+    assert.equal(r.body.source, 'claude');
+  }
+  const over = await handleExplain(JSON.stringify({ routes, n: 99 }), '9.9.9.9', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  assert.equal(over.status, 200);
+  assert.equal(over.body.source, 'fallback');
+  assert.equal(over.body.reason, 'rate limited');
+  assert.equal(f.calls, 12);
+  assert.equal((await handleExplain(JSON.stringify({ routes, n: 100 }), '8.8.8.8', { ANTHROPIC_API_KEY: 'k' }, gate, f)).body.source, 'claude', 'other IPs unaffected');
+  t += LIMITS.perIpWindowMs + 1;
+  assert.equal((await handleExplain(JSON.stringify({ routes, n: 101 }), '9.9.9.9', { ANTHROPIC_API_KEY: 'k' }, gate, f)).body.source, 'claude', 'window resets');
+});
+
+test('T-27 (c): global ceiling of 300 AI calls per hour per instance', async () => {
+  const gate = new ExplainGate({ ...LIMITS, perIpCalls: 1e9 }, () => 0);
+  const f = counting();
+  for (let i = 0; i < LIMITS.globalCallsPerHour; i++) await handleExplain(JSON.stringify({ routes, n: i }), `10.0.${i >> 8}.${i & 255}`, { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  const over = await handleExplain(JSON.stringify({ routes, n: -1 }), '7.7.7.7', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  assert.equal(over.body.reason, 'rate limited');
+  assert.equal(f.calls, LIMITS.globalCallsPerHour);
+});
+
+test('T-27 (d): max_tokens stays 300; identical requests hit the 10-min cache; no key = no limiter', async () => {
+  let t = 0;
+  const gate = new ExplainGate(LIMITS, () => t);
+  const f = counting();
+  const a = await handleExplain(okBody, '5.5.5.5', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  assert.equal(f.last.max_tokens, 300);
+  const b = await handleExplain(okBody, '6.6.6.6', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  assert.equal(f.calls, 1, 'second identical request is free');
+  assert.equal(b.body.cached, true);
+  assert.equal(b.body.text, a.body.text);
+  t += LIMITS.cacheMs + 1;
+  await handleExplain(okBody, '6.6.6.6', { ANTHROPIC_API_KEY: 'k' }, gate, f);
+  assert.equal(f.calls, 2, 'cache expires after 10 min');
+  const g = new ExplainGate();
+  for (let i = 0; i < 50; i++) assert.equal((await handleExplain(okBody, '1.2.3.4', {}, g, counting())).body.source, 'fallback');
+});
+
+test('T-27: client IP = first x-forwarded-for hop', () => {
+  const h = (o) => ({ get: (k) => o[k] ?? null });
+  assert.equal(clientIp(h({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1' })), '203.0.113.7');
+  assert.equal(clientIp(h({ 'x-real-ip': '198.51.100.2' })), '198.51.100.2');
+  assert.equal(clientIp(h({})), 'unknown');
+});

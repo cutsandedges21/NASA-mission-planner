@@ -1,6 +1,6 @@
 # NASA Space Apps 2026 project page: paste-ready text (T-24)
 
-> **Before pasting:** Moss, put the official field names, character limits and video rules into `docs/SUBMISSION-REQUIREMENTS.md` (Teammate's Claude has no internet). Then trim each block below to fit. Placeholders: `{{LIVE_URL}}`, `{{REPO_URL}}`, `{{VIDEO_URL}}`. Numbers come from `node planner/scripts/demo-numbers.mjs` and `node planner/scripts/validate-gale.mjs` (repo root).
+> **Before pasting:** Moss, put the official field names, character limits and video rules into `docs/SUBMISSION-REQUIREMENTS.md` (Teammate's Claude has no internet). Then trim each block below to fit. Placeholders: `https://nasa-eva-planner.vercel.app`, `{{REPO_URL}}`, `{{VIDEO_URL}}`. Numbers come from `node planner/scripts/demo-numbers.mjs` and `node planner/scripts/validate-gale.mjs` (repo root).
 
 ---
 
@@ -12,7 +12,7 @@ Plan safe Marswalks on real NASA terrain: three routes scored on oxygen, slope, 
 *(137 characters)*
 
 ### Links
-- Live app: {{LIVE_URL}}
+- Live app: https://nasa-eva-planner.vercel.app
 - Code: {{REPO_URL}}
 - Demo video: {{VIDEO_URL}}
 
