@@ -39,7 +39,7 @@ Use this as a scoring sheet. Every row must be answerable in the demo.
 | C3 | Inspiration from maps of other worlds (e.g. Apollo traverse maps) | ⬜ | Not claimed. The EVA model's Apollo comparison is in `docs/VALIDATION.md`, but no Apollo-style map styling was built | n/a |
 | C4 | Past, predicted, or no specific time frame | ✅ | "Now": live Mars clock (Mars24), today's daylight at Gale, live space weather | `MarsClockBar.tsx`, `DaylightBar.tsx`, `web/lib/mars-context.ts` |
 | C5 | Point-of-view images from surface missions | ⬜ | Not built (no Mastcam/Navcam images in the app) | n/a |
-| C6 | Rovers carrying crew and tools, or astronauts in pairs | 🟡 | **Rover assist works in the planner** (T-23: Glen Torridon NO-GO on foot → GO by rover, 224 min, 76 % O₂) but **the UI toggle isn't wired yet**. Claim it only once the toggle ships. Two-person EVA: not built | `planner/src/route.js`, `planner/test/rover.test.js` |
+| C6 | Rovers carrying crew and tools, or astronauts in pairs | 🟡 → ✅ when Moss confirms in a browser | **Rover assist:** planner (T-23: Glen Torridon NO-GO on foot → GO by rover, 224 min, 76 % O₂) + UI **Mode** toggle and first-person rover view (T-28, built and builds, **not yet checked in a browser**). Two-person EVA: not built | `planner/src/route.js`, `planner/test/rover.test.js` |
 
 ### Gaps we say out loud (README + pitch)
 
@@ -49,7 +49,7 @@ Use this as a scoring sheet. Every row must be answerable in the demo.
 4. **Two of five site positions are approximate** (Glen Torridon, Woodland Bay, ± ~150 m–0.5 km). The other three are Curiosity's real stops.
 5. **The suit model is a planning estimate** (Pandolf + suit penalty). Its 313–353 W sits at the top of Apollo's measured 228–352 W range, and it's not a validated Mars-suit model.
 6. **Single astronaut.** No buddy / two-person EVA logic.
-7. **Not yet in the UI** (only claim them once they ship): THEMIS thermal layer, rover assist toggle, carried-kit input.
+7. **Not yet in the UI** (only claim them once they ship): THEMIS thermal layer, carried-kit input. The rover view's close-up ground texture and rocks are procedural, not mapped boulders.
 
 ## Known gaps other teams hit (opportunities for us)
 

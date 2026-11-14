@@ -23,7 +23,7 @@ Round trips from Bradbury Landing, Curiosity's touchdown site. Reproduce with `n
 | Yellowknife Bay | 0.4 km | 16 min | 96 % | GO |
 | **Pahrump Hills** (foot of Mount Sharp) | 5.9 km | 3 h 41 min, 0.10 mSv | 49 % | **GO** |
 | Glen Torridon (clays + organics) | 9.4 km | 6 h 12 min | 6 % | **NO-GO on foot** |
-| Glen Torridon, **rover assist** | 9.4 km | 3 h 44 min | 76 % | **GO** (planner done; UI toggle pending) |
+| Glen Torridon, **rover assist** | 9.4 km | 3 h 44 min | 76 % | **GO** (setup panel → Mode → Rover assist) |
 
 Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (32 % O₂). A live NASA solar-storm forecast turns every route to CAUTION.
 
@@ -42,7 +42,7 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
    - **SAFE** minimises oxygen use and penalises every degree above 10°, both between cells and inside them (limit 15°).
    - **FAST** minimises walking time (limit 20°).
    - **SCIENCE** walks least-oxygen legs through the sites that add the smallest detour, budgets 20 min of work at each, and drops a stop if it would make the walk unsafe.
-   - **Rover assist** (`params: { rover: true }`) plans for an unpressurised rover: 1.4 m/s, 20° limit, seated O₂ use.
+   - **Rover assist** (`params: { rover: true }`, the **Mode** switch in the app) plans for an unpressurised rover: 1.4 m/s, 20° limit, seated O₂ use. Pressing ▶ on a rover route opens a first-person ride over the real Gale terrain (1 m NASA elevation model + HiRISE colour; close-up rocks are decorative).
 3. **Suit model:** walking speed vs slope (Tobler-style), metabolic power from the Pandolf load-carriage equation scaled to Mars gravity with a pressure-suit penalty, a 25 % O₂ reserve, an 8 h suit limit and a 20° walking limit. It comes out at 313–353 W, at the top of Apollo's measured 228–352 W range, which fits Mars gravity being ~2.3× the Moon's.
 4. **Safety:** radiation dose per route from the rate Curiosity's RAD measured at Gale (0.64 mSv/day). Live NASA DONKI forecasts of solar storms reaching Mars. Daylight vs Gale's sunset (Mars24).
 5. **Recommendation** is a fixed rule: best verdict, then SCIENCE if it reaches a site, then SAFE, then FAST.

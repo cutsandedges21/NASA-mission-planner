@@ -33,6 +33,7 @@ We checked the routes against reality. On the 5.9 km walk to the foot of Mount S
 - Live space weather (NASA DONKI) and Mars clock, daylight and Earth signal delay (Mars24).
 - Mission briefing worded by AI from computed numbers only.
 - "Simulate Mission": plays the walk with a live oxygen gauge and the science stop.
+- Rover assist: plans with an unpressurised rover (Glen Torridon: NO-GO on foot → GO by rover, 3 h 44 min, 76 % O₂), with a first-person ride over the real Gale terrain.
 
 ### How we built it
 - **Data pipeline (Python, rasterio):** reads only the needed window of NASA/USGS rasters from the USGS cloud bucket and bakes a 473 × 593 grid of 25 m cells: elevation, the steepest slope inside each cell, colour and thermal images. It's driven by one config file per region.
@@ -51,7 +52,6 @@ We checked the routes against reality. On the 5.9 km walk to the foot of Mount S
 - An honest verdict: 3 of 5 sites are NO-GO on foot (6–6.5 h, ≤ 9 % O₂ left), and the app says so.
 
 ### What's next
-- Rover assist in the UI (the planner already does it: Glen Torridon goes from NO-GO on foot to GO by rover, 3 h 44 min, 76 % O₂).
 - Boulder hazards from 25 cm HiRISE images and 1 m terrain roughness.
 - Two-person EVAs, carried-kit settings, and a mineral (CRISM) layer.
 - Run the same pipeline for other human landing sites.
