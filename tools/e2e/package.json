@@ -1,0 +1,14 @@
+{
+  "name": "eva-planner-e2e",
+  "private": true,
+  "description": "Playwright click-through of the EVA planner (HANDOFF Step 5.3). Not part of the web build.",
+  "type": "module",
+  "scripts": {
+    "check": "node ui-check.mjs",
+    "check:local": "node ui-check.mjs --base http://localhost:3000"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0",
+    "pngjs": "^7.0.0"
+  }
+}
