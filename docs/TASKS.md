@@ -17,11 +17,33 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 | Time (EST) | Who | What | Files / outputs the other side needs |
 |---|---|---|---|
+| Sat 11:20 | Teammate's Claude | Gianluca's new request (map + path look) comes before T-30/T-31, which I'll pick up afterwards. **Claimed T-32** (routes drawn like NASA's traverse: string-pulled + smoothed) and **T-33** (NASA Trek layers: 2D colour, heightmap, thermal, globe + hover readout of coordinates, elevation and temperature). Both are described below. | **Heads-up:** T-32 adds `line` to every planned route. `web/lib/plan-client.ts` gets the type, and I make a 1-line change in `MissionPlanner.tsx` (route GeoJSON uses `r.line ?? r.path`). **Moss's Claude:** `tools/blender/export_routes.mjs` should also draw `line`. T-33 touches `MissionPlanner.tsx` (map style + mousemove) and `map/SetupPanel.tsx` (layer list) for wiring only. Please don't edit those two files until I log "T-33 wiring pushed" |
 | Sat 11:15 | Moss's Claude | Started **T-29a** layered-data graphic in Blender (first renders look right: five layers stacked, real data). Posted **T-30** and **T-31** for Teammate | `tools/blender/*` (new, mine). Will deliver `docs/graphics/layered-data.png` and `web/public/graphics/layered-data.jpg` (T-30 references these exact paths) |
 | Sat 10:30 | Moss's Claude | Rover assist + first-person view verified on localhost and live | `web/components/RoverView.tsx`, `Simulation*.tsx`; C6 in `docs/CHALLENGE.md` can be ✅ |
 | Fri 21:00 | Teammate's Claude | Last seen: T-24/T-25/T-26/T-27/T-08 done, T-28 follow-up (commit b64bfdc). Idle since | none |
 
 **To wake Teammate's Claude** (Gianluca pastes this into it): `git pull --rebase --autostash, then read the SYNC LOG and T-30, T-31 at the top of docs/TASKS.md, claim T-30 and start. Then run: /loop 2m git pull --rebase --autostash and re-read docs/TASKS.md for changes that affect you.`
+
+
+## T-32 · Routes look like a NASA traverse, not a staircase (Teammate's Claude)
+- **Owner:** Teammate · **Status:** IN PROGRESS (Teammate, Sat 11:20) · **Asked by:** Gianluca, with two reference images of Curiosity's real planned route (long straight runs, gentle curves, thin white line)
+- **Why:** A* moves in 8 directions, so every route is a 45° zigzag. A rover driver's line goes straight wherever the ground allows.
+- **Steps:**
+  1. `planner/src/smooth.js` (new): `smoothLine(path, ctx, anchors)`. First string-pull: jump straight from cell i to the farthest cell j where the straight segment (a) never crosses a cell whose `fineSlope` is steeper than the steepest cell the computed route already used between i and j, (b) never has a steeper cell-to-cell grade than that sub-route, and (c) stays within 2 cells (50 m) of it. Then 2 rounds of Chaikin corner-cutting. Science stops and the ends are fixed anchors.
+  2. `planner/src/plan.js` `score()`: add `line` (fractional cell coordinates, outbound only) to every route. **The budget numbers are still computed on `path`**, so every number in the docs stays valid. The cell path is ≤ 8 % longer than the line, which makes O₂ conservative.
+  3. `web/lib/plan-client.ts`: `line?: [number, number][]`. `MissionPlanner.tsx`: draw `r.line ?? r.path`.
+  4. Tests in `planner/test/smooth.test.js`.
+- **Done when:** `cd planner && npm test` passes, Bradbury → Pahrump Hills shows long straight runs with rounded bends on localhost, and the Result gives the vertex count before and after.
+- **For Moss's Claude afterwards (Simulation is yours):** `makePathLocator(route.path, …)` in `Simulation.tsx` can take `route.line ?? route.path` so the marker follows the drawn line (keep the time base from `budget.timeline`). Style suggestion from the reference images: a thin white line (2 px) with a dark 4 px casing for the selected route, and the others thinner and dimmer.
+
+## T-33 · NASA Trek map layers + hover readout (Teammate's Claude; Gianluca's request)
+- **Owner:** Teammate · **Status:** IN PROGRESS (Teammate, Sat 11:20)
+- **Ask:** map types like trek.nasa.gov (regular 2D, 3D/globe, thermal, heightmap), the coordinates readout from Trek's bottom-right corner shown on hover, plus elevation and temperature. **Keep it light**: Trek's own viewer (Cesium) is too heavy for 16 GB laptops.
+- **How (light):** no new map library. The NASA Trek WMTS tiles (`https://trek.nasa.gov/tiles/Mars/EQ/<layer>/1.0.0/default/default028mm/{z}/{row}/{col}.<ext>`, CORS `*`, checked Sat 11:18) are equirectangular, so a custom `trek://` MapLibre protocol reprojects them to Web Mercator on a canvas (a handful of `drawImage` strips per tile). The globe is MapLibre 6's built-in `projection: globe`.
+  - Regular 2D = `Mars_Viking_MDIM21_ClrMosaic_global_232m` (jpg) · Heightmap = `Mars_MGS_MOLA_ClrShade_merge_global_463m` (jpg, colour-coded MOLA) · Thermal = `THEMIS_DayIR_ControlledMosaics_100m_v2_oct2018` (png). The ArcGIS/USGS interactive-maps page points to the same THEMIS mosaics. Inside Gale, our own baked layers (HiRISE, slope, THEMIS night `thermal.jpg`) draw on top.
+- **Files:** `web/lib/trek.ts` (new: layer list + protocol), `web/lib/probe.ts` (new: lon/lat → elevation from `elev.i16` and surface temperature), `web/components/map/HoverReadout.tsx` (new). Wiring: `MissionPlanner.tsx` + `map/SetupPanel.tsx` (logged in the SYNC LOG).
+- **Temperature honesty:** no layer gives a calibrated live temperature. The readout shows a **model**: Curiosity REMS's measured ground-temperature range at Gale, by local solar time (from `marstime.js`), with the night value nudged by THEMIS night-IR brightness. It is labelled "model".
+- **Done when:** the layer switcher shows 2D / Heightmap / Thermal (+ 3D, Globe), the hover readout shows lat/lon (planetocentric, °E), elevation and model temperature, and CPU stays idle when the map is still. Checked on localhost.
 
 ## T-29 · Blender package (Moss's Claude; Moss approved ideas 1, 3, 5, 6, 7 on Sat 11:00; **7 is the priority**)
 Blender 5.1.1 runs headless on Moss's PC (CPU only: ~8 s per 960×540 frame). Everything is scripted in `tools/blender/` so it can be re-run when the data changes. **Assets can land until Sun 08:00** (feature freeze is for features, not for pictures and videos).
