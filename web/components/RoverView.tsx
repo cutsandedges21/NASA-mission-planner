@@ -261,52 +261,6 @@ export default function RoverView({
       {/* edge vignette */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(8,4,2,0.55) 100%)' }} />
 
-      {/* heading compass */}
-      <div className="pointer-events-none absolute bottom-[21%] left-1/2 h-10 w-[480px] -translate-x-1/2 overflow-hidden" style={{ maskImage: 'linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent)' }}>
-        <div ref={tape} className="absolute left-1/2 top-0 h-full will-change-transform" style={{ width: TICKS.length * 10 * PX_PER_DEG }}>
-          {TICKS.map((deg) => {
-            const d = ((deg % 360) + 360) % 360;
-            const major = d % 30 === 0;
-            return (
-              <div key={deg} className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: (deg + 360) * PX_PER_DEG }}>
-                <div className={`w-px ${major ? 'h-3.5 bg-white/80' : 'h-2 bg-white/40'}`} />
-                {major && <div className={`mt-0.5 font-mono text-[10px] ${CARDINALS[d] ? 'font-semibold text-[#f5c84b]' : 'text-white/70'}`}>{CARDINALS[d] ?? d}</div>}
-              </div>
-            );
-          })}
-        </div>
-        <div className="absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 bg-[#f5c84b]" />
-      </div>
-
-      {/* instruments */}
-      <div className="pointer-events-none absolute bottom-[8%] left-1/2 flex -translate-x-1/2 gap-6 rounded-xl bg-black/45 px-5 py-2 font-mono text-[11px] text-white/85 backdrop-blur-sm">
-        <Gauge k="Speed" r={(el) => {
-            readout.current.speed = el;
-          }} />
-        <Gauge k="Heading" r={(el) => {
-            readout.current.head = el;
-          }} />
-        <Gauge k="Pitch / roll" r={(el) => {
-            readout.current.tilt = el;
-          }} />
-        <Gauge k="To target" r={(el) => {
-            readout.current.range = el;
-          }} />
-      </div>
-
-      {/* site labels, positioned in 3D every frame */}
-      {pins.map((p) => (
-        <div key={p.id} ref={(el) => void (labels.current[p.id] = el)} className="pointer-events-none absolute left-0 top-0 opacity-0 will-change-transform">
-          <div className="flex flex-col items-center">
-            <div className="whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold text-black shadow-lg" style={{ background: p.color }}>
-              {p.name}
-            </div>
-            <div data-dist className="mt-0.5 font-mono text-[10px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" />
-            <div className="h-5 w-px" style={{ background: p.color }} />
-          </div>
-        </div>
-      ))}
-
       {/* rover deck (open-seat unpressurised rover) or plain visor */}
       {mode === 'rover' ? (
         <svg ref={deck} className="pointer-events-none absolute inset-x-0 bottom-0 h-[24%] w-full will-change-transform" viewBox="0 0 1600 260" preserveAspectRatio="xMidYMax slice" aria-hidden>
@@ -336,6 +290,52 @@ export default function RoverView({
       ) : (
         <div className="pointer-events-none absolute inset-0" style={{ boxShadow: 'inset 0 0 160px 40px rgba(0,0,0,0.55)' }} />
       )}
+
+      {/* heading compass */}
+      <div className="pointer-events-none absolute bottom-[14%] left-1/2 h-10 w-[480px] -translate-x-1/2 overflow-hidden" style={{ maskImage: 'linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent)' }}>
+        <div ref={tape} className="absolute left-1/2 top-0 h-full will-change-transform" style={{ width: TICKS.length * 10 * PX_PER_DEG }}>
+          {TICKS.map((deg) => {
+            const d = ((deg % 360) + 360) % 360;
+            const major = d % 30 === 0;
+            return (
+              <div key={deg} className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: (deg + 360) * PX_PER_DEG }}>
+                <div className={`w-px ${major ? 'h-3.5 bg-white/80' : 'h-2 bg-white/40'}`} />
+                {major && <div className={`mt-0.5 font-mono text-[10px] ${CARDINALS[d] ? 'font-semibold text-[#f5c84b]' : 'text-white/70'}`}>{CARDINALS[d] ?? d}</div>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 bg-[#f5c84b]" />
+      </div>
+
+      {/* instruments */}
+      <div className="pointer-events-none absolute bottom-[2.5%] left-1/2 flex -translate-x-1/2 gap-6 rounded-xl bg-black/45 px-5 py-2 font-mono text-[11px] text-white/85 backdrop-blur-sm">
+        <Gauge k="Speed" r={(el) => {
+            readout.current.speed = el;
+          }} />
+        <Gauge k="Heading" r={(el) => {
+            readout.current.head = el;
+          }} />
+        <Gauge k="Pitch / roll" r={(el) => {
+            readout.current.tilt = el;
+          }} />
+        <Gauge k="To target" r={(el) => {
+            readout.current.range = el;
+          }} />
+      </div>
+
+      {/* site labels, positioned in 3D every frame */}
+      {pins.map((p) => (
+        <div key={p.id} ref={(el) => void (labels.current[p.id] = el)} className="pointer-events-none absolute left-0 top-0 opacity-0 will-change-transform">
+          <div className="flex flex-col items-center">
+            <div className="whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-semibold text-black shadow-lg" style={{ background: p.color }}>
+              {p.name}
+            </div>
+            <div data-dist className="mt-0.5 font-mono text-[10px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" />
+            <div className="h-5 w-px" style={{ background: p.color }} />
+          </div>
+        </div>
+      ))}
 
       {status === 'loading' && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#1b100a]/85 text-sm tracking-[0.3em] text-[#f5c84b]">LANDING ON MARS…</div>

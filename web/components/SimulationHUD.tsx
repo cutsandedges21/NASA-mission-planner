@@ -98,7 +98,7 @@ export default function SimulationHUD({
   const localH = startH + frame.tau / MARS_HOUR_S;
   const nearSunset = sunsetH - localH < 0.75;
   const stop = frame.stopId ? pois.find((p) => p.id === frame.stopId) : undefined;
-  const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? `Working at ${stop?.name ?? 'site'}` : frame.phase === 'returning' ? 'Returning to base' : 'Walking out';
+  const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? `Working at ${stop?.name ?? 'site'}` : frame.phase === 'returning' ? 'Returning to base' : route.budget?.mode === 'rover' ? 'Driving out' : 'Walking out';
 
   const seek = (v: number) => {
     uRef.current = v;
@@ -158,7 +158,7 @@ export default function SimulationHUD({
         <Box k="MINUTES" v={two((frame.tau % 3600) / 60)} />
         <span className="sim-sep" />
         <Box k="LOCAL TIME" v={hm(lh)} warn={nearSunset} wide />
-        <Box k="KM WALKED" v={fmtKm(frame.d)} sub={`/ ${fmtKm(mission.total)}`} wide />
+        <Box k={route.budget?.mode === 'rover' ? 'KM DRIVEN' : 'KM WALKED'} v={fmtKm(frame.d)} sub={`/ ${fmtKm(mission.total)}`} wide />
         <div className="ml-auto text-right">
           <div className="sim-box-k">OXYGEN LEFT</div>
           <DotNum text={`${o2Left.toFixed(0)}%`} height={30} color={lowO2 ? '#fbbf24' : '#ffffff'} />

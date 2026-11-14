@@ -91,16 +91,21 @@ void main() {
   float dist = length(vWorld - cameraPosition);
   vec3 base = texture2D(uMap, vUv).rgb;
   // ground grain and pebbles, faded with distance so nothing shimmers on the horizon
-  float nearK = 1.0 - smoothstep(60.0, 700.0, dist);
   vec2 q = vWorld.xz;
+  // each octave fades out well before it would alias (pebbles by ~30 m, grain by ~140 m, patches by ~900 m)
+  float d1 = 1.0 - smoothstep(120.0, 900.0, dist);
+  float d2 = 1.0 - smoothstep(25.0, 140.0, dist);
+  float d3 = 1.0 - smoothstep(6.0, 30.0, dist);
   float n0 = fbm(q * 0.045), n1 = fbm(q * 0.31), n2 = vnoise(q * 2.6), n3 = vnoise(q * 11.0);
-  float v = (n0 - 0.5) * 0.30 + nearK * ((n1 - 0.5) * 0.34 + (n2 - 0.5) * 0.40 + (n3 - 0.5) * 0.28);
+  float v = (n0 - 0.5) * 0.22 + d1 * (n1 - 0.5) * 0.28 + d2 * (n2 - 0.5) * 0.30 + d3 * (n3 - 0.5) * 0.24;
   vec3 col = base * (1.0 + v);
-  // micro-relief: bend the normal with the same noise
+  // micro-relief: bend the normal with the same noise, octave by octave
   float e = 0.12;
-  float gx = (vnoise((q + vec2(e, 0.0)) * 2.6) - vnoise((q - vec2(e, 0.0)) * 2.6)) + 0.6 * (vnoise((q + vec2(e, 0.0)) * 11.0) - vnoise((q - vec2(e, 0.0)) * 11.0));
-  float gz = (vnoise((q + vec2(0.0, e)) * 2.6) - vnoise((q - vec2(0.0, e)) * 2.6)) + 0.6 * (vnoise((q + vec2(0.0, e)) * 11.0) - vnoise((q - vec2(0.0, e)) * 11.0));
-  vec3 N = normalize(normalize(vNormal) + nearK * 1.3 * vec3(-gx, 0.0, -gz));
+  float gx2 = vnoise((q + vec2(e, 0.0)) * 2.6) - vnoise((q - vec2(e, 0.0)) * 2.6);
+  float gz2 = vnoise((q + vec2(0.0, e)) * 2.6) - vnoise((q - vec2(0.0, e)) * 2.6);
+  float gx3 = vnoise((q + vec2(e, 0.0)) * 11.0) - vnoise((q - vec2(e, 0.0)) * 11.0);
+  float gz3 = vnoise((q + vec2(0.0, e)) * 11.0) - vnoise((q - vec2(0.0, e)) * 11.0);
+  vec3 N = normalize(normalize(vNormal) + 1.1 * vec3(-(gx2 * d2 + gx3 * d3 * 0.6), 0.0, -(gz2 * d2 + gz3 * d3 * 0.6)));
   float ndl = max(dot(N, uSunDir), 0.0);
   vec3 lit = col * (uAmbient + uSunColor * ndl);
   float f = 1.0 - exp(-pow(dist * uFogK, 2.0));
@@ -182,8 +187,8 @@ void main() {
   float p = fract((vS * uAhead) / 7.0 - uTime * 0.7);      // bars flowing toward the camera
   float bar = smoothstep(0.0, 0.1, p) * (1.0 - smoothstep(0.32, 0.48, p));
   float edge = smoothstep(0.0, 0.22, vUv.x) * (1.0 - smoothstep(0.78, 1.0, vUv.x));
-  float a = (0.30 + 0.60 * bar) * edge * aheadFade * passed;
   float dist = length(vWorld - cameraPosition);
+  float a = (0.30 + 0.60 * bar) * edge * aheadFade * passed * smoothstep(4.0, 26.0, dist);
   float f = 1.0 - exp(-pow(dist * uFogK, 2.0));
   gl_FragColor = vec4(mix(uColor, uFogColor, f * 0.65), a);
 }`;
@@ -194,10 +199,11 @@ void main() { vY = position.y; gl_Position = projectionMatrix * modelViewMatrix 
 
 const BEACON_FRAG = /* glsl */ `
 precision highp float;
-uniform vec3 uColor; varying float vY;
+uniform vec3 uColor; uniform vec2 uAxis; varying float vY;
 void main() {
   float t = clamp(vY / 700.0, 0.0, 1.0);
-  gl_FragColor = vec4(uColor, pow(1.0 - t, 1.6) * 0.5);
+  float away = smoothstep(60.0, 220.0, distance(cameraPosition.xz, uAxis)); // no veil when we're standing in the beam
+  gl_FragColor = vec4(uColor, pow(1.0 - t, 1.6) * 0.5 * away);
 }`;
 
 export class RoverScene {
@@ -357,7 +363,7 @@ export class RoverScene {
     this.disposables.push(cyl);
     for (const b of o.beacons) {
       const mat = new THREE.ShaderMaterial({
-        uniforms: { uColor: { value: hex(b.color) } },
+        uniforms: { uColor: { value: hex(b.color) }, uAxis: { value: new THREE.Vector2(b.x, b.z) } },
         vertexShader: BEACON_VERT,
         fragmentShader: BEACON_FRAG,
         transparent: true,
