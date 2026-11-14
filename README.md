@@ -47,6 +47,7 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 4. **Safety:** radiation dose per route from the rate Curiosity's RAD measured at Gale (0.64 mSv/day). Live NASA DONKI forecasts of solar storms reaching Mars. Daylight vs Gale's sunset (Mars24).
 5. **Recommendation** is a fixed rule: best verdict, then SCIENCE if it reaches a site, then SAFE, then FAST.
 6. **Mission briefing**, written in the browser from the computed numbers (no AI, no server call): the recommended route and how it compares with the alternative.
+7. **Mission simulator** (`planner/src/candidates.js`, panel at the top of the map): five seeded simulations from Point 1 to Point 2. Each seed has its own risk appetite (from pure speed to most cautious), its own hidden ground (soft sand vs packed soil, which a 25 m map can't see) and its own weather, so each finds and walks its own route. The panel labels **FASTEST** (first to Point 2 without a NO-GO), **SAFEST** (fewest safety problems on the way) and **BALANCED** (best of the rest on both); the other two stay one click away. Each has a plain-language account of what happened, the possible damage (e.g. dust in suit joints), and a **step-by-step** list: heading, distance, climb, steepest ground, time and O₂ per leg, turns, rises it goes over. **Dust-storm chance is NASA-orbiter data:** the Mars Dust Activity Database (MGS MOC + MRO MARCI, Mars Years 24–32) shows how often a storm covered this area in each season. **What if a dust storm hits?** forces a storm into every run. **+ Pit stop** adds a stop between Point 1 and Point 2 that every route passes through. Seeds make every run replayable.
 
 ## Validation
 
@@ -82,6 +83,7 @@ All sources with links: `web/lib/credits.ts` (also shown in the app's Credits pa
 - **Two site positions are approximate** (Glen Torridon, Woodland Bay). The other three are Curiosity's real stops.
 - **The suit model is a planning estimate**, not a validated Mars-suit model.
 - **One astronaut.** No two-person EVA logic yet.
+- **Simulator event sizes are assumptions.** Storm *chance* comes from MDAD, but storm opacity (τ), the hidden-ground range and pace/effort spread are our estimates, listed in the app (Simulator → Assumptions). Storms are far bigger than the map, so routes can't go around them: the crew keeps going or turns back.
 
 ## Credits
 

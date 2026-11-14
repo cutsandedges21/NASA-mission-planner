@@ -33,6 +33,7 @@ We checked the routes against reality. On the 5.9 km walk to the foot of Mount S
 - Live space weather (NASA DONKI) and Mars clock, daylight and Earth signal delay (Mars24).
 - Mission briefing worded by AI from computed numbers only.
 - "Simulate Mission": plays the walk with a live oxygen gauge and the science stop.
+- Mission simulator: five seeded simulations, each with its own risk appetite, hidden ground and weather, labelled FASTEST / SAFEST / BALANCED (+2 more), with what happened, possible damage and a step-by-step route. Dust-storm chance from NASA orbiter data (Mars Dust Activity Database). Add a pit stop between the two points.
 - Rover assist: plans with an unpressurised rover (Glen Torridon: NO-GO on foot → GO by rover, 3 h 44 min, 76 % O₂), with a first-person ride over the real Gale terrain.
 
 ### How we built it

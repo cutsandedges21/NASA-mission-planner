@@ -38,6 +38,12 @@ Clicks use the labels in the current UI (after Moss's Fri 20:10 coherence pass):
 
 (~430 words of narration)
 
+### Optional beat: Mission simulator (≈ 30 s, after 2:10 Simulate)
+
+| On screen | Clicks | Narration (word for word) | Numbers shown (source) |
+|---|---|---|---|
+| Mission simulator panel, top of the map, Pahrump Hills planned | point at the three cards; click **SAFEST**, then **Step by step**; tick **What if a dust storm hits?**; click **FASTEST** | "Planning is one thing, the walk is another. The mission simulator runs five seeded simulations, each with its own appetite for risk, its own hidden ground and its own weather, and each finds its own route. It picks the fastest, the safest and the balanced one, and keeps the other two a click away. Here's the safest, step by step: heading, distance, climb, steepest ground, oxygen. How often do storms reach Gale? We used NASA orbiter maps of almost fifteen thousand dust storms. And if one hits anyway: the fast crew keeps going, the cautious one turns back." | read the times and problem counts off the cards (they depend on the season and the leave time; seeds make them repeatable) |
+
 ### Beats that need something built (Moss)
 
 1. **2:25 Rover assist**: built (T-28, Mode toggle + first-person rover view). **Moss: check it in a browser before recording.** The fallback line uses plain Simulate.
