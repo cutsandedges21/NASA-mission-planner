@@ -4,7 +4,8 @@
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { CostGrid } from './route.js';
 import { smoothLine } from './smooth.js';
-import { budget, verdict, evaDoseMSv, RAD_MSV_PER_DAY, EVA_DEFAULTS } from './eva.js';
+import { budget, verdict, RAD_MSV_PER_DAY, EVA_DEFAULTS } from './eva.js';
+import { routeDoseMSv, doseRateMSvDay } from './radiation.js';
 
 export { EVA_DEFAULTS, RAD_MSV_PER_DAY };
 /** Slope (deg) above which ground counts as steep for budget.steepPct. */
@@ -201,8 +202,11 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   b.gradeMaxSlope = b.maxSlope;
   b.fineMaxSlope = ctx.fineSlope ? Math.max(0, ...path.map(([x, y]) => ctx.fineSlope[y * w + x])) : 0;
   b.maxSlope = Math.max(b.gradeMaxSlope, b.fineMaxSlope);
-  // Radiation: surface dose rate measured by Curiosity's RAD in Gale crater × time outside.
-  b.doseMSv = evaDoseMSv(b.totalT);
+  // Radiation: Curiosity RAD's measured Gale rate, scaled by elevation with the NASA PIA03480 dose map
+  // (radiation.js), integrated segment by segment along the walk and at each stop.
+  const stopElevs = stops.map((st) => samples.find((x) => x.d >= st.d)?.e ?? out.at(-1).e);
+  b.doseMSv = routeDoseMSv(samples, b.timeline, stopElevs, params.stopMin * 60);
+  b.doseRateMax = Math.max(...out.map((x) => doseRateMSvDay(x.e))); // mSv/day at the route's highest point
   // Terrain risk: share of the outbound distance on cells whose steepest fine-scale slope > STEEP_DEG.
   b.steepPct = steepShare(path, out, ctx.fineSlope, w);
   b.mode = params.rover ? 'rover' : 'foot';

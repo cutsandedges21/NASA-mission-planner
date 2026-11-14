@@ -96,7 +96,7 @@ export default function SetupPanel({
   const lo = clock ? Math.ceil(clock.rise * 4) / 4 : 6;
   const hi = clock ? Math.floor((clock.set - 1) * 4) / 4 : 17;
   const inRegion = (b: Bookmark) => !!meta && b.lon >= meta.lon[0] && b.lon <= meta.lon[1] && b.lat >= meta.lat[0] && b.lat <= meta.lat[1];
-  const layer = mapType === 'thermal' || mapType === 'height' ? mapType : null;
+  const layer = mapType === 'thermal' || mapType === 'height' || mapType === 'radiation' ? mapType : null;
 
   return (
     <aside className="sp absolute bottom-4 left-4 top-20 z-10 hidden w-[300px] flex-col md:flex">
@@ -266,6 +266,9 @@ export default function SetupPanel({
                 <button onClick={() => onMapType(layer === 'height' ? 'colour' : 'height')} className={`sp-tile ${layer === 'height' ? 'sp-on' : ''}`} title={LAYER_INFO.height}>
                   Elevation
                 </button>
+                <button onClick={() => onMapType(layer === 'radiation' ? 'colour' : 'radiation')} className={`sp-tile ${layer === 'radiation' ? 'sp-on' : ''}`} title={LAYER_INFO.radiation}>
+                  Radiation
+                </button>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{LAYER_INFO[layer ?? 'colour']}</p>
               {hasTraverse && (
@@ -306,10 +309,11 @@ export default function SetupPanel({
   );
 }
 
-const LAYER_INFO: Record<'colour' | 'thermal' | 'height', string> = {
+const LAYER_INFO: Record<'colour' | 'thermal' | 'height' | 'radiation', string> = {
   colour: 'True colour: the Viking global mosaic (NASA Mars Trek), with HiRISE colour over Gale. Turn on Thermal or Elevation to see more.',
   thermal: 'Thermal: THEMIS infrared (NASA Mars Odyssey). Warm colours = ground that holds heat (rock); dark = dust and sand that cool fast.',
   height: 'Elevation: MOLA colour relief worldwide, the 1 m NASA terrain over Gale. Blue = low, red/white = high.',
+  radiation: 'Radiation: cosmic-ray dose at the surface (NASA Mars Odyssey map PIA03480). Low ground has more air overhead, so less dose. Over Gale: the dose rate the SAFE route avoids, from the 1 m terrain.',
 };
 
 function IRover({ size = 15 }: { size?: number }) {

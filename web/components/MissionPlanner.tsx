@@ -26,6 +26,7 @@ import { useSimulation } from './Simulation';
 import ScenarioPanel from './ScenarioPanel';
 import { ROUTE_STYLE } from './map/format';
 import { setGeologyVisible } from '@/lib/geology-layer';
+import { radiationColourUrl, RAD_GLOBAL_URL, RAD_GLOBAL_CORNERS } from '@/lib/radiation-layer';
 
 
 export { ROUTE_STYLE };
@@ -140,6 +141,9 @@ export default function MissionPlanner() {
           'region-height': { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
           'region-thermal': { type: 'image', url: region.url('thermal.jpg'), coordinates: corners(m) },
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
+          // Radiation map type: NASA PIA03480 worldwide + the planner's dose rate over the region (built on first use)
+          'rad-global': { type: 'image', url: RAD_GLOBAL_URL, coordinates: RAD_GLOBAL_CORNERS },
+          'region-rad': { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
           dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           traverse: { type: 'geojson', data: region.traverse ?? { type: 'FeatureCollection', features: [] } },
@@ -153,9 +157,11 @@ export default function MissionPlanner() {
           { id: 'trek-colour', type: 'raster', source: 'trek-colour', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.6, 'raster-fade-duration': 0 } },
           { id: 'trek-height', type: 'raster', source: 'trek-height', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
           { id: 'trek-thermal', type: 'raster', source: 'trek-thermal', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
+          { id: 'rad-global', type: 'raster', source: 'rad-global', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.8, 'raster-fade-duration': 0 } },
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
           { id: 'region-height', type: 'raster', source: 'region-height', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
           { id: 'region-thermal', type: 'raster', source: 'region-thermal', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
+          { id: 'region-rad', type: 'raster', source: 'region-rad', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.72, 'raster-fade-duration': 0 } },
           { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1a0d07' } },
           {
             id: 'slope', type: 'raster', source: 'slope', layout: { visibility: 'none' },
@@ -399,7 +405,7 @@ export default function MissionPlanner() {
   }, [mapReady, region, geology]);
 
   // 9. map type (T-33): one global Trek layer + the matching region layer. Hidden layers load no tiles.
-  const regionImgs = useRef<{ height?: string; thermal?: string }>({});
+  const regionImgs = useRef<{ height?: string; thermal?: string; rad?: string }>({});
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp || !region) return;
@@ -412,6 +418,16 @@ export default function MissionPlanner() {
     show('region-height', base === 'height');
     show('region-thermal', base === 'thermal');
     show('slope', mapType === 'slope');
+    show('rad-global', mapType === 'radiation');
+    show('region-rad', mapType === 'radiation');
+    if (mapType === 'radiation' && !regionImgs.current.rad) {
+      regionImgs.current.rad = 'pending';
+      const m = region.meta;
+      radiationColourUrl(region.elev, m.width, m.height).then(({ url }) => {
+        regionImgs.current.rad = url;
+        (mp.getSource('region-rad') as maplibregl.ImageSource | undefined)?.updateImage({ url, coordinates: corners(m) });
+      });
+    }
     // build the region's false-colour images once, on first use
     const src = (id: string) => mp.getSource(id) as maplibregl.ImageSource | undefined;
     if (base === 'height' && !regionImgs.current.height) {

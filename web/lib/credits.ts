@@ -60,6 +60,19 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'NASA data',
+    name: 'Estimated Radiation Dosage on Mars, PIA03480 (NASA/JPL/JSC, Mars Odyssey MARIE + MGS MOLA)',
+    what: 'The Radiation map type (reprojected worldwide), and the +5.1 % dose rate per km of altitude we read off it to scale Curiosity's 0.64 mSv/day across Gale (data/radiation_map.py)',
+    url: 'https://photojournal.jpl.nasa.gov/catalog/PIA03480',
+    license: 'Public domain (NASA)',
+  },
+  {
+    group: 'NASA data',
+    name: 'MGS MOLA Mission Experiment Gridded Data Record, 4 px/deg (NASA PDS Geosciences)',
+    what: 'Global elevations paired with the PIA03480 colours to fit dose vs altitude',
+    url: 'https://pds-geosciences.wustl.edu/missions/mgs/megdr.html',
+  },
+  {
+    group: 'NASA data',
     name: 'Viking global mosaic of Mars, PIA00407 (NASA/JPL/USGS)',
     what: 'The Mars globe on the landing screen',
     url: 'https://photojournal.jpl.nasa.gov/catalog/PIA00407',

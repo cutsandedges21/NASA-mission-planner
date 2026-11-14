@@ -2,9 +2,10 @@
 // Changes: added `strategy` (ENERGY / FAST / SAFE) and `roundTrip` options to find(), a per-strategy
 // step cost and matching admissible heuristic, a SAFE slope penalty (on cell-to-cell grade and on the
 // fine-scale slope inside each cell), rover assist routing (params.rover: drive time / seated O2, roverMaxSlope),
-// and an `iterations` stat.
+// an `iterations` stat, and SAFE radiation avoidance (dose rate rises with elevation, radiation.js).
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { stepCost, walkSpeed, EVA_DEFAULTS } from './eva.js';
+import { relRate, RAD_AVOID } from './radiation.js';
 
 class Heap {
   constructor() { this.k = []; this.v = []; }
@@ -102,6 +103,9 @@ export class CostGrid {
   constructor(elev, w, h, cellX, cellY, fineSlope = null) {
     Object.assign(this, { elev, w, h, cellX, cellY, fineSlope });
     this.lastIterations = 0;
+    let zMin = Infinity;
+    for (let i = 0; i < elev.length; i++) if (elev[i] < zMin) zMin = elev[i];
+    this.zMin = zMin; // lowest cell: radiation multipliers are relative to it, so they are >= 1
   }
 
   /**
@@ -121,6 +125,9 @@ export class CostGrid {
     const maxSlope = strategy === 'SAFE' ? Math.min(limit, SAFE_MAX_SLOPE) : limit;
     const maxTan = Math.tan(maxSlope * DEG);
     const lb = costPerMetreLB(strategy, params, roundTrip);
+    // SAFE avoids higher-dose ground: cost × (dose rate / lowest rate)^radAvoid. Factors >= 1: heuristic stays admissible.
+    const radAvoid = strategy === 'SAFE' ? (params.radAvoid ?? RAD_AVOID) : 0;
+    const zMin = this.zMin;
     const heur = (i) => {
       const x = i % w, y = (i / w) | 0;
       return Math.hypot((x - bx) * cellX, (y - by) * cellY) * lb;
@@ -154,6 +161,7 @@ export class CostGrid {
           // (the cell-to-cell grade misses short steep pitches). Only raises costs: heuristic stays admissible.
           if (strategy === 'SAFE' && fs > SAFE_SOFT_DEG) pen *= 1 + SAFE_K * (fs - SAFE_SOFT_DEG) ** 2;
         }
+        if (radAvoid) pen *= relRate(elev[ni], zMin) ** radAvoid;
         const c = g[cur] + strategyCost(strategy, dist, dh, params, roundTrip) * pen;
         if (c < g[ni]) {
           g[ni] = c;

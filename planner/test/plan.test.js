@@ -1,6 +1,7 @@
 // Synthetic grid: flat plane + one steep Gaussian hill between start and end + one POI to the north.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { doseRateMSvDay } from '../src/radiation.js';
 import { planMission, pickScienceStops } from '../src/plan.js';
 
 const W = 200, H = 200, CELL = 20; // 4 km square
@@ -117,9 +118,12 @@ test('prints the synthetic-grid numbers for the task board', () => {
   }
 });
 
-test('radiation dose = Curiosity RAD rate x EVA time; steepPct from fineSlope', () => {
+test('radiation dose = Curiosity RAD rate scaled by elevation (PIA03480) x EVA time; steepPct from fineSlope', () => {
   const r = by.FAST;
-  assert.ok(Math.abs(r.budget.doseMSv - r.budget.totalT / 86400 * 0.64) < 1e-12);
+  const zs = r.path.map(([x, y]) => base.elev[y * W + x]);
+  const lo = doseRateMSvDay(Math.min(...zs)), hi = doseRateMSvDay(Math.max(...zs));
+  const flat = r.budget.totalT / 86400;
+  assert.ok(r.budget.doseMSv >= flat * lo - 1e-9 && r.budget.doseMSv <= flat * hi + 1e-9, 'dose between min and max rate along the path');
   assert.equal(r.budget.steepPct, 0); // no fineSlope given
   const fs = new Float32Array(W * H).fill(20); // everything steep
   const rs = planMission({ ...base, fineSlope: fs });
