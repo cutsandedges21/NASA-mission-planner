@@ -22,7 +22,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Result:** NASA/JPL's MSL waypoint feed (`https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json`, 1,389 end-of-drive stops, sol 3 → 5073) shows where Curiosity really stopped. `data/msl_traverse.mjs` moved **Yellowknife Bay 2,176 m** → (137.44913, −4.58948) (rover parked there sols 125–297), **Pahrump Hills 794 m** → (137.37746, −4.66270) (sol 753), **Vera Rubin Ridge 1,424 m** → (137.37809, −4.72565) (sol 2128, centroid of its ridge campaign). Glen Torridon (147 m from a real stop) and Woodland Bay (33 m) were already fine and stay `approx`. `data/regions/gale.json` updated; `web/public/data/gale/pois.json` regenerated with `python data/build_region.py gale` (uses `data-cache/`, check OK); new `web/public/data/gale/traverse.json` (1,270 stops inside the box, 26 KB). The old HiRISE "image centre" coordinates were up to 2 km from the feature they named.
 
 ## T-22 · Prove the planner against Curiosity's real path (our "Validity" slide)
-- **Owner:** Teammate · **Time box:** 90 min · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 90 min · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Why:** judges ask "how do you know your routes are any good?" NASA's own rover drivers chose a path through this exact terrain. If our SAFE route hugs it, that is the strongest validity claim we can make, and the numbers go in the README, the video and the briefing.
 - **Steps:**
   0. Fix the stale facts first: update the POI table in `docs/DATASETS.md` to the coordinates + sources now in `web/public/data/gale/pois.json`, and replace the "Glen Torridon is a realistic demo" line with the measured facts above (Pahrump Hills is the real single-EVA demo).
@@ -38,7 +38,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Done when:** `node planner/scripts/validate-gale.mjs` prints the tables and exits 0, `docs/VALIDATION.md` and `docs/validation.json` exist, and the pitch sentence is true.
 
 ## T-23 · Rover assist mode in the planner ("NO-GO on foot → GO with a rover")
-- **Owner:** Teammate · **Time box:** 90 min · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 90 min · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Why:** on foot, 3 of 5 science sites are NO-GO (9.4–9.9 km one way). Real surface missions use rovers (Apollo LRV; NASA's crewed-rover concepts). Flipping Glen Torridon from NO-GO to GO with one toggle is a great demo beat and answers challenge consideration C6 ("rovers carrying crew and tools").
 - **Steps:**
   1. The EVA model already has rover parameters (`EVA_DEFAULTS.rover`, `roverMs` 1.4 m/s, `rideW` 150 W) and `budget()` honours them. What is missing is routing. In `planner/src/route.js` make `strategyCost` rover-aware when `params.rover` is true: time cost = distance / `roverMs`; hard slope limit `roverMaxSlope` (add it to `EVA_DEFAULTS`, 20°); SAFE still penalises ground above 10°; the A* heuristic must use `roverMs` in rover mode so it stays admissible.
@@ -50,12 +50,12 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Optional, only if everything else is done:** a simple Apollo-style "walkback" check (could the crew walk home on the remaining O₂ if the rover broke down?). It is standard NASA practice, so credit it as such.
 
 ## T-08 (reassigned to Teammate) · Challenge checklist: an honest audit, not a sales sheet
-- **Owner:** Teammate (was Moss's Claude) · **Time box:** 45 min · **Status:** TODO
+- **Owner:** Teammate (was Moss's Claude) · **Time box:** 45 min · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Steps:** open `docs/CHALLENGE.md`. Take your drafted answers (in the old T-08 block further down) but **audit each one against the repo as it is now** (grep the code and read the components; chat B rebuilt the screens). For every row O1–O8 and C1–C6 write: status (✅ built / 🟡 partial / ⬜ not built), one line on the feature, the exact file(s), and the NASA dataset. Do not claim what isn't there (boulders, CRISM minerals, two-person EVA). Claim C6 only once T-23 is done. For C2 ("a generator for other places"): the pipeline is region-driven but only `gale` has been run, so say exactly that. End with a **"Gaps we say out loud"** list for the README and the pitch.
 - **Done when:** every row has a status + files, and the Gaps list exists.
 
 ## T-24 · Demo scripts + submission page text
-- **Owner:** Teammate · **Time box:** 90 min · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 90 min · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Steps:**
   1. `docs/DEMO-SCRIPT.md`: (a) a 30-second version, (b) a 3-minute version. For each beat: timecode, what is on screen, the exact clicks, the narration word for word (about 150 words/minute), and the real number shown (from `docs/validation.json` and `planMission` runs on the real data). Suggested 3-minute arc: 0:00 hook (what a Marswalk is, why oxygen/slope/daylight/radiation need planning) → 0:20 Gale + real data (HiRISE colour, 1 m NASA terrain, Curiosity's real path dashed) → 0:45 Bradbury → Pahrump Hills, three routes GO/CAUTION → 1:15 mission briefing (the AI only words numbers the planner computed) → 1:35 daylight + live solar-storm warning from NASA DONKI → 1:55 3D view → 2:10 Simulate Mission (O₂ gauge, science-stop card) → 2:40 the validation claim → 2:50 what's next + credits. Mark any beat that needs a feature not built yet so Moss can prioritise.
   2. `docs/SUBMISSION.md`: paste-ready blocks for the NASA project page: title, one-line summary (≤ 140 characters), description (≤ 300 words), what it does, how we built it, challenges, what we're proud of, what's next, **NASA data and resources used** (bullets with URLs: from `web/public/data/gale/meta.json` `sources`, plus DONKI, MSL waypoints, RAD), tools, AI use. Use placeholders `{{LIVE_URL}}`, `{{REPO_URL}}`, `{{VIDEO_URL}}`.
@@ -63,14 +63,14 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Done when:** both docs exist and every number in them has the command that reproduces it next to it.
 
 ## T-25 · Credits data + AI-use disclosure
-- **Owner:** Teammate · **Time box:** 40 min · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 40 min · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Steps:**
   1. `web/lib/credits.ts` exporting `CREDITS: { group: 'NASA data' | 'Models & methods' | 'Software' | 'Inspiration'; name: string; what: string; url: string; license?: string }[]`. Chat B's `web/components/map/Credits.tsx` will render it; say so in the Result. Entries: every dataset in `meta.json` `sources`; NASA/JPL MSL waypoints (traverse layer + site positions); NASA DONKI; Curiosity RAD dose rate (Hassler et al. 2014, Science); Pandolf (1977) and Tobler (the EVA model); Mars24 (Allison & McEwen 2000, via NASA GISS); OpenPlanetaryMap basemap; MapLibre GL JS (BSD-3); Next.js; Anthropic Claude (runtime briefing, and Claude Code for development); **Sol Atlas by The SOL Explorers**: routing, EVA model, Mars time and the data pipeline were adapted from it (link the repo).
   2. `docs/AI-USE.md`: the honest disclosure. (a) code written with Claude Code under our direction; (b) at runtime Claude words the mission briefing from numbers the planner computed, a guard rejects any number it invents, and a template is the fallback; (c) no AI-generated images, video or audio in the app. **Check (c)** by listing everything in `web/public` and the images `Intro.tsx` uses; if any asset is not from NASA/USGS/ESA data, tell Moss in the Result.
 - **Done when:** both files exist (`cd web && npx tsc --noEmit` passes if you can run it).
 
 ## T-26 · Robustness tests on the real terrain
-- **Owner:** Teammate · **Time box:** 45 min · **Needs:** T-22 loader · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 45 min · **Needs:** T-22 loader · **Status:** IN PROGRESS (Teammate, 20:20)
 - **Steps:** `planner/test/gale.test.js` (reads the real data; if `web/public/data/gale/` is missing, skip with a clear message): (1) all 5 POIs × 3 strategies return a path or a clean NO-GO: never throws, never NaN, each `ms` < 2000; (2) start == end returns a sane zero-length route, no crash; (3) a target on a ≥ 30° cliff cell (find one in `fineSlope`) gives a route or a clean NO-GO with a reason; (4) start/end outside the grid throws `RangeError`: tell Moss's Claude the exact message so the UI can show it; (5) on real terrain SAFE's max slope ≤ FAST's for Pahrump Hills, or explain why not (on the synthetic demo it was reversed once). Fix whatever you find in `planner/`.
 - **Done when:** `cd planner && npm test` includes these and passes.
 
