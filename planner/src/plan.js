@@ -44,8 +44,39 @@ export function planMission(a) {
     science = score(ctx, 'SCIENCE', safe.value, [], null, safe.ms);
     science.note = 'No science site within reach of this route';
   } else {
-    const sci = timed(() => legs(ctx, [start, ...chosen.map((p) => [p.x, p.y]), end], 'ENERGY'));
-    science = score(ctx, 'SCIENCE', sci.value, chosen, target, sci.ms);
+    // Try the chosen stops; if they make the EVA worse than going without them (e.g. NO-GO on O₂),
+    // drop the stop with the biggest detour and try again. Science should never cost the walk home.
+    const RANK = { go: 0, caution: 1, nogo: 2 };
+    let stops = chosen.slice();
+    let ms = 0;
+    for (;;) {
+      const sci = timed(() => legs(ctx, [start, ...stops.map((p) => [p.x, p.y]), end], 'ENERGY'));
+      ms += sci.ms;
+      science = score(ctx, 'SCIENCE', sci.value, stops, target, ms);
+      if (!stops.length || RANK[science.verdict.lvl] === 0) break;
+      const worst = stops.reduce((a, b) => (detourOf(a, start, end, cellX, cellY) >= detourOf(b, start, end, cellX, cellY) ? a : b));
+      const fewer = stops.filter((p) => p !== worst);
+      if (!fewer.length && !target) {
+        // without any site the route is just SAFE: keep the stop if SAFE is no better
+        const safeScore = score(ctx, 'SAFE', safe.value, [], null, 0);
+        if (RANK[safeScore.verdict.lvl] >= RANK[science.verdict.lvl]) break;
+        science = { ...safeScore, strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
+        break;
+      }
+      const trial = timed(() => legs(ctx, [start, ...fewer.map((p) => [p.x, p.y]), end], 'ENERGY'));
+      ms += trial.ms;
+      const t = score(ctx, 'SCIENCE', trial.value, fewer, target, ms);
+      const better = RANK[t.verdict.lvl] < RANK[science.verdict.lvl] ||
+        (science.verdict.lvl === 'nogo' && t.verdict.lvl === 'nogo' && t.budget.marginPct > science.budget.marginPct);
+      if (better) { stops = fewer; science = t; continue; }
+      break;
+    }
+    if (stops.length < chosen.length && !science.note) {
+      const n = chosen.length - stops.length;
+      science.note = science.verdict.lvl === 'nogo'
+        ? `Skipped ${n} extra science stop(s): this EVA is too long even without them`
+        : `Skipped ${n} extra science stop(s) to keep the EVA safe`;
+    }
   }
   return [
     score(ctx, 'SAFE', safe.value, [], null, safe.ms),
@@ -83,6 +114,11 @@ export function pickScienceStops(start, end, pois, cellX, cellY, maxStops = 2) {
   const t = (p) => ((p.x - start[0]) * cellX * ux + (p.y - start[1]) * cellY * uy) / (direct * direct || 1);
   const stops = picked.sort((a, b) => t(a) - t(b)).map(({ detour, ...p }) => p);
   return { stops, target };
+}
+
+function detourOf(p, start, end, cellX, cellY) {
+  const m = ([ax, ay], [bx, by]) => Math.hypot((ax - bx) * cellX, (ay - by) * cellY);
+  return m(start, [p.x, p.y]) + m([p.x, p.y], end) - m(start, end);
 }
 
 function legs(ctx, waypoints, strategy) {

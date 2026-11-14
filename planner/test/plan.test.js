@@ -135,3 +135,15 @@ test('space-weather warning turns GO into CAUTION with a reason', () => {
   const calm = planMission({ ...base, spaceWeather: { lvl: 'ok', short: 'no CME due' } });
   assert.deepEqual(calm.map((r) => r.verdict.lvl), routes.map((r) => r.verdict.lvl));
 });
+
+test('SCIENCE drops an on-the-way stop that would turn the EVA NO-GO', () => {
+  // long flat walk with a tight O2 budget: the detour stop would breach the reserve
+  const N = 400, el = new Float32Array(N * 20);
+  const args = { elev: el, w: N, h: 20, cellX: 25, cellY: 25, start: [5, 10], end: [380, 10],
+    pois: [{ id: 'side', x: 190, y: 19 }, { id: 'tgt', x: 380, y: 10 }], params: { o2CapKg: 0.40 } };
+  const sci = planMission(args).find((r) => r.strategy === 'SCIENCE');
+  const without = planMission({ ...args, pois: [{ id: 'tgt', x: 380, y: 10 }] }).find((r) => r.strategy === 'SCIENCE');
+  const rank = { go: 0, caution: 1, nogo: 2 };
+  assert.ok(rank[sci.verdict.lvl] <= rank[without.verdict.lvl], `${sci.verdict.lvl} vs ${without.verdict.lvl}`);
+  assert.ok(sci.poisVisited.includes('tgt'));
+});

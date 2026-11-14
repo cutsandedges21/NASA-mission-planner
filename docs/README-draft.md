@@ -50,7 +50,7 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 | Space weather | DONKI WSA-ENLIL simulations | NASA CCMC / Goddard | live |
 | Basemap | OpenPlanetaryMap Mars basemap | MOLA / Viking-based | global |
 
-TODO on Saturday: confirm which DEM was actually baked (`web/public/data/gale/meta.json` → `sources`). If the pipeline fell back to the 200 m HRSC+MOLA blend, say so here.
+Confirmed (Fri 19:45): the baked region uses the **1 m MSL Gale DEM**, and HiRISE colour covers 74 % of the box (Viking fills the rest).
 
 Challenge checklist (O1–O8, C1–C6): see [docs/CHALLENGE.md](docs/CHALLENGE.md).
 

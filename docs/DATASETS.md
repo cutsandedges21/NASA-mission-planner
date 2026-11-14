@@ -47,7 +47,10 @@ Coordinates are **approximate (± ~0.5 km)**: they're taken from published HiRIS
 
 `source` in `pois.json` = the short form in the last column.
 
-Suggested demo (planner checked on flat ground, Fri 17:40): **base = Bradbury Landing → destination = Pahrump Hills** (~6.3 km one way, round trip ≈ 3.9 h, 51 % O₂ left on flat ground → GO), with SCIENCE stopping at Yellowknife Bay or Vera Rubin Ridge. Then show the contrast: **Bradbury → Glen Torridon** (~8.7 km one way, ≈ 5.4 h round trip, 33 % O₂ left even on flat ground). With Mount Sharp's climb added it should come out CAUTION or NO-GO, a good "the planner says no" moment.
+Suggested demo, **checked on the real baked terrain (Fri 19:45, 1 m DEM)**, as round trips from Bradbury Landing:
+- → **Yellowknife Bay**: 4.9 km, 90 min, 80 % O₂ left, all GO. SCIENCE adds 20 min of work at the site (77 %). A good warm-up.
+- → **Pahrump Hills**: SAFE 13.4 km, 4 h 11 min, 42 % O₂, GO · FAST 13.3 km, max slope 11.3° vs SAFE's 6.5° · SCIENCE CAUTION (39 %, it skips the Yellowknife stop to stay safe). **The headline demo.**
+- → **Glen Torridon / Vera Rubin Ridge**: about 18.7 km, ~6 h, 8–17 % O₂, **NO-GO** on every route. The "planner says no" moment.
 
 ## What I could not check (Fri 17:05)
 

@@ -32,6 +32,12 @@ from PIL import Image
 from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
+# Windows consoles default to a legacy code page that can't print → or °: force UTF-8 output.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
 os.environ.setdefault("GDAL_HTTP_MULTIRANGE", "YES")
 os.environ.setdefault("GDAL_HTTP_MERGE_CONSECUTIVE_RANGES", "YES")
@@ -242,7 +248,7 @@ def export(cfg, raw, out_dir):
 
     # POIs
     pois = [{k: p[k] for k in ("id", "name", "lon", "lat", "why", "source", "approx") if k in p} for p in cfg["pois"]]
-    with open(os.path.join(out_dir, "pois.json"), "w") as f:
+    with open(os.path.join(out_dir, "pois.json"), "w", encoding="utf-8") as f:
         json.dump(pois, f, indent=2, ensure_ascii=False)
 
     # meta
@@ -283,7 +289,7 @@ def export(cfg, raw, out_dir):
         "credits": "Pipeline adapted from Sol Atlas by The SOL Explorers. Data: NASA / JPL / USGS / ESA.",
         "sources": sources,
     }
-    with open(os.path.join(out_dir, "meta.json"), "w") as f:
+    with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2, ensure_ascii=False)
     log(f"exported {W}x{H} grid, cells {cx:.1f} x {cy:.1f} m, elevation {meta['elevRange']} m, "
         f"max slope {sl.max():.1f}°, HiRISE coverage {hirise_pct:.0f} %")
@@ -298,7 +304,7 @@ def check(out_dir):
             errs.append(f"missing {n}")
     if errs:
         return errs
-    m = json.load(open(os.path.join(out_dir, "meta.json")))
+    m = json.load(open(os.path.join(out_dir, "meta.json"), encoding="utf-8"))
     W, H = m["width"], m["height"]
     size = os.path.getsize(os.path.join(out_dir, "elev.i16"))
     if size != W * H * 2:
@@ -315,7 +321,7 @@ def check(out_dir):
     for n in ("visible.jpg", "thermal.jpg"):
         if max(Image.open(os.path.join(out_dir, n)).size) > 2048:
             errs.append(f"{n} larger than 2048 px")
-    pois = json.load(open(os.path.join(out_dir, "pois.json")))
+    pois = json.load(open(os.path.join(out_dir, "pois.json"), encoding="utf-8"))
     for p in pois:
         if not (m["lon"][0] <= p["lon"] <= m["lon"][1] and m["lat"][0] <= p["lat"] <= m["lat"][1]):
             errs.append(f"POI {p['id']} outside bounds")
@@ -338,7 +344,7 @@ def main():
     ap.add_argument("--synthetic", action="store_true", help="fake inputs, no network: tests the export only")
     ap.add_argument("--check", action="store_true", help="only validate an existing output folder")
     a = ap.parse_args()
-    cfg = json.load(open(os.path.join(ROOT, "data", "regions", a.region + ".json")))
+    cfg = json.load(open(os.path.join(ROOT, "data", "regions", a.region + ".json"), encoding="utf-8"))
     out_dir = a.out or os.path.join(ROOT, "web", "public", "data", cfg["id"])
     if not a.check:
         W, H, cx, cy = region_grid(cfg)
