@@ -68,6 +68,29 @@ export function pickRecommended(routes: ExplainRoute[]): Strategy {
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const r0 = (x: number) => Math.round(x);
 
+/**
+ * One honest sentence on how `alt` differs from the recommended route. A difference is only mentioned when it's real
+ * (3+ min, 1+ degree of slope, 3+ points of O₂), so we never say "climbs to X" about a route that isn't steeper.
+ */
+export function compareSentence(rec: ExplainRoute, alt: ExplainRoute): string {
+  const pros: string[] = [];
+  const cons: string[] = [];
+  const dt = rec.durationMin - alt.durationMin;
+  if (dt >= 3) pros.push(`saves ${r0(dt)} min`);
+  else if (dt <= -3) cons.push(`takes ${r0(-dt)} min longer`);
+  const dm = alt.maxSlopeDeg - rec.maxSlopeDeg;
+  if (dm >= 1) cons.push(`climbs to ${r1(alt.maxSlopeDeg)}°`);
+  else if (dm <= -1) pros.push(`keeps the slope to ${r1(alt.maxSlopeDeg)}°`);
+  const dox = alt.o2MarginPct - rec.o2MarginPct;
+  if (dox >= 3) pros.push(`leaves ${r0(alt.o2MarginPct)}% O₂`);
+  else if (dox <= -3) cons.push(`leaves only ${r0(alt.o2MarginPct)}% O₂`);
+  const tag = ` (${VERDICT_WORD[lvlOf(alt)]})`;
+  if (pros.length && cons.length) return ` ${alt.strategy} ${pros.join(' and ')} but ${cons.join(' and ')}${tag}.`;
+  if (pros.length) return ` ${alt.strategy} ${pros.join(' and ')}${tag}.`;
+  if (cons.length) return ` ${alt.strategy} ${cons.join(' and ')}${tag}.`;
+  return ` ${alt.strategy} is within ${Math.max(1, r0(Math.abs(dt)))} min with similar oxygen and slope${tag}.`;
+}
+
 /** Template briefing from the same numbers. Used when the AI is unavailable or breaks the rules. */
 export function fallbackExplanation(req: ExplainRequest, recommended = pickRecommended(req.routes)): string {
   const by = Object.fromEntries(req.routes.map((r) => [r.strategy, r])) as Record<Strategy, ExplainRoute>;
@@ -75,14 +98,10 @@ export function fallbackExplanation(req: ExplainRequest, recommended = pickRecom
   const sites = rec.poisVisited?.length ? `, with a science stop at ${rec.poisVisited.join(' and ')}` : '';
   let s = `${recommended} is recommended (${VERDICT_WORD[lvlOf(rec)]}): ${r1(rec.distanceKm)} km in ${r0(rec.durationMin)} min${sites}, ` +
     `returning with ${r0(rec.o2MarginPct)}% O₂ and a maximum slope of ${r1(rec.maxSlopeDeg)}°.`;
-  const others = req.routes.filter((r) => r.strategy !== recommended);
-  const fastest = [...req.routes].sort((a, b) => a.durationMin - b.durationMin)[0];
-  if (fastest.strategy !== recommended) {
-    s += ` ${fastest.strategy} would save ${r0(rec.durationMin - fastest.durationMin)} min but climbs to ${r1(fastest.maxSlopeDeg)}° (${VERDICT_WORD[lvlOf(fastest)]}).`;
-  } else if (others.length) {
-    const o = others[0];
-    s += ` ${o.strategy} takes ${r0(o.durationMin)} min with ${r0(o.o2MarginPct)}% O₂ left (${VERDICT_WORD[lvlOf(o)]}).`;
-  }
+  // Compare with the most informative alternative: the fastest other route, unless it's no different.
+  const others = req.routes.filter((r) => r.strategy !== recommended).sort((a, b) => a.durationMin - b.durationMin);
+  const alt = others[0];
+  if (alt) s += compareSentence(rec, alt);
   if (req.spaceWeather?.lvl === 'warn' && req.spaceWeather.short) s += ` Space weather: ${req.spaceWeather.short}.`;
   return s;
 }
