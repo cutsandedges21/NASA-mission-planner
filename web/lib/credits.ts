@@ -61,7 +61,7 @@ export const CREDITS: Credit[] = [
   {
     group: 'NASA data',
     name: 'Estimated Radiation Dosage on Mars, PIA03480 (NASA/JPL/JSC, Mars Odyssey MARIE + MGS MOLA)',
-    what: 'The Radiation map type (reprojected worldwide), and the +5.1 % dose rate per km of altitude we read off it to scale Curiosity's 0.64 mSv/day across Gale (data/radiation_map.py)',
+    what: 'The Radiation map type (reprojected worldwide), and the +5.1 % dose rate per km of altitude we read off it to scale Curiosity\'s 0.64 mSv/day across Gale (data/radiation_map.py)',
     url: 'https://photojournal.jpl.nasa.gov/catalog/PIA03480',
     license: 'Public domain (NASA)',
   },
