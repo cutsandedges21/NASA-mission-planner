@@ -23,6 +23,7 @@ export default function ScenarioPanel({
   placingPitStop,
   onTogglePitStop,
   onClearPitStop,
+  regionId = 'gale',
   className = '',
 }: {
   /** The routes the page shows (already filtered, e.g. without SCIENCE). Must come from the latest plan() call. */
@@ -38,6 +39,8 @@ export default function ScenarioPanel({
   placingPitStop?: boolean;
   onTogglePitStop?: () => void;
   onClearPitStop?: () => void;
+  /** Loads /data/<regionId>/dust.json (MDAD storm rates by season, data/dust_gale.py) if it exists. */
+  regionId?: string;
   className?: string;
 }) {
   const [sim, setSim] = useState<{ key: PlannedRoute[]; res: SimResult } | null>(null);
@@ -45,6 +48,17 @@ export default function ScenarioPanel({
   const [tab, setTab] = useState<Tab>('runs');
   const [pick, setPick] = useState<{ key: SimResult | null; i: number | null }>({ key: null, i: null });
   const [open, setOpen] = useState(true);
+  const [stress, setStress] = useState(false);
+  const [dust, setDust] = useState<{ id: string; data: unknown } | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch(`/data/${regionId}/dust.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((data) => { if (live) setDust({ id: regionId, data }); });
+    return () => { live = false; };
+  }, [regionId]);
+  const dustData = dust && dust.id === regionId ? dust.data : undefined;
 
   const strategies = useMemo(() => (routes ?? []).filter((r) => r.path).map((r) => r.strategy), [routes]);
   const names = useMemo(() => {
@@ -54,15 +68,15 @@ export default function ScenarioPanel({
   const sunKey = JSON.stringify(sunByStrategy ?? {});
 
   useEffect(() => {
-    if (!routes || !strategies.length) return;
+    if (!routes || !strategies.length || dustData === undefined) return;
     let live = true;
-    simulate({ Ls, spaceWeatherLvl, strategies, names, sunByStrategy: JSON.parse(sunKey) })
+    simulate({ Ls, spaceWeatherLvl, strategies, names, sunByStrategy: JSON.parse(sunKey), dust: dustData, forceDust: stress })
       .then((res) => { if (live) { setSim({ key: routes, res }); setErr(null); } })
       .catch((e: Error) => { if (live) setErr(e.message); });
     return () => { live = false; };
-  }, [routes, strategies, names, Ls, spaceWeatherLvl, sunKey]);
+  }, [routes, strategies, names, Ls, spaceWeatherLvl, sunKey, dustData, stress]);
 
-  const res = sim && sim.key === routes ? sim.res : null;
+  const res = sim && sim.key === routes && sim.res.forceDust === stress ? sim.res : null;
   const cur = res?.routes.find((r) => r.strategy === selected) ?? res?.routes[0] ?? null;
   const s = cur?.summary ?? null;
   const runIdx = pick.key === res && pick.i != null ? pick.i : s?.typical ?? 0;
@@ -100,6 +114,11 @@ export default function ScenarioPanel({
           {err && <p className="mt-2 text-[12px] text-red-300">Simulator: {err}</p>}
           {!res && !err && <p className="mt-2 text-[12px] text-zinc-500">Simulating 20 EVAs per route…</p>}
           {res && <p className="mt-2 text-[12.5px] leading-relaxed" data-testid="scenario-summary">{res.text}</p>}
+
+          <label className="mt-2 flex items-center gap-2 text-[11px] text-zinc-300">
+            <input type="checkbox" checked={stress} onChange={(e) => setStress(e.target.checked)} data-testid="scenario-stress" />
+            What if a dust storm hits? (stress test: a storm in every run)
+          </label>
 
           {/* Pit stop */}
           {onTogglePitStop && (
@@ -225,6 +244,12 @@ export default function ScenarioPanel({
                       <li key={k}><b className="font-mono text-zinc-200">{a.value}</b> · {a.why}</li>
                     ))}
                   </ul>
+                  {res.dustSource && (
+                    <p className="mt-1.5 text-zinc-400">
+                      Storm chance per EVA comes from data: {res.dustSource}
+                      {res.dustRate && ` At Ls ${res.dustRate.ls[0]}–${res.dustRate.ls[1]}°: a storm over this area on ${res.dustRate.solsWithStorm} of ${res.dustRate.sols} sols.`}
+                    </p>
+                  )}
                   <p className="mt-1.5 text-zinc-500">
                     Dust season now: {Ls != null ? (((Ls % 360) + 360) % 360 >= 180 ? `yes (Ls ${Ls.toFixed(0)}°)` : `no (Ls ${Ls.toFixed(0)}°)`) : 'unknown'}. Storms are far larger than this map, so routes can&apos;t go around them: the crew keeps going or turns back.
                   </p>

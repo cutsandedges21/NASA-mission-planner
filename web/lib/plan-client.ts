@@ -69,6 +69,7 @@ export type SimEvent = {
   atM: number;
   outbound: boolean;
   tau?: number;
+  kind?: 'local' | 'regional';
   decision: string;
   effect: string;
   damage: string[];
@@ -135,6 +136,10 @@ export type SimResult = {
   text: string;
   assumptions: Record<string, { value: number; why: string }>;
   steps: Record<Strategy, StepLeg[]>;
+  /** MDAD storm rate over the region for this season (null without dust.json). */
+  dustRate: { p: number; pRegional: number; ls: [number, number]; sols: number; solsWithStorm: number } | null;
+  dustSource: string | null;
+  forceDust: boolean;
 };
 export type SimOpts = {
   Ls?: number;
@@ -142,6 +147,10 @@ export type SimOpts = {
   seed?: number;
   spaceWeatherLvl?: string;
   names?: Record<string, string>;
+  /** dust.json contents (MDAD rates by season); without it the labelled fallback chance is used. */
+  dust?: unknown;
+  /** Stress test: every run meets a dust storm during the EVA. */
+  forceDust?: boolean;
   /** Simulate only these routes (the page may hide SCIENCE). Default: all planned routes. */
   strategies?: Strategy[];
   /** Daylight margin at the end of each route's nominal EVA (from routeDaylight). A run that takes longer can end after sunset. */

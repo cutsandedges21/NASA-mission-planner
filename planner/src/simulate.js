@@ -18,10 +18,11 @@ export const SIM_ASSUMPTIONS = {
   terrainMin: { value: 1.1, why: 'Ground is between packed soil (Pandolf terrain factor 1.1) …' },
   terrainMax: { value: 1.5, why: '… and loose sand (1.5). The planner uses 1.2 (loose regolith)' },
   effortSd: { value: 0.08, why: 'Metabolic effort varies ±8 % (1 σ) between crew and days. Team assumption' },
-  dustChanceSeason: { value: 0.20, why: 'Chance a local dust storm reaches the route during an 8 h window in dust season (Ls 180–360°). Team assumption' },
-  dustChanceOff: { value: 0.05, why: 'Same chance outside dust season. Team assumption' },
+  dustChanceSeason: { value: 0.20, why: 'Fallback only, when dust.json is missing: chance of a storm during one EVA in dust season (Ls 180–360°). Team assumption' },
+  dustChanceOff: { value: 0.05, why: 'Fallback only: same chance outside dust season. Team assumption' },
   dustTauMin: { value: 1.0, why: 'A local storm raises dust optical depth τ to between 1 …' },
-  dustTauMax: { value: 5.0, why: '… and 5 (team assumption; clear Gale sky is roughly τ 0.5–1)' },
+  localTauMax: { value: 3.0, why: '… and 3; a regional storm (≥ 1.6 million km², MDAD size class) to between 3 …' },
+  dustTauMax: { value: 5.0, why: '… and 5. τ values are a team assumption (MDAD maps storm outlines, not opacity; clear Gale sky is roughly τ 0.5–1)' },
   pushMaxTau: { value: 3.0, why: 'Flight rule (ours) for FAST and SCIENCE: keep walking through a storm if τ ≤ 3, otherwise turn back' },
   safePushMaxTau: { value: 0, why: 'Flight rule (ours, Gianluca) for SAFE: turn back for any dust storm on the way out' },
   dustSlow: { value: 0.8, why: 'In a storm the crew walks at 80 % pace (poor visibility, footing). Team assumption' },
@@ -47,6 +48,17 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const inDustSeason = (Ls) => Ls != null && ((Ls % 360) + 360) % 360 >= 180;
 
 /**
+ * MDAD dust-storm rate over the region for this season (data/dust_gale.py → dust.json).
+ * p = share of sols in Mars Years 24–32 with a storm over the region; one EVA ≈ one sol.
+ */
+export function dustRate(dust, Ls) {
+  if (!dust || !Array.isArray(dust.bins) || Ls == null) return null;
+  const l = ((Ls % 360) + 360) % 360;
+  const b = dust.bins.find((x) => l >= x.ls[0] && l < x.ls[1]);
+  return b && b.p != null ? { p: b.p, pRegional: b.pRegional ?? 0, ls: b.ls, sols: b.sols, solsWithStorm: b.solsWithStorm } : null;
+}
+
+/**
  * The random conditions for one run. Drawn in a fixed order so they don't depend on the route.
  * @returns {{seed, pace, terrain, effort, dust: null|{tOnS, tau}, spe: null|{tOnS}}}
  */
@@ -57,13 +69,20 @@ export function drawConditions(seed, o = {}) {
   const terrain = s.terrainMin + (s.terrainMax - s.terrainMin) * r();
   const effort = clamp(1 + s.effortSd * gauss(r), 0.8, 1.25);
   const windowS = (o.evaMaxH ?? EVA_DEFAULTS.evaMaxH) * 3600;
-  const dustP = inDustSeason(o.Ls) ? s.dustChanceSeason : s.dustChanceOff;
-  const dustHit = r() < dustP, dustT = r() * windowS, tau = s.dustTauMin + (s.dustTauMax - s.dustTauMin) * r();
+  const rate = dustRate(o.dust, o.Ls);
+  const dustP = o.forceDust ? 1 : rate ? rate.p : inDustSeason(o.Ls) ? s.dustChanceSeason : s.dustChanceOff;
+  const regionalShare = rate && rate.p > 0 ? rate.pRegional / rate.p : 0.5;
+  const u1 = r(), uT = r(), u2 = r(), u3 = r();
+  const dustT = uT * windowS;
+  const dustHit = u1 < dustP;
+  const regional = u3 < regionalShare;
+  const tau = regional ? s.localTauMax + (s.dustTauMax - s.localTauMax) * u2 : s.dustTauMin + (s.localTauMax - s.dustTauMin) * u2;
   const speP = o.spaceWeatherLvl === 'warn' ? s.speChanceWarn : s.speChanceQuiet;
   const speHit = r() < speP, speT = r() * windowS;
   return {
     seed, pace, terrain, effort,
-    dust: dustHit ? { tOnS: dustT, tau } : null,
+    // Stress test: the storm arrives during this route's own EVA (runOnce scales `frac` by its time).
+    dust: dustHit ? { tOnS: dustT, frac: uT, forced: !!o.forceDust, tau, kind: regional ? 'regional' : 'local' } : null,
     spe: speHit ? { tOnS: speT } : null,
   };
 }
@@ -76,6 +95,7 @@ export function drawConditions(seed, o = {}) {
  */
 export function runOnce(route, a, c, o = {}) {
   const s = { ...SIM_DEFAULTS, ...o };
+  if (c.dust?.forced) c = { ...c, dust: { ...c.dust, tOnS: c.dust.frac * 0.9 * route.budget.totalT } };
   const p0 = { ...EVA_DEFAULTS, ...(a.params || {}) };
   const p = { ...p0, vFlat: p0.vFlat * c.pace, terrain: c.terrain, suitPenalty: p0.suitPenalty * c.effort };
   const out = toSamples(route.path, a.elev, a.w, a.cellX, a.cellY);
@@ -105,7 +125,7 @@ export function runOnce(route, a, c, o = {}) {
       slow = c.dust.tau > s.pushMaxTau ? s.heavyDustSlow : s.dustSlow;
       if (heavy && outbound) back = true;
       events.push({
-        type: 'dust', atS: t, atM: dHere, outbound, tau: c.dust.tau, decision,
+        type: 'dust', atS: t, atM: dHere, outbound, tau: c.dust.tau, kind: c.dust.kind || 'local', decision,
         effect: `walking at ${Math.round(slow * 100)} % pace from here`,
         damage: [
           'Fine dust on the visor, suit joints and bearings: brush down and inspect seals at the airlock',
@@ -194,7 +214,10 @@ export function simulateMission(routes, a, o = {}) {
   const ranked = res.filter((x) => x.summary).sort((x, y) =>
     y.summary.completed - x.summary.completed || x.summary.nogo - y.summary.nogo ||
     y.summary.medianMarginPct - x.summary.medianMarginPct);
-  return { routes: res, recommended: ranked[0]?.strategy ?? null, conditions, assumptions: SIM_ASSUMPTIONS };
+  return {
+    routes: res, recommended: ranked[0]?.strategy ?? null, conditions, assumptions: SIM_ASSUMPTIONS,
+    dustRate: dustRate(o.dust, o.Ls), dustSource: o.dust?.source ?? null, forceDust: !!o.forceDust,
+  };
 }
 
 export function summarise(runs) {
@@ -236,7 +259,7 @@ export function describeRun(run, typical, names = {}) {
   const parts = [];
   for (const e of run.events) {
     const where = e.outbound ? `${km(e.atM)} out` : `on the way home, ${km(e.atM)} from base`;
-    if (e.type === 'dust') parts.push(`Dust storm (τ ${e.tau.toFixed(1)}) at ${hmin(e.atS)}, ${where}: ${e.decision}, ${e.effect}.`);
+    if (e.type === 'dust') parts.push(`${e.kind === 'regional' ? 'Regional' : 'Local'} dust storm (τ ${e.tau.toFixed(1)}) at ${hmin(e.atS)}, ${where}: ${e.decision}, ${e.effect}.`);
     else parts.push(`Solar particle alert at ${hmin(e.atS)}, ${where}: ${e.decision}.`);
   }
   if (!run.events.length) parts.push('Clear sky, no space-weather alert.');
@@ -263,5 +286,7 @@ export function describeRecommendation(sim) {
   return `${rec.strategy} finished safely in ${s.completed} of ${s.n} simulated EVAs` +
     (others ? ` (${others})` : '') +
     `. Typical time ${hmin(s.medianTotalT)} (10–90 %: ${hmin(s.p10TotalT)}–${hmin(s.p90TotalT)}), median O₂ left ${s.medianMarginPct.toFixed(0)} %, worst ${s.worstMarginPct.toFixed(0)} %.` +
-    (s.turnedBack ? ` ${s.turnedBack} run(s) turned back (a dust storm or a solar alert on the way out).` : '');
+    (s.turnedBack ? ` ${s.turnedBack} run(s) turned back (a dust storm or a solar alert on the way out).` : '') +
+    (sim.forceDust ? ' Stress test: every run meets a dust storm.'
+      : sim.dustRate ? ` At this season (Ls ${sim.dustRate.ls[0]}–${sim.dustRate.ls[1]}°) NASA orbiter maps show a dust storm over this area on ${(sim.dustRate.p * 100).toFixed(1)} % of sols (${sim.dustRate.solsWithStorm} of ${sim.dustRate.sols}, Mars Years 24–32).` : '');
 }

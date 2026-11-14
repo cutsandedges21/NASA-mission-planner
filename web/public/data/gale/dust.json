@@ -1,0 +1,157 @@
+{
+ "source": "Mars Dust Activity Database (MDAD), Battalio & Wang 2021, Icarus 354, 114059; Harvard Dataverse doi:10.7910/DVN/F8R2JX (CC0). MGS MOC + MRO MARCI daily global maps.",
+ "region": {
+  "lon": 137.4,
+  "lat": -4.675
+ },
+ "marsYears": [
+  "24",
+  "25",
+  "26",
+  "27",
+  "28",
+  "29",
+  "30",
+  "31",
+  "32"
+ ],
+ "rows": 14974,
+ "solsInRecord": 4114,
+ "binDeg": 30,
+ "localMaxKm2": 1600000.0,
+ "method": "A storm counts as over the region on a sol if the region centre is inside its latitude range and within the radius of a circle of the same area around its centroid. p = sols with a storm over the region / sols in the record. Sols on which MDAD lists no storm anywhere are missing from the record (p slightly high). During planet-encircling storms (MY 25, MY 28) storm edges cannot be mapped, so those weeks are undercounted (p low in Ls 180-300).",
+ "bins": [
+  {
+   "ls": [
+    0,
+    30
+   ],
+   "sols": 404,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    30,
+    60
+   ],
+   "sols": 486,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    60,
+    90
+   ],
+   "sols": 309,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    90,
+    120
+   ],
+   "sols": 246,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    120,
+    150
+   ],
+   "sols": 368,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    150,
+    180
+   ],
+   "sols": 465,
+   "solsWithStorm": 2,
+   "solsWithRegional": 2,
+   "p": 0.0043,
+   "pRegional": 0.0043
+  },
+  {
+   "ls": [
+    180,
+    210
+   ],
+   "sols": 400,
+   "solsWithStorm": 9,
+   "solsWithRegional": 9,
+   "p": 0.0225,
+   "pRegional": 0.0225
+  },
+  {
+   "ls": [
+    210,
+    240
+   ],
+   "sols": 348,
+   "solsWithStorm": 3,
+   "solsWithRegional": 2,
+   "p": 0.0086,
+   "pRegional": 0.0057
+  },
+  {
+   "ls": [
+    240,
+    270
+   ],
+   "sols": 211,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    270,
+    300
+   ],
+   "sols": 202,
+   "solsWithStorm": 6,
+   "solsWithRegional": 6,
+   "p": 0.0297,
+   "pRegional": 0.0297
+  },
+  {
+   "ls": [
+    300,
+    330
+   ],
+   "sols": 344,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  },
+  {
+   "ls": [
+    330,
+    360
+   ],
+   "sols": 331,
+   "solsWithStorm": 0,
+   "solsWithRegional": 0,
+   "p": 0.0,
+   "pRegional": 0.0
+  }
+ ]
+}

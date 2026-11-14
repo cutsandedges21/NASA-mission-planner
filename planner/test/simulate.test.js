@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { planMission, PIT_STOP_ID } from '../src/plan.js';
-import { rng, drawConditions, runOnce, simulateMission, describeRun, describeRecommendation, SIM_DEFAULTS } from '../src/simulate.js';
+import { dustRate, rng, drawConditions, runOnce, simulateMission, describeRun, describeRecommendation, SIM_DEFAULTS } from '../src/simulate.js';
 import { describeSteps } from '../src/steps.js';
 
 const W = 200, H = 200, CELL = 20;
@@ -110,4 +110,20 @@ test('pit stop: every route passes through it and spends stop time there', () =>
 test('no pit stop: planMission output is unchanged', () => {
   const again = planMission(base);
   assert.deepEqual(again.map((r) => r.budget.totalT), routes.map((r) => r.budget.totalT));
+});
+
+test('dust.json rate: season lookup, forced storms, and MDAD text in the recommendation', async () => {
+  const fs = await import('node:fs');
+  const url = new URL('../../web/public/data/gale/dust.json', import.meta.url);
+  const dust = JSON.parse(fs.readFileSync(url, 'utf8'));
+  assert.equal(dust.bins.length, 12);
+  for (const b of dust.bins) assert.ok(b.p >= 0 && b.p <= 1 && b.pRegional <= b.p + 1e-9);
+  assert.deepEqual(dustRate(dust, 275).ls, [270, 300]);
+  assert.deepEqual(dustRate(dust, 365).ls, [0, 30]);
+  assert.equal(dustRate(null, 100), null);
+  const forced = simulateMission(routes, base, { dust, Ls: 100, forceDust: true });
+  for (const r of forced.routes) assert.equal(r.summary.dustRuns, 20, 'every run meets a storm (unless it ends first)' );
+  const real = simulateMission(routes, base, { dust, Ls: 100 });
+  assert.equal(real.routes[0].summary.dustRuns, 0, 'MDAD: no storm over Gale at Ls 90-120');
+  assert.match(describeRecommendation(real), /orbiter maps/);
 });
