@@ -22,7 +22,8 @@ export type Region = {
   url: (file: string) => string;
 };
 
-export const REGION_ID = process.env.NEXT_PUBLIC_REGION ?? 'demo';
+/** Real NASA data by default. `?region=demo` (synthetic terrain) is kept for testing; NEXT_PUBLIC_REGION overrides the build default. */
+export const REGION_ID = process.env.NEXT_PUBLIC_REGION ?? 'gale';
 
 async function loadSlope(url: string, w: number, h: number): Promise<Float32Array | null> {
   try {
@@ -43,7 +44,7 @@ async function loadSlope(url: string, w: number, h: number): Promise<Float32Arra
   }
 }
 
-export async function loadRegion(id = REGION_ID): Promise<Region> {
+export async function loadRegion(id = new URLSearchParams(window.location.search).get('region') ?? REGION_ID): Promise<Region> {
   const url = (file: string) => `/data/${id}/${file}`;
   const meta: RegionMeta = await (await fetch(url('meta.json'))).json();
   const [buf, pois, fineSlope] = await Promise.all([

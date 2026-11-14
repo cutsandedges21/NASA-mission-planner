@@ -1,0 +1,89 @@
+{
+  "id": "gale",
+  "name": "Gale Crater: Curiosity field site",
+  "lon": [
+    137.3,
+    137.5
+  ],
+  "lat": [
+    -4.8,
+    -4.55
+  ],
+  "width": 473,
+  "height": 593,
+  "cellM": [
+    24.98,
+    24.989
+  ],
+  "elevRange": [
+    -4529,
+    -2725
+  ],
+  "slopeScale": 4,
+  "slopeNote": "slope.png = max slope (deg x 4) inside each cell; pass it to planMission as fineSlope",
+  "visibleSize": [
+    1634,
+    2048
+  ],
+  "thermalSize": [
+    817,
+    1024
+  ],
+  "base": {
+    "id": "bradbury",
+    "name": "Bradbury Landing",
+    "lon": 137.4417,
+    "lat": -4.5895,
+    "why": "Curiosity's 2012 touchdown site: a proven safe landing"
+  },
+  "synthetic": false,
+  "generated": "2026-11-14T00:39:33+00:00",
+  "credits": "Pipeline adapted from Sol Atlas by The SOL Explorers. Data: NASA / JPL / USGS / ESA.",
+  "sources": [
+    {
+      "layer": "elev",
+      "dataset": "MSL Gale Merged DEM v3 (Parker & Calef, USGS 2016)",
+      "mission": "MRO HiRISE / CTX, Mars Express HRSC, MGS MOLA",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+      "note": "resampled to 25.0 x 25.0 m cells"
+    },
+    {
+      "layer": "slope",
+      "dataset": "MSL Gale Merged DEM v3 (Parker & Calef, USGS 2016)",
+      "mission": "MRO HiRISE / CTX, Mars Express HRSC, MGS MOLA",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+      "note": "max slope inside each cell, from the DEM at 12.5 m"
+    },
+    {
+      "layer": "visible",
+      "dataset": "MSL Gale HiRISE LRGB colour mosaic (USGS)",
+      "mission": "MRO HiRISE",
+      "resolution": "25 cm/px (source)",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_orthophoto_mosaic_25cm",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif",
+      "note": "covers 74 % of the region"
+    },
+    {
+      "layer": "visible",
+      "dataset": "Viking MDIM 2.1 colour mosaic (NASA Ames recolour)",
+      "mission": "Viking Orbiter",
+      "resolution": "~232 m/px",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "note": "fills gaps outside HiRISE coverage"
+    },
+    {
+      "layer": "thermal",
+      "dataset": "THEMIS Night IR controlled mosaic v2 (USGS)",
+      "mission": "Mars Odyssey THEMIS",
+      "resolution": "100 m/px",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "note": "local percentile stretch; brighter = warmer at night (rockier)"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "yellowknife",
+    "name": "Yellowknife Bay",
+    "lon": 137.453,
+    "lat": -4.626,
+    "why": "Curiosity's first drill holes: mudstone from an ancient freshwater lake that could have supported microbial life",
+    "source": "HiRISE ESP_032436_1755 (image centre); NASA MSL",
+    "approx": true
+  },
+  {
+    "id": "pahrump",
+    "name": "Pahrump Hills",
+    "lon": 137.379,
+    "lat": -4.676,
+    "why": "Base of Mount Sharp: lake-bed layers of the Murray formation, where the rover first drilled into the mountain",
+    "source": "HiRISE ESP_039280_1755 (image centre)",
+    "approx": true
+  },
+  {
+    "id": "vera-rubin",
+    "name": "Vera Rubin Ridge",
+    "lon": 137.357,
+    "lat": -4.714,
+    "why": "Hematite-capped ridge mapped from orbit by CRISM. It records groundwater altering old lake sediments",
+    "source": "HiRISE ESP_052176_1750 (image centre)",
+    "approx": true
+  },
+  {
+    "id": "glen-torridon",
+    "name": "Glen Torridon (clay unit)",
+    "lon": 137.396,
+    "lat": -4.729,
+    "why": "The most clay-rich rocks Curiosity has drilled, with sulfur-bearing organic molecules: a prime biosignature target",
+    "source": "Glen Torridon ridges study map centre (PMC9286800); USGS 2022 overview",
+    "approx": true
+  },
+  {
+    "id": "woodland-bay",
+    "name": "Woodland Bay",
+    "lon": 137.382,
+    "lat": -4.732,
+    "why": "Clay-bearing outcrop with Vera Rubin Ridge to the northwest and active rippled sand nearby",
+    "source": "HiRISE ESP_060207_1750 (image centre)",
+    "approx": true
+  }
+]
