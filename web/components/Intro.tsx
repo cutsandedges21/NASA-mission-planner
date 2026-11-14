@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Poi, Region } from '@/lib/region';
 
 // Science-site picker, built 1:1 on Moss's Figma reference (docs/design-references/video-key-frame-*.jpg):
@@ -28,7 +28,7 @@ export default function Intro({
   onPick: (p: Poi) => void;
   onSkip: () => void;
 }) {
-  const pois = region?.pois ?? [];
+  const pois = useMemo(() => region?.pois ?? [], [region]);
   const [active, setActive] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const m = region?.meta;

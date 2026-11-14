@@ -1,0 +1,85 @@
+/* Map screen chrome, owned by the UI chat (T-16). Each block names the design reference it follows. */
+
+/* top nav (dashboard reference) */
+.topnav { background: linear-gradient(180deg, rgb(7 8 10 / 0.85) 0%, rgb(7 8 10 / 0.45) 60%, transparent 100%); }
+.round-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgb(28 28 32 / 0.85); border: 1px solid rgb(255 255 255 / 0.08); color: #e4e4e7; backdrop-filter: blur(12px); transition: background 0.2s, color 0.2s; }
+.round-btn:hover { background: rgb(48 48 54 / 0.9); color: #fff; }
+.round-btn-on, .round-btn-on:hover { background: #fff; color: #07080a; }
+.nav-pill { border-radius: 9999px; padding: 9px 18px; font-size: 13px; color: #d4d4d8; transition: color 0.2s, background 0.2s; }
+.nav-pill:hover { color: #fff; }
+.nav-pill-on, .nav-pill-on:hover { background: #fff; color: #07080a; font-weight: 500; box-shadow: 0 6px 24px -6px rgb(255 255 255 / 0.35); }
+
+/* setup panel (Spherium reference) */
+.sp { border-radius: 22px; background: rgb(14 14 16 / 0.94); border: 1px solid rgb(255 255 255 / 0.06); box-shadow: 0 30px 80px -20px #000; backdrop-filter: blur(16px); }
+.sp-scroll { scrollbar-width: thin; scrollbar-color: #3f3f46 transparent; }
+.sp-logo { display: grid; grid-template-columns: repeat(4, 3px); gap: 2.5px; padding: 7px; border-radius: 10px; background: #1c1c1f; }
+.sp-logo i { width: 3px; height: 3px; border-radius: 9999px; background: #f5c84b; }
+.sp-logo i:nth-child(odd) { opacity: 0.55; }
+.sp-badge { border-radius: 5px; background: #f5c84b; color: #1a1406; font-size: 10.5px; font-weight: 600; padding: 2px 6px; white-space: nowrap; }
+.sp-tab { border-radius: 8px; padding: 9px 0; font-size: 12.5px; color: #71717a; background: rgb(255 255 255 / 0.025); transition: color 0.2s, background 0.2s; }
+.sp-tab-on { color: #f4f4f5; background: rgb(255 255 255 / 0.07); }
+.sp-ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: rgb(255 255 255 / 0.08); color: #d4d4d8; }
+.sp-tile { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 10px; border-radius: 9px; border: 1.5px solid transparent; background: rgb(255 255 255 / 0.035); font-size: 12px; color: #a1a1aa; transition: color 0.2s, background 0.2s, border-color 0.2s; }
+.sp-tile:hover { color: #e4e4e7; background: rgb(255 255 255 / 0.06); }
+.sp-tile-tall { flex-direction: column; min-height: 62px; gap: 5px; font-size: 11.5px; }
+.sp-on, .sp-on:hover { border-color: #f5c84b; color: #f5c84b; background: rgb(245 200 75 / 0.07); }
+.sp-val { font-family: var(--font-geist-mono), monospace; font-size: 12.5px; color: #f5c84b; }
+.sp-range { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin-top: 6px; background: transparent; cursor: pointer; }
+.sp-range::-webkit-slider-runnable-track { height: 6px; border-radius: 9999px; background: rgb(255 255 255 / 0.05); }
+.sp-range::-moz-range-track { height: 6px; border-radius: 9999px; background: rgb(255 255 255 / 0.05); }
+.sp-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 15px; margin-top: -4.5px; border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 14px #f5c84b88; }
+.sp-range::-moz-range-thumb { width: 30px; height: 15px; border: 0; border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 14px #f5c84b88; }
+.sp-knob { position: absolute; top: 50%; width: 20px; height: 11px; transform: translateY(-50%); border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 12px #f5c84b77; }
+
+/* route cards (dashboard reference) */
+.rc-col { position: absolute; right: 16px; top: 80px; bottom: 16px; z-index: 10; width: 286px; display: none; flex-direction: column; gap: 12px; }
+@media (min-width: 768px) { .rc-col { display: flex; } }
+.rc {
+  position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 30px; padding: 20px 22px 18px; color: #fff;
+  background: radial-gradient(110% 80% at 50% 40%, #2c2c31 0%, #141416 70%); border: 1px solid rgb(255 255 255 / 0.07);
+  box-shadow: 0 24px 60px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.08);
+  transition: flex-grow 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.3s;
+}
+.rc:hover { filter: brightness(1.12); }
+.rc-on { flex-grow: 1.55; border-color: rgb(255 255 255 / 0.25); box-shadow: 0 30px 80px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 60px rgb(255 255 255 / 0.06); }
+.rc-on:hover { filter: none; }
+.rc-empty { color: #d4d4d8; }
+.rc-btn { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9999px; background: #fff; color: #07080a; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
+.rc-dots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px 0; justify-items: center; margin: 14px 4px 0; }
+.rc-dots i { width: 8px; height: 8px; border-radius: 9999px; border: 1.3px solid rgb(255 255 255 / 0.55); }
+.rc-dots i[data-on='true'] { background: #fff; border-color: #fff; box-shadow: 0 0 8px rgb(255 255 255 / 0.6); }
+.rc-chip { border-radius: 9999px; padding: 6px 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; background: rgb(0 0 0 / 0.4); border: 1px solid rgb(255 255 255 / 0.12); }
+.rc-chip-go { color: #6ee7b7; }
+.rc-chip-caution { color: #fcd34d; }
+.rc-chip-nogo { color: #fca5a5; }
+.rc-hint { position: absolute; left: 0; right: 0; bottom: -2px; text-align: center; font-size: 11px; color: #a1a1aa; }
+
+/* docked card (eclipse globe reference) */
+.dock-tabs { border-radius: 14px; background: rgb(13 13 15 / 0.96); border: 1px solid rgb(255 255 255 / 0.07); padding: 6px; }
+.dock-tab { display: flex; align-items: center; justify-content: center; gap: 7px; height: 36px; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: #d4d4d8; }
+.dock-tab-on { background: #2a2a2e; color: #fff; }
+.dock-arrow { width: 26px; height: 30px; border-radius: 8px; color: #a1a1aa; font-size: 17px; }
+.dock-arrow:hover { color: #fff; }
+.dock-chip { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; height: 30px; border-radius: 8px; font-size: 12.5px; color: #a1a1aa; }
+.dock-chip:hover { color: #fff; }
+.dock-chip-on { background: #2a2a2e; color: #fff; font-weight: 600; }
+.dock-card { margin-top: 10px; border-radius: 18px; background: #000; border: 1px solid rgb(255 255 255 / 0.08); padding: 20px 24px 18px; box-shadow: 0 30px 80px -10px rgb(0 0 0 / 0.9); }
+.dock-brief .panel { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; padding: 0; border-radius: 0; }
+.dock-brief .panel p { font-size: 12.5px; }
+.dock-pill { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 9999px; background: #0b0b0d; border: 1.5px solid rgb(255 255 255 / 0.12); font-size: 14px; font-weight: 600; color: #fff; box-shadow: 0 10px 30px -8px #000; }
+.dock-round { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9999px; background: #0b0b0d; border: 1.5px solid rgb(255 255 255 / 0.12); color: #fff; }
+
+/* credits (white-card tablet reference) */
+.cr-frame { width: min(900px, 100%); max-height: 90vh; overflow-y: auto; border-radius: 34px; background: #0a0a0b; padding: 16px; border: 6px solid #2a2a2e; box-shadow: 0 40px 120px -20px #000, 0 0 0 1px rgb(255 255 255 / 0.1); }
+.cr-star { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9999px; background: #fff; color: #000; font-size: 18px; }
+.cr-close { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9999px; background: #fff; color: #000; font-size: 13px; }
+.cr-card { border-radius: 26px; background: #fff; color: #18181b; padding: 18px 20px; }
+.cr-h { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #18181b; }
+.cr-chip { display: inline-flex; align-items: center; border-radius: 9999px; border: 1.2px solid #3f3f46; padding: 4px 11px; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: #18181b; }
+.cr-chip-on { background: #000; border-color: #000; color: #fff; }
+
+/* MapLibre controls sit inside the side columns' gutter */
+@media (min-width: 768px) {
+  .maplibregl-ctrl-bottom-right { right: 306px !important; }
+  .maplibregl-ctrl-bottom-left { left: 320px !important; }
+}

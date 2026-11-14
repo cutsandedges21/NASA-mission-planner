@@ -8,28 +8,21 @@ import { corners, loadRegion, toCell, toLonLat, type Poi, type Region } from '@/
 import { plan, type PlannedRoute, type Strategy } from '@/lib/plan-client';
 import { registerRegionTerrain } from '@/lib/terrain';
 import { MARS_TERRAIN_FACTOR, MarsScaleControl } from '@/lib/mars-scale';
-import { fmtMargin, hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
+import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
 import type { ExplainRequest } from '@/lib/explain';
 import { pickRecommended } from '@/lib/explain-fallback';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
-import MarsClockBar from './MarsClockBar';
-import DaylightBar from './DaylightBar';
-import Briefing from './Briefing';
 import Intro from './Intro';
+import TopNav, { type NavTab } from './map/TopNav';
+import SetupPanel from './map/SetupPanel';
+import RouteCards from './map/RouteCards';
+import DockCard from './map/DockCard';
+import Credits from './map/Credits';
+import { ROUTE_STYLE } from './map/format';
 
 const BASEMAP = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
 
-export const ROUTE_STYLE: Record<Strategy, { color: string; label: string; blurb: string }> = {
-  SAFE: { color: '#34d399', label: 'Safe', blurb: 'Least oxygen, avoids steep ground' },
-  FAST: { color: '#fbbf24', label: 'Fast', blurb: 'Least walking time' },
-  SCIENCE: { color: '#a78bfa', label: 'Science', blurb: 'Stops at the best targets on the way' },
-};
-
-const fmtKm = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
-const fmtDur = (s: number) => {
-  const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
-  return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
-};
+export { ROUTE_STYLE };
 
 /** 3D relief is drawn 1.5x taller than true scale so slopes read clearly. (MapLibre assumes Earth, see mars-scale.ts.) */
 const VERTICAL_EXAGGERATION = 1.5;
@@ -52,6 +45,8 @@ export default function MissionPlanner() {
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
   const [showSlope, setShowSlope] = useState(false);
+  const [navTab, setNavTab] = useState<NavTab>('plan');
+  const [frameTick, setFrameTick] = useState(0);
   const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
   const [startH, setStartH] = useState(9);
   const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
@@ -242,8 +237,8 @@ export default function MissionPlanner() {
     const b = new maplibregl.LngLatBounds(pts[0], pts[0]);
     pts.forEach((p) => b.extend(p));
     const wide = window.innerWidth >= 768;
-    mp.fitBounds(b, { padding: wide ? { top: 110, bottom: 60, left: 340, right: 370 } : { top: 90, bottom: window.innerHeight * 0.5, left: 30, right: 30 }, duration: 1200, maxZoom: 14 });
-  }, [mapReady, routes, region]); // eslint-disable-line react-hooks/exhaustive-deps
+    mp.fitBounds(b, { padding: wide ? { top: 110, bottom: 120, left: 360, right: 340 } : { top: 90, bottom: window.innerHeight * 0.5, left: 30, right: 30 }, duration: 1200, maxZoom: 14 });
+  }, [mapReady, routes, region, frameTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 8. 2D / 3D (skip the very first run so the intro flight isn't cancelled)
   const viewInit = useRef(false);
@@ -284,7 +279,6 @@ export default function MissionPlanner() {
       }),
     [routes, clock, startClamped],
   );
-  const sel = useMemo(() => scored.find((r) => r.strategy === selected) ?? null, [scored, selected]);
 
   // what the mission briefing explains: computed numbers only
   const briefingRequest = useMemo<ExplainRequest | null>(() => {
@@ -311,130 +305,113 @@ export default function MissionPlanner() {
     };
   }, [scored, region, clock, weather, poiName]);
 
+  const baseName = region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—';
+  const pickPoi = (p: Poi) => {
+    setDest([p.lon, p.lat]);
+    setDestName(p.name);
+  };
+  const moveBase = () => setPlacing(placing === 'base' ? 'dest' : 'base');
+
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-[#07080a] text-zinc-100">
       <div className="absolute inset-0">
         <div ref={mapEl} className="h-full w-full" />
       </div>
 
-      {/* top bar */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3 sm:p-4">
-        <div className="panel pointer-events-auto px-4 py-2.5">
-          <div className="text-[10px] font-medium uppercase tracking-[0.25em] text-orange-300/80">EVA Mission Planner</div>
-          <div className="text-sm font-semibold">{region?.meta.name ?? 'Loading Mars…'}</div>
-        </div>
-        {base && <MarsClockBar lon={base[0]} lat={base[1]} weather={weather} />}
-        <div className="panel pointer-events-auto flex items-center gap-1 p-1 text-xs font-medium">
-          {(['2D', '3D'] as const).map((v) => (
+      <TopNav
+        tab={intro ? 'sites' : navTab}
+        onTab={(t) => {
+          if (t === 'sites') setIntro(true);
+          else setNavTab(t);
+        }}
+        regionName={region?.meta.name.replace(/\s*\(.*\)/, '') ?? 'Loading Mars…'}
+        weather={weather}
+        view3d={view3d}
+        onToggle3d={() => setView3d((v) => !v)}
+      />
+
+      <SetupPanel
+        meta={region?.meta ?? null}
+        pois={region?.pois ?? []}
+        destName={destName}
+        onPickPoi={pickPoi}
+        baseLabel={baseName}
+        placingBase={placing === 'base'}
+        onMoveBase={moveBase}
+        selected={selected}
+        onSelect={setSelected}
+        clock={clock}
+        startH={startClamped}
+        onStart={setStartH}
+        windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
+        showSlope={showSlope}
+        onSlope={setShowSlope}
+        view3d={view3d}
+        on3d={setView3d}
+        weather={weather}
+        base={base}
+      />
+
+      <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />
+
+      <DockCard
+        base={base}
+        baseName={baseName}
+        destName={destName ?? (dest ? fmtLL(dest) : null)}
+        routes={scored}
+        selected={selected}
+        onSelect={setSelected}
+        briefing={briefingRequest}
+        onRecommended={setSelected}
+        onFrame={() => setFrameTick((n) => n + 1)}
+        showSlope={showSlope}
+        onSlope={setShowSlope}
+        view3d={view3d}
+        on3d={setView3d}
+        onMoveBase={moveBase}
+      />
+
+      {/* phone: route cards as a bottom sheet */}
+      {scored.length > 0 && (
+        <div className="absolute inset-x-0 bottom-0 z-10 flex snap-x gap-2 overflow-x-auto p-3 md:hidden">
+          {scored.map((r) => (
             <button
-              key={v}
-              onClick={() => setView3d(v === '3D')}
-              className={`rounded-lg px-3 py-1.5 transition ${view3d === (v === '3D') ? 'bg-white/15 text-white' : 'text-zinc-400 hover:text-white'}`}
+              key={r.strategy}
+              onClick={() => setSelected(r.strategy)}
+              className="min-w-[70%] snap-center rounded-3xl border border-white/10 p-4 text-left"
+              style={{ background: r.strategy === selected ? ROUTE_STYLE[r.strategy].grad : '#141416' }}
             >
-              {v}
+              <div className="flex justify-between text-sm font-medium">
+                <span>{ROUTE_STYLE[r.strategy].label} route</span>
+                <span className="text-xs">{r.verdict.lvl.toUpperCase()}</span>
+              </div>
+              <div className="mt-2 font-mono text-xs text-white/80">
+                {(r.budget.distance / 1000).toFixed(1)} km · {Math.round(r.budget.totalT / 60)} min · O₂ {Math.max(0, r.budget.marginPct).toFixed(0)} %
+              </div>
             </button>
           ))}
         </div>
-      </header>
-
-      {/* left: mission setup */}
-      <aside className="panel absolute left-3 top-24 hidden w-72 flex-col gap-4 p-4 sm:left-4 md:flex">
-        <section>
-          <h2 className="eyebrow">Mission</h2>
-          <div className="mt-2 space-y-2 text-sm">
-            <Row
-              k="Base"
-              v={region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—'}
-              action={placing === 'base' ? 'click map…' : 'move'}
-              onAction={() => setPlacing(placing === 'base' ? 'dest' : 'base')}
-            />
-            <Row k="Target" v={destName ?? (dest ? fmtLL(dest) : 'Click the map or a site')} />
-          </div>
-        </section>
-        {clock && (
-          <DaylightBar
-            rise={clock.rise}
-            set={clock.set}
-            startH={startClamped}
-            onStart={setStartH}
-            windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
-            colors={{ SAFE: ROUTE_STYLE.SAFE.color, FAST: ROUTE_STYLE.FAST.color, SCIENCE: ROUTE_STYLE.SCIENCE.color }}
-            selected={selected}
-          />
-        )}
-        <section>
-          <h2 className="eyebrow">Science sites</h2>
-          <ul className="mt-2 space-y-1">
-            {region?.pois.map((p) => (
-              <li key={p.id}>
-                <button
-                  onClick={() => {
-                    setDest([p.lon, p.lat]);
-                    setDestName(p.name);
-                  }}
-                  className={`w-full rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-white/10 ${destName === p.name ? 'bg-white/10' : ''}`}
-                >
-                  <div className="font-medium">{p.name}</div>
-                  <div className="line-clamp-2 text-xs text-zinc-400">{p.why}</div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <label className="flex cursor-pointer items-center justify-between text-sm text-zinc-300">
-          Slope hazard layer
-          <input type="checkbox" checked={showSlope} onChange={(e) => setShowSlope(e.target.checked)} className="accent-orange-400" />
-        </label>
-        {region?.meta.synthetic && (
-          <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-2 text-xs text-amber-200">
-            Demo terrain. Real NASA data is being processed.
-          </p>
-        )}
-      </aside>
-
-      {/* right: route dashboard */}
-      <aside className="panel absolute bottom-3 left-3 right-3 max-h-[46dvh] overflow-y-auto p-3 sm:p-4 md:bottom-auto md:left-auto md:right-4 md:top-24 md:max-h-[calc(100dvh-8rem)] md:w-80">
-        <h2 className="eyebrow">Routes {busy && <span className="ml-1 animate-pulse text-zinc-400">· planning…</span>}</h2>
-        {!routes && !busy && (
-          <p className="mt-2 text-sm text-zinc-400">Pick a target: click the map or a science site. Three EVA routes appear here, scored for oxygen, time and slope.</p>
-        )}
-        <div className="mt-2 space-y-2">
-          {scored.map((r) => (
-            <RouteCard key={r.strategy} r={r} daylight={r.daylight} active={r.strategy === selected} onSelect={() => setSelected(r.strategy)} poiName={poiName} />
-          ))}
-        </div>
-        {sel?.budget && (
-          <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
-            Round trip from the airlock. {sel.budget.oneWay ? `${fmtKm(sel.budget.oneWay)} each way.` : ''} O₂ model: Pandolf metabolic rate scaled to Mars gravity, 0.60 kg usable O₂, 25 % reserve.
-          </p>
-        )}
-      </aside>
-
-      {/* bottom centre: mission briefing (desktop) */}
-      {briefingRequest && (
-        <div className="absolute bottom-4 left-1/2 hidden w-[min(560px,calc(100vw-48rem))] min-w-[380px] -translate-x-1/2 md:block">
-          <Briefing
-            request={briefingRequest}
-            onRecommended={setSelected}
-            colors={{ SAFE: ROUTE_STYLE.SAFE.color, FAST: ROUTE_STYLE.FAST.color, SCIENCE: ROUTE_STYLE.SCIENCE.color }}
-          />
-        </div>
       )}
+
+      {placing === 'base' && (
+        <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>
+      )}
+
+      {navTab === 'data' && !intro && <Credits meta={region?.meta ?? null} onClose={() => setNavTab('plan')} />}
 
       {intro && (
         <Intro
           region={region}
           onSkip={() => setIntro(false)}
           onPick={(p) => {
-            setDest([p.lon, p.lat]);
-            setDestName(p.name);
+            pickPoi(p);
             setIntro(false);
           }}
         />
       )}
 
       {error && (
-        <div className="panel absolute left-1/2 top-24 -translate-x-1/2 px-4 py-2 text-sm text-red-300">{error}</div>
+        <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full border border-red-400/30 bg-black/80 px-4 py-2 text-sm text-red-300">{error}</div>
       )}
     </div>
   );
@@ -442,96 +419,4 @@ export default function MissionPlanner() {
 
 function fmtLL([lon, lat]: [number, number]) {
   return `${Math.abs(lat).toFixed(3)}°${lat < 0 ? 'S' : 'N'} ${lon.toFixed(3)}°E`;
-}
-
-function Row({ k, v, action, onAction }: { k: string; v: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="text-zinc-400">{k}</span>
-      <span className="truncate text-right font-medium">{v}</span>
-      {action && (
-        <button onClick={onAction} className="shrink-0 text-xs text-orange-300 hover:text-orange-200">
-          {action}
-        </button>
-      )}
-    </div>
-  );
-}
-
-const VERDICT = {
-  go: { t: 'GO', c: 'bg-emerald-400/15 text-emerald-300 border-emerald-400/30' },
-  caution: { t: 'CAUTION', c: 'bg-amber-400/15 text-amber-300 border-amber-400/30' },
-  nogo: { t: 'NO-GO', c: 'bg-red-500/15 text-red-300 border-red-500/30' },
-};
-
-function RouteCard({
-  r,
-  daylight,
-  active,
-  onSelect,
-  poiName,
-}: {
-  r: PlannedRoute;
-  daylight: Daylight | null;
-  active: boolean;
-  onSelect: () => void;
-  poiName: (id: string) => string;
-}) {
-  const s = ROUTE_STYLE[r.strategy];
-  const v = VERDICT[r.verdict.lvl];
-  const b = r.budget;
-  return (
-    <button
-      onClick={onSelect}
-      className={`w-full rounded-xl border p-3 text-left transition ${active ? 'border-white/25 bg-white/[0.07]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'}`}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-          <span className="font-semibold">{s.label}</span>
-        </div>
-        <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold tracking-wider ${v.c}`}>{v.t}</span>
-      </div>
-      <div className="mt-0.5 text-xs text-zinc-400">{s.blurb}</div>
-      {b ? (
-        <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-xs">
-          <Stat k="Distance" v={fmtKm(b.distance)} />
-          <Stat k="EVA time" v={fmtDur(b.totalT)} />
-          <Stat k="O₂ left" v={`${Math.max(0, b.marginPct).toFixed(0)} %`} warn={b.marginPct < 40} />
-          <Stat k="Max slope" v={`${b.maxSlope.toFixed(0)}°`} warn={b.maxSlope > 15} />
-          {b.doseMSv !== undefined && (
-            <Stat k="Radiation" v={`${b.doseMSv.toFixed(2)} mSv`} title="Dose for the whole EVA. Curiosity's RAD instrument measured 0.64 mSv per day at Gale's surface (Hassler et al. 2014)." />
-          )}
-          {b.steepPct !== undefined && (
-            <Stat k="Steep ground" v={`${b.steepPct.toFixed(0)} %`} warn={b.steepPct > 10} title="Share of the route on ground steeper than 15°, from the 1 m terrain model." />
-          )}
-        </div>
-      ) : null}
-      {daylight && (
-        <div className={`mt-1.5 font-mono text-[11px] ${daylight.endMarginH < 0.75 ? 'text-amber-300' : 'text-zinc-500'}`}>
-          Back {hm(daylight.endH)} · {fmtMargin(daylight.endMarginH)}
-        </div>
-      )}
-      {r.poisVisited.length > 0 && (
-        <div className="mt-2 text-xs text-violet-200/90">Stops: {r.poisVisited.map(poiName).join(' → ')}</div>
-      )}
-      {r.note && <div className="mt-2 text-xs text-zinc-400">{r.note}</div>}
-      {active && r.verdict.issues.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-xs text-zinc-300">
-          {r.verdict.issues.map((i, k) => (
-            <li key={k}>• {i.msg}</li>
-          ))}
-        </ul>
-      )}
-    </button>
-  );
-}
-
-function Stat({ k, v, warn, title }: { k: string; v: string; warn?: boolean; title?: string }) {
-  return (
-    <div className="flex justify-between gap-2 whitespace-nowrap" title={title}>
-      <span className="text-zinc-500">{k}</span>
-      <span className={warn ? 'text-amber-300' : 'text-zinc-100'}>{v}</span>
-    </div>
-  );
 }
