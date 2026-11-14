@@ -1,6 +1,6 @@
 # Task Board (live)
 
-> **🚨 Sat 16:57 EST: Moss's Claude chats are stopping (weekly limit). Gianluca's Claude owns EVERYTHING now. Read [docs/HANDOFF.md](HANDOFF.md) first: state, the ordered task list, and the steps only the humans can do (deploy = Moss runs `bash tools/deploy.sh`).**
+> **🚨 Sat 16:57 EST: Moss's Claude chats are stopping (weekly limit). Gianluca's Claude owns EVERYTHING now. Read [docs/HANDOFF.md](HANDOFF.md) first: state, the ordered task list, and the steps only the humans can do (deploy = Moss runs `bash tools/deploy.sh`). Sat 17:03: **no API keys / no runtime AI** (Step 0) and **a slide deck instead of a video** (Step 6).**
 
 **This is the live to-do list for both people and both Claudes.** Pull often. It changes every few minutes.
 
@@ -20,6 +20,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 | Time (EST) | Who | What | Files / outputs the other side needs |
 |---|---|---|---|
+| Sat 17:03 | Moss's Claude (path chat) | **Two new Moss decisions (in DECISIONS + HANDOFF):** (1) **no API keys, no AI at runtime**: remove `/api/explain` + its Claude client; the briefing is built in the browser from the template (HANDOFF §2 **Step 0, do first**); T-19 + T-27 cancelled. (2) **No video: we present with a slide deck** you build (HANDOFF §2 **Step 6**: outline `docs/SLIDES.md` → `.pptx` from `tools/slides/`) | Gianluca's Claude: start at HANDOFF Step 0 |
 | Sat 16:57 | Moss's Claude (path chat) | **HANDOFF.** Deployed `main` 80f2b9b to production (live checks OK). All tests green (planner 28/28, API 15/15, timeline, rover-terrain, tsc). Wrote `docs/HANDOFF.md` (everything left, in order) and `tools/deploy.sh`. **T-29 (Blender) is NOT delivered**: Moss stopped that chat; nothing on GitHub; treat as CUT. No Vercel env vars are set (AI briefing = template) | **Gianluca's Claude: start at HANDOFF.md §2 Step 1.** Moss's chats won't answer from here on |
 | Sat 11:47 | Moss's Claude (path chat) | **Geology wired; `MissionPlanner.tsx` + `map/SetupPanel.tsx` are free again.** Environment → **Geology: Off / Rock units** (+ legend + "approximate" note) under your Map type grid; tint sits under the hillshade so the relief shades it like PIA26042; labels face the camera, the ridge label follows the ridge and never flips. Curiosity's line is now **solid, thin, pale** (no dashes) as in the reference. Checked through the real UI in 2D and 3D: `docs/graphics/t34-geology-3d.jpg` | **Teammate:** T-34 "For Teammate" items (2)–(4): credits, DATASETS, AI-USE. Optional for your route style: the reference draws the route as a thin pale line; ours keep strategy colours (your call with Gianluca) |
 | Sat 11:43 | Moss's Claude (path chat) | Read "T-33 wiring pushed". **Now editing `MissionPlanner.tsx` + `map/SetupPanel.tsx`** (about 20 min): Geology toggle under the Map type grid, and Curiosity's line drawn solid + thin like PIA26042 (it is still dashed). Checked geology in a browser: works in 2D + 3D, tuning tint order and labels | Please leave those two files until I log "geology wired" |
@@ -410,7 +411,7 @@ Blender 5.1.1 runs headless on Moss's PC (CPU only: ~8 s per 960×540 frame). Ev
 
 ## T-14 · Submit
 - **Owner:** Both · **When:** Sun 08:00–11:00 · **Hard stop:** submitted by 11:00
-- **Status:** TODO
+- **Status:** TODO · **Changed Sat 17:03 (Moss): NO VIDEO. We present with a slide deck** built by Gianluca's Claude (HANDOFF §2 Step 6). Step 2 below ("Record the demo") is replaced by: present the deck (+ optional short live demo); the project page links the deck, not a video
 - **Steps:**
   1. Re-read the official Space Apps submission requirements (project page fields, video length, links) and list them here.
   2. Record the demo: the planned flow (choose base → 3 routes → briefing → Simulate Mission), from the live URL.
@@ -448,7 +449,7 @@ Blender 5.1.1 runs headless on Moss's PC (CPU only: ~8 s per 960×540 frame). Ev
 
 ## T-19 · Add the API keys to Vercel (Moss, 5 min)
 - **Owner:** Moss (human: needs your accounts)
-- **Status:** TODO
+- **Status:** CANCELLED (Sat 17:03, Moss: no API keys; see DECISIONS and HANDOFF Step 0)
 - **Steps:**
   1. **Claude key:** https://console.anthropic.com → API Keys → Create key. Copy it.
   2. **NASA key (free, instant):** https://api.nasa.gov → fill in name + email → the key arrives on screen and by email. (Without it the app uses `DEMO_KEY`, which is rate-limited but works.)
