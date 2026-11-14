@@ -31,6 +31,8 @@ export type Strategy = 'SAFE' | 'FAST' | 'SCIENCE';
 export type PlannedRoute = {
   strategy: Strategy;
   path: [number, number][] | null;
+  /** Display line (fractional cell coords, outbound): straight runs + rounded bends, never on steeper ground than `path` (planner/src/smooth.js). Budget numbers come from `path`. */
+  line?: [number, number][];
   budget: Budget;
   verdict: Verdict;
   poisVisited: string[];

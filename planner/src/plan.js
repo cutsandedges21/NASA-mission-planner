@@ -3,6 +3,7 @@
 // Routing and EVA oxygen model adapted from Sol Atlas by The SOL Explorers.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { CostGrid } from './route.js';
+import { smoothLine } from './smooth.js';
 import { budget, verdict, evaDoseMSv, RAD_MSV_PER_DAY, EVA_DEFAULTS } from './eva.js';
 
 export { EVA_DEFAULTS, RAD_MSV_PER_DAY };
@@ -23,7 +24,7 @@ export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
  * @param {object} [a.params]   overrides for EVA_DEFAULTS (crew mass, O2 capacity, …)
  * @param {boolean} [a.roundTrip=true]  walk back to the start along the same route (a Marswalk ends at the airlock)
  * @param {number} [a.maxStops=2]  most POIs the SCIENCE route visits
- * @returns {Array<{strategy, path, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
+ * @returns {Array<{strategy, path, line, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
  */
 export function planMission(a) {
   const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null, spaceWeather = null,
@@ -165,10 +166,11 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
     : out;
   // cumulative distance (outbound) where each science stop happens
   const stops = [];
+  const stopIdx = [];
   let k = 0;
   for (const p of stopsPois) {
     while (k < path.length && !(path[k][0] === p.x && path[k][1] === p.y)) k++;
-    if (k < path.length) stops.push({ id: p.id, d: out[k].d });
+    if (k < path.length) { stops.push({ id: p.id, d: out[k].d }); stopIdx.push(k); }
   }
   if (target) stops.push({ id: target.id, d: out.at(-1).d }); // work at the destination site
   const b = budget(samples, stops.map((s) => s.d), params);
@@ -193,7 +195,10 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
     v.issues.push({ lvl: 'caution', msg: `Space weather: ${ctx.spaceWeather.short || 'solar storm forecast at Mars'}. Check before egress, keep the shelter close` });
     if (v.lvl === 'go') v.lvl = 'caution';
   }
-  return { strategy, path, budget: b, verdict: v, poisVisited: stops.map((s) => s.id), stops, ms };
+  // Display line: straight runs + rounded bends, never on steeper ground than the cell path (smooth.js).
+  // The budget above stays computed on the cell path.
+  const line = smoothLine(path, ctx, stopIdx);
+  return { strategy, path, line, budget: b, verdict: v, poisVisited: stops.map((s) => s.id), stops, ms };
 }
 
 function steepShare(path, out, fineSlope, w) {

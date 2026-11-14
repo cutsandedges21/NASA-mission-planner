@@ -128,12 +128,12 @@ export default function MissionPlanner() {
           {
             id: 'routes-casing', type: 'line', source: 'routes',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: { 'line-color': '#05060a', 'line-width': ['case', ['get', 'selected'], 8, 5], 'line-opacity': ['case', ['get', 'selected'], 0.8, 0.4] },
+            paint: { 'line-color': '#05060a', 'line-width': ['case', ['get', 'selected'], 6, 3.5], 'line-opacity': ['case', ['get', 'selected'], 0.7, 0.35] },
           },
           {
             id: 'routes', type: 'line', source: 'routes',
             layout: { 'line-join': 'round', 'line-cap': 'round', 'line-sort-key': ['case', ['get', 'selected'], 1, 0] },
-            paint: { 'line-color': ['get', 'color'], 'line-width': ['case', ['get', 'selected'], 4.5, 2.5], 'line-opacity': ['case', ['get', 'selected'], 1, 0.45] },
+            paint: { 'line-color': ['get', 'color'], 'line-width': ['case', ['get', 'selected'], 2.8, 1.6], 'line-opacity': ['case', ['get', 'selected'], 1, 0.5] },
           },
           {
             id: 'trail', type: 'line', source: 'trail',
@@ -250,7 +250,7 @@ export default function MissionPlanner() {
       .map((r) => ({
         type: 'Feature' as const,
         properties: { strategy: r.strategy, color: ROUTE_STYLE[r.strategy].color, selected: r.strategy === selected },
-        geometry: { type: 'LineString' as const, coordinates: r.path!.map(([x, y]) => toLonLat(region.meta, x, y)) },
+        geometry: { type: 'LineString' as const, coordinates: (r.line ?? r.path!).map(([x, y]) => toLonLat(region.meta, x, y)) },
       }));
     src.setData({ type: 'FeatureCollection', features });
   }, [mapReady, routes, selected, region]);
