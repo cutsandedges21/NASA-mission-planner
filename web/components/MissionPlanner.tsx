@@ -237,7 +237,7 @@ export default function MissionPlanner() {
     const b = new maplibregl.LngLatBounds(pts[0], pts[0]);
     pts.forEach((p) => b.extend(p));
     const wide = window.innerWidth >= 768;
-    mp.fitBounds(b, { padding: wide ? { top: 110, bottom: 120, left: 360, right: 340 } : { top: 90, bottom: window.innerHeight * 0.5, left: 30, right: 30 }, duration: 1200, maxZoom: 14 });
+    mp.fitBounds(b, { padding: wide ? { top: 100, bottom: 380, left: 360, right: 340 } : { top: 90, bottom: window.innerHeight * 0.5, left: 30, right: 30 }, duration: 1200, maxZoom: 14 });
   }, [mapReady, routes, region, frameTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 8. 2D / 3D (skip the very first run so the intro flight isn't cancelled)

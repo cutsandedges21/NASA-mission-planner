@@ -18,7 +18,7 @@ export default function TopNav({
 }: {
   tab: NavTab;
   onTab: (t: NavTab) => void;
-  regionName: string;
+  regionName?: string;
   weather: SpaceWeatherStatus | null;
   view3d: boolean;
   onToggle3d: () => void;
@@ -32,13 +32,9 @@ export default function TopNav({
   return (
     <header className="topnav pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pb-10 pt-4 sm:px-6">
       <div className="pointer-events-auto flex items-center gap-3">
-        <button onClick={() => onTab('sites')} className="round-btn h-11 w-11" title="Science sites">
+        <button onClick={() => onTab('sites')} className="round-btn h-11 w-11" title={`Science sites${regionName ? ` · ${regionName}` : ''}`}>
           <IGlobe size={18} />
         </button>
-        <div className="hidden leading-tight xl:block">
-          <div className="text-[13px] font-semibold">EVA Planner</div>
-          <div className="text-[11px] text-zinc-400">{regionName}</div>
-        </div>
       </div>
 
       <nav className="pointer-events-auto hidden items-center gap-1 md:flex">

@@ -82,8 +82,8 @@ export default function SetupPanel({
             <i key={i} />
           ))}
         </span>
-        <span className="text-[15px] font-semibold">EVA Planner</span>
-        <span className="sp-badge">{regionName}</span>
+        <span className="whitespace-nowrap text-[15px] font-semibold">EVA Planner</span>
+        <span className="sp-badge" title={regionName}>{regionName.split(':')[0]}</span>
       </div>
 
       <div className="sp-scroll flex-1 overflow-y-auto px-4 pb-5">
