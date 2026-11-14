@@ -64,3 +64,7 @@ Why: image centres were up to 2.2 km from the feature they named (Yellowknife Ba
 
 **2026-11-13 (Fri 20:10): Default region is the real Gale data; the Vercel project stays behind Vercel login until Moss says "make it public"** (Moss's Claude)
 Why: deployments are protected by default; making a site public (and, once ANTHROPIC_API_KEY is set, exposing a paid API route) is Moss's call. `?region=demo` loads the synthetic terrain.
+
+**2026-11-13 (Fri 21:15): The Vercel site is PUBLIC: https://nasa-eva-planner.vercel.app** (Moss said "make the vercel public")
+Production deployments no longer need a Vercel login (`ssoProtection` is now `preview` only: preview URLs stay protected). Latest build (real Gale data, redesign, Simulate Mission) is live. **Deploy recipe** (the Hobby plan blocks deploys whose git author isn't the account owner, so deploy from a copy with no git history): copy `web/` + `planner/` to `C:\tmp\deploy-snapshot` (no `node_modules`, `.next`, `.env.local`, `.vercel`), copy `.vercel/project.json` into it, then `cd C:\tmp\deploy-snapshot && vercel deploy --prod --yes`. Pushing to GitHub does NOT deploy (those builds are blocked), so tell Moss's Claude when you want a redeploy.
+**Open risk:** once `ANTHROPIC_API_KEY` is set (T-19), the public `/api/explain` calls a paid API. Teammate: add abuse protection first (task T-27).

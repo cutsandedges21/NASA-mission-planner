@@ -17,6 +17,16 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 **Priority order: T-22 → T-23 → T-08 → T-24 → T-25 → T-26 → T-17 (final).** If you finish everything, see "Stretch" at the bottom.
 
+## T-27 · Abuse protection for the public /api/explain (before any API key goes live)
+- **Owner:** Teammate · **Time box:** 30 min · **Priority:** do right after your current task · **Status:** TODO
+- **Why:** the site is public now (see DECISIONS, Fri 21:15). When Moss adds `ANTHROPIC_API_KEY` (T-19), anyone could call `POST /api/explain` in a loop and run up the bill. Today it only returns the template (no key), so nothing is exposed yet.
+- **Steps:**
+  1. In `web/app/api/explain/route.ts` (your file) add, **before** calling Claude: (a) request body limit (reject > 20 KB with 413); (b) a per-IP limiter: at most 12 AI calls per 10 minutes per IP (`x-forwarded-for` first hop), kept in a module-level `Map` (it is per-serverless-instance, which is fine as a speed bump); over the limit → return the **template briefing** with `source: 'fallback'`, `reason: 'rate limited'` (never an error: the demo must keep working); (c) a global ceiling of 300 AI calls per hour per instance, same fallback; (d) `max_tokens` already 300: keep it.
+  2. Cache: identical request bodies (hash of the JSON) return the previous AI answer for 10 minutes, so judges re-clicking the same route cost nothing.
+  3. Tests in `web/app/api/_tests/api.test.mjs` for (a), (b), (c), (d) with the mocked fetch used by the other tests. `node --test web/app/api/_tests/api.test.mjs` must pass.
+  4. Same idea for `/api/space-weather` is **not** needed (it is cached 30 min and uses the free NASA key).
+- **Done when:** the tests pass and the Result lists the limits you chose.
+
 ## T-21 · Science-site positions were wrong by up to 2.2 km: snapped to NASA's real rover stops
 - **Owner:** Moss's Claude · **Status:** DONE (Fri 20:05)
 - **Result:** NASA/JPL's MSL waypoint feed (`https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json`, 1,389 end-of-drive stops, sol 3 → 5073) shows where Curiosity really stopped. `data/msl_traverse.mjs` moved **Yellowknife Bay 2,176 m** → (137.44913, −4.58948) (rover parked there sols 125–297), **Pahrump Hills 794 m** → (137.37746, −4.66270) (sol 753), **Vera Rubin Ridge 1,424 m** → (137.37809, −4.72565) (sol 2128, centroid of its ridge campaign). Glen Torridon (147 m from a real stop) and Woodland Bay (33 m) were already fine and stay `approx`. `data/regions/gale.json` updated; `web/public/data/gale/pois.json` regenerated with `python data/build_region.py gale` (uses `data-cache/`, check OK); new `web/public/data/gale/traverse.json` (1,270 stops inside the box, 26 KB). The old HiRISE "image centre" coordinates were up to 2 km from the feature they named.
@@ -83,6 +93,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Done when:** `cd planner && npm test` includes these and passes.
 
 ## T-17 (final pass, after T-22)
+- **Live URL for the README: https://nasa-eva-planner.vercel.app** (public since Fri 21:15; use it instead of `{{LIVE_URL}}`).
 - Update the README to the real numbers, remove the "Glen Torridon is a realistic single EVA" claim, add the validation sentence from T-22, and a verified "Run it locally" section: `cd web && npm install && npm run build && npx next start -p 3123`. Leave `{{LIVE_URL}}` for Moss.
 
 ## Stretch (only if all of the above is done)
@@ -180,7 +191,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-09 · Web app skeleton, live on Vercel
 - **Owner:** Moss's Claude · **Time box:** Fri 20:00
-- **Status:** IN PROGRESS (Moss): app built + tested locally; **only the Vercel deploy is left**
+- **Status:** DONE (Moss's Claude, Fri 21:15). **Live and public: https://nasa-eva-planner.vercel.app** (see DECISIONS for the deploy recipe). Not auto-deployed from GitHub: ask Moss's Claude for a redeploy.
 - **Steps:**
   1. `npx create-next-app@latest web --ts --tailwind --app --eslint --src-dir=false --import-alias "@/*" --use-npm`, then `cd web && npm i maplibre-gl`.
   2. Full-screen MapLibre map with the OpenPlanetaryMap Mars basemap (URL in `docs/ARCHITECTURE.md`), dark mission-control UI shell: left panel (mission setup), right panel (dashboard), top bar (title + Mars clock placeholder).
