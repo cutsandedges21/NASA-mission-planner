@@ -13,6 +13,7 @@ import type { ExplainRequest } from '@/lib/explain';
 import { pickRecommended } from '@/lib/explain-fallback';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import Intro from './Intro';
+import Hero from './Hero';
 import TopNav, { type NavTab } from './map/TopNav';
 import SetupPanel from './map/SetupPanel';
 import RouteCards from './map/RouteCards';
@@ -48,6 +49,8 @@ export default function MissionPlanner() {
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
   const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
+  const [hero, setHero] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
+  const [introSite, setIntroSite] = useState(0);
   const [startH, setStartH] = useState(9);
   const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
 
@@ -399,8 +402,21 @@ export default function MissionPlanner() {
 
       {navTab === 'data' && !intro && <Credits meta={region?.meta ?? null} onClose={() => setNavTab('plan')} />}
 
+      {hero && (
+        <Hero
+          region={region}
+          onStart={() => setHero(false)}
+          onPickSite={(i) => {
+            setIntroSite(i);
+            setHero(false);
+          }}
+        />
+      )}
+
       {intro && (
         <Intro
+          key={introSite}
+          initial={introSite}
           region={region}
           onSkip={() => setIntro(false)}
           onPick={(p) => {

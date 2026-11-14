@@ -23,13 +23,15 @@ export default function Intro({
   region,
   onPick,
   onSkip,
+  initial = 0,
 }: {
+  initial?: number;
   region: Region | null;
   onPick: (p: Poi) => void;
   onSkip: () => void;
 }) {
   const pois = useMemo(() => region?.pois ?? [], [region]);
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(initial);
   const [leaving, setLeaving] = useState(false);
   const m = region?.meta;
   const aspect = m ? m.width / m.height : 1;

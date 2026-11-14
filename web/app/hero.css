@@ -1,0 +1,72 @@
+/* Landing hero, 1:1 with the "Flight to Mars" reference. Owned by the UI chat (T-16). */
+.hero { background: #000; font-family: var(--font-geist-sans), sans-serif; }
+.hero-sky {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(38% 46% at 47% 52%, rgb(120 40 90 / 0.28) 0%, transparent 70%),
+    radial-gradient(22% 30% at 44% 60%, rgb(40 120 110 / 0.18) 0%, transparent 70%),
+    radial-gradient(30% 30% at 58% 40%, rgb(60 50 140 / 0.16) 0%, transparent 70%),
+    radial-gradient(1.2px 1.2px at 12% 18%, #fff9 50%, transparent 52%),
+    radial-gradient(1px 1px at 27% 72%, #fff7 50%, transparent 52%),
+    radial-gradient(1.4px 1.4px at 41% 29%, #fffb 50%, transparent 52%),
+    radial-gradient(1px 1px at 52% 12%, #fff8 50%, transparent 52%),
+    radial-gradient(1.2px 1.2px at 71% 6%, #fff9 50%, transparent 52%),
+    radial-gradient(1px 1px at 93% 22%, #fff7 50%, transparent 52%),
+    radial-gradient(1.4px 1.4px at 96% 80%, #fffa 50%, transparent 52%),
+    radial-gradient(1px 1px at 8% 90%, #fff6 50%, transparent 52%),
+    radial-gradient(1px 1px at 36% 94%, #fff6 50%, transparent 52%),
+    radial-gradient(1px 1px at 61% 88%, #fff5 50%, transparent 52%),
+    radial-gradient(1px 1px at 33% 44%, #fff5 50%, transparent 52%),
+    radial-gradient(1px 1px at 48% 78%, #fff6 50%, transparent 52%),
+    #000;
+}
+.hero-logo { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; position: relative; }
+.hero-logo span { font-weight: 400; margin-left: 2px; }
+.hero-logo::after { content: ''; position: absolute; left: 0; right: -8px; bottom: -5px; height: 1px; background: linear-gradient(90deg, #fff8, transparent); transform: rotate(-4deg); }
+.hero-clock { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; }
+.hero-clock + div { border-top: 1.5px solid #c2272d; padding-top: 3px; display: inline-block; }
+
+.hero-rail { position: absolute; left: 7%; top: 50%; transform: translateY(-50%); z-index: 10; display: flex; flex-direction: column; gap: 14px; }
+.hero-rail::before { content: ''; position: absolute; left: 50%; top: -30px; bottom: -30px; width: 1px; background: linear-gradient(transparent, #fff3 20%, #fff3 80%, transparent); }
+.hero-dot { position: relative; width: 46px; height: 46px; border-radius: 9999px; display: grid; place-items: center; transition: transform 0.3s; }
+.hero-dot:hover { transform: scale(1.08); }
+.hero-dot-img { position: absolute; inset: 0; border-radius: 9999px; background-repeat: no-repeat; filter: brightness(0.55) saturate(0.8); box-shadow: inset -6px -6px 14px #000c; }
+.hero-dot-t { position: relative; font-size: 9px; color: #fffc; text-shadow: 0 1px 3px #000; }
+.hero-dot-on { width: 58px; height: 58px; margin-left: -6px; }
+.hero-dot-on .hero-dot-img { filter: none; box-shadow: 0 0 24px #c2410c99, inset -8px -8px 16px #000a; }
+
+.hero-copy { position: absolute; left: 18%; top: 24%; z-index: 10; width: min(420px, 34vw); }
+.hero-k { font-size: clamp(20px, 2vw, 28px); font-weight: 800; letter-spacing: 0.01em; }
+.hero-h { font-size: clamp(54px, 6.4vw, 92px); font-weight: 800; line-height: 0.9; letter-spacing: 0.01em; }
+.hero-p { margin-top: 22px; font-size: 12px; line-height: 1.45; color: #fffd; max-width: 340px; }
+.hero-btn { margin-top: 26px; width: 210px; height: 46px; background: #f2f2f2; color: #0a0a0a; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; transition: background 0.2s, transform 0.2s; }
+.hero-btn:hover { background: #fff; transform: translateY(-1px); }
+.hero-count { margin-top: clamp(40px, 9vh, 96px); }
+.hero-count-k { display: flex; align-items: center; gap: 10px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; }
+.hero-count-k i { width: 40px; height: 2px; background: #c2272d; }
+.hero-box { display: flex; flex-direction: column; align-items: center; padding-bottom: 4px; border-bottom: 1px solid #fff3; min-width: 50px; }
+.hero-box-k { font-size: 6.5px; letter-spacing: 0.14em; color: #fff9; border-top: 1px solid #fff3; padding-top: 3px; width: 100%; text-align: center; }
+.hero-box-n { font-size: clamp(26px, 2.6vw, 36px); font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+
+.hero-planet-wrap { position: absolute; right: 6%; top: 50%; width: min(52vw, 82vh); aspect-ratio: 1; transform: translateY(-46%); }
+.hero-orbits { position: absolute; inset: -8%; width: 116%; height: 116%; fill: none; stroke: #ffffff2e; stroke-width: 1.2; stroke-dasharray: 2 4; }
+.hero-orbits ellipse:first-child { stroke-dasharray: none; stroke: #ffffff22; }
+.hero-planet {
+  position: absolute; inset: 14%; border-radius: 9999px;
+  background: url(/img/mars-globe.jpg) center / 104% no-repeat;
+  box-shadow: inset -40px -30px 80px #000d, inset 20px 10px 40px #ffb34722, 0 0 60px #ff5a1f40, -14px 0 40px -10px #9be15d33;
+  animation: hero-spin 120s linear infinite;
+}
+@keyframes hero-spin { from { background-position: 50% 50%; } to { background-position: 50% 50%; } }
+.hero-outline { position: absolute; left: 30%; top: 38%; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.hero-outline-s { font-size: clamp(16px, 1.8vw, 26px); font-weight: 800; letter-spacing: 0.22em; color: transparent; -webkit-text-stroke: 1px #ffffff99; }
+.hero-outline-b { font-size: clamp(48px, 6.2vw, 92px); font-weight: 800; letter-spacing: 0.16em; line-height: 0.95; color: transparent; -webkit-text-stroke: 1.2px #ffffffb0; }
+.hero-call { position: absolute; display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: #fffd; white-space: nowrap; }
+.hero-call i { width: 7px; height: 7px; border-radius: 9999px; border: 1.5px solid #fff; background: #000; box-shadow: 0 0 0 2px #fff3; }
+
+@media (max-width: 767px) {
+  .hero-rail { display: none; }
+  .hero-copy { left: 7%; top: auto; bottom: 6%; width: 86%; }
+  .hero-planet-wrap { right: -30%; top: 8%; width: 110vw; transform: none; opacity: 0.85; }
+  .hero-call, .hero-outline { display: none; }
+}
