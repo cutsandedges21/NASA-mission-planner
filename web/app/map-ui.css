@@ -66,6 +66,7 @@
 .dock-card { margin-top: 10px; border-radius: 18px; background: #000; border: 1px solid rgb(255 255 255 / 0.08); padding: 20px 24px 18px; box-shadow: 0 30px 80px -10px rgb(0 0 0 / 0.9); }
 .dock-brief .panel { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; padding: 0; border-radius: 0; }
 .dock-brief .panel p { font-size: 12.5px; }
+.dock-brief .eyebrow { white-space: nowrap; letter-spacing: 0.14em; }
 .dock-pill { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 9999px; background: #0b0b0d; border: 1.5px solid rgb(255 255 255 / 0.12); font-size: 14px; font-weight: 600; color: #fff; box-shadow: 0 10px 30px -8px #000; }
 .dock-round { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9999px; background: #0b0b0d; border: 1.5px solid rgb(255 255 255 / 0.12); color: #fff; }
 
