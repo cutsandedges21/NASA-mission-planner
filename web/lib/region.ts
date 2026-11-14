@@ -1,6 +1,6 @@
 // Loads a region in the data-contract format (docs/ARCHITECTURE.md) and converts lon/lat <-> grid cells.
 
-export type Poi = { id: string; name: string; lon: number; lat: number; why: string; source: string };
+export type Poi = { id: string; name: string; lon: number; lat: number; why: string; source: string; /** true = position only approximate (not snapped to a NASA rover stop) */ approx?: boolean };
 export type RegionMeta = {
   id: string;
   name: string;

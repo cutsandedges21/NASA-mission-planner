@@ -14,7 +14,7 @@ const fmtClock = (s: number) => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
-const fmtKm = (m: number) => `${(m / 1000).toFixed(1)} km`;
+const fmtKm = (m: number) => (m / 1000).toFixed(1);
 
 /**
  * Playback controls and live readouts for "Simulate Mission". It owns the animation clock; the map
@@ -118,7 +118,7 @@ export default function SimulationHUD({
       <div className="mt-3 grid grid-cols-4 gap-3 font-mono">
         <Readout k="Mission clock" v={`T+${fmtClock(frame.tau)}`} />
         <Readout k="Local solar time" v={hm(localH)} warn={nearSunset} />
-        <Readout k="Distance" v={`${fmtKm(frame.d)} / ${fmtKm(mission.total)}`} />
+        <Readout k="Distance (km)" v={`${fmtKm(frame.d)} / ${fmtKm(mission.total)}`} />
         <div>
           <div className="font-sans text-[9px] uppercase tracking-[0.18em] text-zinc-500">Oxygen left</div>
           <div className={`text-lg leading-tight ${lowO2 ? 'text-amber-300' : 'text-zinc-100'}`}>{o2Left.toFixed(0)} %</div>
@@ -136,7 +136,7 @@ export default function SimulationHUD({
             <div className="font-mono text-[10px] text-violet-200/70">sampling · {Math.round(frame.stopProgress * 100)} %</div>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-violet-50/90">{stop.why}</p>
-          <p className="mt-1 text-[10px] text-violet-200/60">Source: {stop.source} (position approximate)</p>
+          <p className="mt-1 text-[10px] text-violet-200/60">Source: {stop.source}{stop.approx ? ' (position approximate)' : ''}</p>
         </div>
       )}
       {done && (

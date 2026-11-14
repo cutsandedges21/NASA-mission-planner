@@ -2,8 +2,8 @@
 
 // "Simulate Mission": one hook that owns everything about the playback, so the planner screen only needs
 //   const simulation = useSimulation({ ... });   (above its return, with the other state)
-//   {simulation.panel}                            (anywhere in the JSX: start button when idle, HUD while running)
-//   {!simulation.running && <Briefing … />}       (optional: the HUD takes the briefing's place at the bottom)
+//   {simulation.panel}                            (anywhere in the JSX: the HUD while running, nothing otherwise)
+//   onSimulate={simulation.canStart ? simulation.start : undefined}   (the ▶ button on the dock card)
 // Layout/visuals are intentionally plain; restyle `panel`'s wrapper classes and SimulationHUD freely.
 // `simulation.start` / `simulation.canStart` are exposed if you'd rather place your own start button.
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
@@ -99,9 +99,10 @@ export function useSimulation({
   const frameHandler = useRef<((f: Frame) => void) | null>(null);
   const onFrame = useCallback((f: Frame) => frameHandler.current?.(f), []);
 
-  const style = route ? routeStyle[route.strategy] : null;
+  // HUD sits top-centre under the nav: bottom-centre is the dock card, the right 300 px the route cards.
+  // The ▶ button lives on the dock card (pass `onSimulate={simulation.canStart ? simulation.start : undefined}`).
   const panel: ReactNode = active ? (
-    <div className="absolute bottom-4 left-1/2 hidden w-[min(640px,calc(100vw-48rem))] min-w-[460px] -translate-x-1/2 md:block">
+    <div className="absolute left-1/2 top-[5.25rem] z-20 hidden w-[min(640px,calc(100vw-48rem))] min-w-[460px] -translate-x-1/2 md:block">
       <SimulationHUD
         route={active.route}
         mission={active.mission}
@@ -114,13 +115,6 @@ export function useSimulation({
         onClose={close}
       />
     </div>
-  ) : canStart && style ? (
-    <button
-      onClick={start}
-      className="absolute bottom-[13.5rem] left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full bg-white/95 px-5 py-2 text-sm font-semibold text-[#07080a] shadow-xl shadow-black/40 transition hover:scale-[1.03] hover:bg-white md:flex"
-    >
-      <span aria-hidden>▶</span> Simulate {style.label.toLowerCase()} mission
-    </button>
   ) : null;
 
   return { running: !!active, canStart, start, close, panel };

@@ -19,6 +19,7 @@ import SetupPanel from './map/SetupPanel';
 import RouteCards from './map/RouteCards';
 import DockCard from './map/DockCard';
 import Credits from './map/Credits';
+import { useSimulation } from './Simulation';
 import { ROUTE_STYLE } from './map/format';
 
 const BASEMAP = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
@@ -96,6 +97,7 @@ export default function MissionPlanner() {
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           traverse: { type: 'geojson', data: region.traverse ?? { type: 'FeatureCollection', features: [] } },
           routes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+          trail: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
@@ -120,6 +122,11 @@ export default function MissionPlanner() {
             id: 'routes', type: 'line', source: 'routes',
             layout: { 'line-join': 'round', 'line-cap': 'round', 'line-sort-key': ['case', ['get', 'selected'], 1, 0] },
             paint: { 'line-color': ['get', 'color'], 'line-width': ['case', ['get', 'selected'], 4.5, 2.5], 'line-opacity': ['case', ['get', 'selected'], 1, 0.45] },
+          },
+          {
+            id: 'trail', type: 'line', source: 'trail',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#ffffff', 'line-width': 3.5, 'line-opacity': 0.95 },
           },
         ],
       },
@@ -314,6 +321,18 @@ export default function MissionPlanner() {
     };
   }, [scored, region, clock, weather, poiName]);
 
+  // Simulate Mission: marker, trail, camera follow and HUD (see Simulation.tsx)
+  const simulation = useSimulation({
+    mapRef: map,
+    mapReady,
+    region,
+    route: scored.find((r) => r.strategy === selected) ?? null,
+    routes,
+    startH: startClamped,
+    sunsetH: clock?.set ?? 18,
+    routeStyle: ROUTE_STYLE,
+  });
+
   const baseName = region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—';
   const pickPoi = (p: Poi) => {
     setDest([p.lon, p.lat]);
@@ -379,7 +398,9 @@ export default function MissionPlanner() {
         view3d={view3d}
         on3d={setView3d}
         onMoveBase={moveBase}
+        onSimulate={simulation.canStart ? simulation.start : undefined}
       />
+      {simulation.panel}
 
       {/* phone: route cards as a bottom sheet */}
       {scored.length > 0 && (
