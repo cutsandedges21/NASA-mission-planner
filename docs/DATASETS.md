@@ -33,24 +33,24 @@ Product pages (for `meta.json` → `sources[].url` and the credits panel):
 - Compute `fineSlope` from the 1 m DEM at a coarser step if time allows (max slope per 25 m cell). That's exactly what `CostGrid` wants.
 - The THEMIS night-IR stretch must be local to the box (THEMIS mosaics are normalised image by image).
 
-## Science POIs (for `pois.json`)
+## Science POIs (`web/public/data/gale/pois.json`, the source of truth: `data/regions/gale.json`)
 
-Coordinates are **approximate (± ~0.5 km)**: they're taken from published HiRISE image centres of Curiosity at each site, or from a paper's map centre. Label them "approx." in the UI. T-10 can snap them to the exact traverse if time allows (the MSL traverse is published by NASA/JPL), but they're good enough for routing now.
+**Updated Fri 20:25 after T-21:** Yellowknife Bay, Pahrump Hills and Vera Rubin Ridge are now snapped to **Curiosity's real end-of-drive stops** from the NASA/JPL MSL waypoint feed (`data/msl_traverse.mjs`). The old HiRISE image-centre positions were off by 0.8–2.2 km. Glen Torridon and Woodland Bay were already within ~150 m of a real stop and stay marked `approx`.
 
-| id | name | lon °E | lat ° | why it matters (one line for the UI) | source |
-|---|---|---|---|---|---|
-| `yellowknife` | Yellowknife Bay | 137.453 | −4.626 | Curiosity's first drill holes: mudstone from an ancient freshwater lake that could have supported microbial life | HiRISE ESP_032436_1755 (image centre); NASA MSL |
-| `pahrump` | Pahrump Hills | 137.379 | −4.676 | Base of Mount Sharp: lake-bed layers of the Murray formation, where the rover first drilled into the mountain | HiRISE ESP_039280_1755 (image centre) |
-| `vera-rubin` | Vera Rubin Ridge | 137.357 | −4.714 | Hematite-capped ridge mapped from orbit by CRISM. It records groundwater altering old lake sediments | HiRISE ESP_052176_1750 (image centre, Curiosity at the ridge) |
-| `glen-torridon` | Glen Torridon (clay unit) | 137.396 | −4.729 | The most clay-rich rocks Curiosity has drilled, with sulfur-bearing organic molecules: a prime biosignature target | Map centre in the Glen Torridon ridges study (PMC9286800); USGS 2022 Glen Torridon overview |
-| `woodland-bay` | Woodland Bay | 137.382 | −4.732 | Clay-bearing outcrop with Vera Rubin Ridge to the northwest and active rippled sand nearby | HiRISE ESP_060207_1750 (image centre, Curiosity at Woodland Bay) |
+| id | name | lon °E | lat ° | position | why it matters (one line for the UI) | source |
+|---|---|---|---|---|---|---|
+| `yellowknife` | Yellowknife Bay | 137.44913 | -4.58948 | real rover stop | Curiosity's first drill holes: mudstone from an ancient freshwater lake that could have supported microbial life | NASA/JPL MSL waypoint feed, rover stop at sol 166 (rover parked here for the Sheepbed drilling campaign, sols 125–297) |
+| `pahrump` | Pahrump Hills | 137.37746 | -4.6627 | real rover stop | Base of Mount Sharp: lake-bed layers of the Murray formation, where the rover first drilled into the mountain | NASA/JPL MSL waypoint feed, rover stop at sol 753 (arrival at Pahrump Hills, base of Mount Sharp) |
+| `vera-rubin` | Vera Rubin Ridge | 137.37809 | -4.72565 | real rover stop | Hematite-capped ridge mapped from orbit by CRISM. It records groundwater altering old lake sediments | NASA/JPL MSL waypoint feed, rover stop at sol 2128 (rover on the ridge, sols 1800–2300) |
+| `glen-torridon` | Glen Torridon (clay unit) | 137.396 | -4.729 | approx. (± ~0.5 km) | The most clay-rich rocks Curiosity has drilled, with sulfur-bearing organic molecules: a prime biosignature target | Glen Torridon ridges study map centre (PMC9286800); USGS 2022 overview |
+| `woodland-bay` | Woodland Bay | 137.382 | -4.732 | approx. (± ~0.5 km) | Clay-bearing outcrop with Vera Rubin Ridge to the northwest and active rippled sand nearby | HiRISE ESP_060207_1750 (image centre) |
 
-`source` in `pois.json` = the short form in the last column.
+`source` in `pois.json` = the last column. Curiosity's real drive path inside the box (1,270 stops) is in `web/public/data/gale/traverse.json`.
 
-Suggested demo, **checked on the real baked terrain (Fri 19:45, 1 m DEM)**, as round trips from Bradbury Landing:
-- → **Yellowknife Bay**: 4.9 km, 90 min, 80 % O₂ left, all GO. SCIENCE adds 20 min of work at the site (77 %). A good warm-up.
-- → **Pahrump Hills**: SAFE 13.4 km, 4 h 11 min, 42 % O₂, GO · FAST 13.3 km, max slope 11.3° vs SAFE's 6.5° · SCIENCE CAUTION (39 %, it skips the Yellowknife stop to stay safe). **The headline demo.**
-- → **Glen Torridon / Vera Rubin Ridge**: about 18.7 km, ~6 h, 8–17 % O₂, **NO-GO** on every route. The "planner says no" moment.
+Suggested demo, **measured on the real terrain with the corrected site positions (Fri 20:40)**, as round trips from Bradbury Landing. Reproduce with `node planner/scripts/validate-gale.mjs` and the T-26 tests.
+- → **Pahrump Hills** (5.9 km one way): SAFE/FAST 3 h 41 min, 48–49 % O₂ left, **GO**. SCIENCE adds 20 min of work at the site (46 %, GO). **The headline demo.** Our routes follow Curiosity's real path to within 250 m for 93.5–100 % of the way (docs/VALIDATION.md).
+- → **Yellowknife Bay** (0.4 km): a 16-minute walk, 96 % O₂ left. Now that it's at the real rover stop it's very close, so use it as the warm-up click.
+- → **Glen Torridon / Vera Rubin Ridge / Woodland Bay** (9.4–10.4 km one way): about 6–6.5 h, 1–9 % O₂ left, **NO-GO** on foot on every route. This is the "planner says no" moment, and with T-23 the "…but GO with a rover" moment.
 
 ## What I could not check (Fri 17:05)
 

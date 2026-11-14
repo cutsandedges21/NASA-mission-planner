@@ -1,0 +1,301 @@
+{
+  "generated": "2026-11-14T00:54:11.888Z",
+  "region": "gale",
+  "cellM": [
+    24.98,
+    24.989
+  ],
+  "demDataset": "MSL Gale Merged DEM v3 (Parker & Calef, USGS 2016)",
+  "cases": {
+    "yellowknife": {
+      "target": "Yellowknife Bay",
+      "targetLonLat": [
+        137.44913,
+        -4.58948
+      ],
+      "realStops": 18,
+      "routes": {
+        "SAFE": {
+          "crossTrackM": {
+            "mean": 45,
+            "median": 46,
+            "p90": 70,
+            "max": 113
+          },
+          "within100Pct": 96.2,
+          "within250Pct": 100,
+          "lengthKm": {
+            "ours": 0.42,
+            "real": 0.39
+          },
+          "slope": {
+            "oursMaxDeg": 6.3,
+            "realMaxDeg": 5.3,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 0.8,
+            "totalMin": 16,
+            "o2Kg": 0.025,
+            "o2LeftPct": 96,
+            "avgW": 353,
+            "walkAvgW": 353
+          },
+          "poisVisited": []
+        },
+        "FAST": {
+          "crossTrackM": {
+            "mean": 45,
+            "median": 46,
+            "p90": 70,
+            "max": 113
+          },
+          "within100Pct": 96.2,
+          "within250Pct": 100,
+          "lengthKm": {
+            "ours": 0.42,
+            "real": 0.39
+          },
+          "slope": {
+            "oursMaxDeg": 6.3,
+            "realMaxDeg": 5.3,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 0.8,
+            "totalMin": 16,
+            "o2Kg": 0.025,
+            "o2LeftPct": 96,
+            "avgW": 353,
+            "walkAvgW": 353
+          },
+          "poisVisited": []
+        },
+        "SCIENCE": {
+          "crossTrackM": {
+            "mean": 45,
+            "median": 46,
+            "p90": 70,
+            "max": 113
+          },
+          "within100Pct": 96.2,
+          "within250Pct": 100,
+          "lengthKm": {
+            "ours": 0.42,
+            "real": 0.39
+          },
+          "slope": {
+            "oursMaxDeg": 6.3,
+            "realMaxDeg": 5.3,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 0.8,
+            "totalMin": 36,
+            "o2Kg": 0.041,
+            "o2LeftPct": 93,
+            "avgW": 264,
+            "walkAvgW": 353
+          },
+          "poisVisited": [
+            "yellowknife"
+          ]
+        }
+      }
+    },
+    "pahrump": {
+      "target": "Pahrump Hills",
+      "targetLonLat": [
+        137.37746,
+        -4.6627
+      ],
+      "realStops": 242,
+      "routes": {
+        "SAFE": {
+          "crossTrackM": {
+            "mean": 105,
+            "median": 94,
+            "p90": 207,
+            "max": 311
+          },
+          "within100Pct": 53,
+          "within250Pct": 93.5,
+          "lengthKm": {
+            "ours": 5.92,
+            "real": 8.41
+          },
+          "slope": {
+            "oursMaxDeg": 12.3,
+            "realMaxDeg": 9,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 11.8,
+            "totalMin": 221,
+            "o2Kg": 0.306,
+            "o2LeftPct": 49,
+            "avgW": 324,
+            "walkAvgW": 324
+          },
+          "poisVisited": []
+        },
+        "FAST": {
+          "crossTrackM": {
+            "mean": 85,
+            "median": 79,
+            "p90": 162,
+            "max": 204
+          },
+          "within100Pct": 62.1,
+          "within250Pct": 100,
+          "lengthKm": {
+            "ours": 5.92,
+            "real": 8.41
+          },
+          "slope": {
+            "oursMaxDeg": 12.3,
+            "realMaxDeg": 9,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 11.8,
+            "totalMin": 221,
+            "o2Kg": 0.309,
+            "o2LeftPct": 48,
+            "avgW": 328,
+            "walkAvgW": 328
+          },
+          "poisVisited": []
+        },
+        "SCIENCE": {
+          "crossTrackM": {
+            "mean": 105,
+            "median": 96,
+            "p90": 207,
+            "max": 311
+          },
+          "within100Pct": 52.4,
+          "within250Pct": 93.5,
+          "lengthKm": {
+            "ours": 5.92,
+            "real": 8.41
+          },
+          "slope": {
+            "oursMaxDeg": 12.5,
+            "realMaxDeg": 9,
+            "oursSteepPct": 0,
+            "realSteepPct": 0
+          },
+          "energy": {
+            "verdict": "go",
+            "roundTripKm": 11.8,
+            "totalMin": 241,
+            "o2Kg": 0.322,
+            "o2LeftPct": 46,
+            "avgW": 313,
+            "walkAvgW": 324
+          },
+          "poisVisited": [
+            "pahrump"
+          ]
+        }
+      }
+    }
+  },
+  "sensitivity": [
+    {
+      "kitKg": 0,
+      "o2CapKg": 0.5,
+      "verdict": "caution",
+      "o2LeftPct": 39,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 0,
+      "o2CapKg": 0.6,
+      "verdict": "go",
+      "o2LeftPct": 49,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 0,
+      "o2CapKg": 0.75,
+      "verdict": "go",
+      "o2LeftPct": 59,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 10,
+      "o2CapKg": 0.5,
+      "verdict": "caution",
+      "o2LeftPct": 30,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 10,
+      "o2CapKg": 0.6,
+      "verdict": "go",
+      "o2LeftPct": 41,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 10,
+      "o2CapKg": 0.75,
+      "verdict": "go",
+      "o2LeftPct": 53,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 20,
+      "o2CapKg": 0.5,
+      "verdict": "nogo",
+      "o2LeftPct": 19,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 20,
+      "o2CapKg": 0.6,
+      "verdict": "caution",
+      "o2LeftPct": 32,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 20,
+      "o2CapKg": 0.75,
+      "verdict": "go",
+      "o2LeftPct": 46,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 30,
+      "o2CapKg": 0.5,
+      "verdict": "nogo",
+      "o2LeftPct": 5,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 30,
+      "o2CapKg": 0.6,
+      "verdict": "nogo",
+      "o2LeftPct": 21,
+      "totalMin": 221
+    },
+    {
+      "kitKg": 30,
+      "o2CapKg": 0.75,
+      "verdict": "caution",
+      "o2LeftPct": 37,
+      "totalMin": 221
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 // Adapted from Sol Atlas by The SOL Explorers.
 // Changes: added `strategy` (ENERGY / FAST / SAFE) and `roundTrip` options to find(), a per-strategy
-// step cost and matching admissible heuristic, a SAFE slope penalty, and an `iterations` stat.
+// step cost and matching admissible heuristic, a SAFE slope penalty (on cell-to-cell grade and on the
+// fine-scale slope inside each cell), and an `iterations` stat.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { stepCost, walkSpeed, EVA_DEFAULTS } from './eva.js';
 
@@ -135,6 +136,9 @@ export class CostGrid {
           const fs = fineSlope[ni];
           if (fs > maxSlope) pen = Math.max(pen, 25);
           else if (fs > maxSlope * 0.7) pen = Math.max(pen, 1.6);
+          // SAFE also pays its quadratic slope penalty for the steepest ground *inside* the cell
+          // (the cell-to-cell grade misses short steep pitches). Only raises costs: heuristic stays admissible.
+          if (strategy === 'SAFE' && fs > SAFE_SOFT_DEG) pen *= 1 + SAFE_K * (fs - SAFE_SOFT_DEG) ** 2;
         }
         const c = g[cur] + strategyCost(strategy, dist, dh, params, roundTrip) * pen;
         if (c < g[ni]) {
