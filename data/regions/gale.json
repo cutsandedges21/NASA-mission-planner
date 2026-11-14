@@ -57,29 +57,29 @@
     {
       "id": "yellowknife",
       "name": "Yellowknife Bay",
-      "lon": 137.453,
-      "lat": -4.626,
-      "approx": true,
+      "lon": 137.44913,
+      "lat": -4.58948,
+      "approx": false,
       "why": "Curiosity's first drill holes: mudstone from an ancient freshwater lake that could have supported microbial life",
-      "source": "HiRISE ESP_032436_1755 (image centre); NASA MSL"
+      "source": "NASA/JPL MSL waypoint feed, rover stop at sol 166 (rover parked here for the Sheepbed drilling campaign, sols 125–297)"
     },
     {
       "id": "pahrump",
       "name": "Pahrump Hills",
-      "lon": 137.379,
-      "lat": -4.676,
-      "approx": true,
+      "lon": 137.37746,
+      "lat": -4.6627,
+      "approx": false,
       "why": "Base of Mount Sharp: lake-bed layers of the Murray formation, where the rover first drilled into the mountain",
-      "source": "HiRISE ESP_039280_1755 (image centre)"
+      "source": "NASA/JPL MSL waypoint feed, rover stop at sol 753 (arrival at Pahrump Hills, base of Mount Sharp)"
     },
     {
       "id": "vera-rubin",
       "name": "Vera Rubin Ridge",
-      "lon": 137.357,
-      "lat": -4.714,
-      "approx": true,
+      "lon": 137.37809,
+      "lat": -4.72565,
+      "approx": false,
       "why": "Hematite-capped ridge mapped from orbit by CRISM. It records groundwater altering old lake sediments",
-      "source": "HiRISE ESP_052176_1750 (image centre)"
+      "source": "NASA/JPL MSL waypoint feed, rover stop at sol 2128 (rover on the ridge, sols 1800–2300)"
     },
     {
       "id": "glen-torridon",

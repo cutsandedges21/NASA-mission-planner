@@ -94,6 +94,7 @@ export default function MissionPlanner() {
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
           dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
+          traverse: { type: 'geojson', data: region.traverse ?? { type: 'FeatureCollection', features: [] } },
           routes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         },
         layers: [
@@ -104,6 +105,11 @@ export default function MissionPlanner() {
           {
             id: 'slope', type: 'raster', source: 'slope', layout: { visibility: 'none' },
             paint: { 'raster-opacity': 0.75, 'raster-hue-rotate': 0 },
+          },
+          {
+            id: 'traverse', type: 'line', source: 'traverse',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#f4f4f5', 'line-width': 1.6, 'line-opacity': 0.6, 'line-dasharray': [2, 2] },
           },
           {
             id: 'routes-casing', type: 'line', source: 'routes',

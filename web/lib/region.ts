@@ -19,6 +19,8 @@ export type Region = {
   elev: Float32Array;
   fineSlope: Float32Array | null;
   pois: Poi[];
+  /** Curiosity's real drive path inside the region (NASA/JPL MSL waypoints), if the region has one. */
+  traverse: GeoJSON.GeoJSON | null;
   url: (file: string) => string;
 };
 
@@ -47,14 +49,15 @@ async function loadSlope(url: string, w: number, h: number): Promise<Float32Arra
 export async function loadRegion(id = new URLSearchParams(window.location.search).get('region') ?? REGION_ID): Promise<Region> {
   const url = (file: string) => `/data/${id}/${file}`;
   const meta: RegionMeta = await (await fetch(url('meta.json'))).json();
-  const [buf, pois, fineSlope] = await Promise.all([
+  const [buf, pois, fineSlope, traverse] = await Promise.all([
     fetch(url('elev.i16')).then((r) => r.arrayBuffer()),
     fetch(url('pois.json')).then((r) => (r.ok ? r.json() : [])),
     loadSlope(url('slope.png'), meta.width, meta.height),
+    fetch(url('traverse.json')).then((r) => (r.ok ? r.json() : null)).catch(() => null),
   ]);
   const i16 = new Int16Array(buf);
   const elev = Float32Array.from(i16);
-  return { meta, elev, fineSlope, pois, url };
+  return { meta, elev, fineSlope, pois, traverse, url };
 }
 
 /** lon/lat → grid cell [x, y] (row 0 = north), or null if outside the region. */
