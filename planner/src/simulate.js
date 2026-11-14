@@ -175,7 +175,7 @@ const pct = (xs, q) => { const s = xs.slice().sort((x, y) => x - y); return s.le
  * Simulate every planned route.
  * @param {object[]} routes  planMission() output
  * @param {object} a         planMission() args
- * @param {object} [o]       SIM_DEFAULTS overrides + { Ls, spaceWeatherLvl }
+ * @param {object} [o]       SIM_DEFAULTS overrides + { Ls, spaceWeatherLvl, sunByStrategy }
  * @returns {{ routes: Array<{strategy, runs, summary}>, recommended: string|null, conditions: object[], assumptions }}
  */
 export function simulateMission(routes, a, o = {}) {
@@ -185,7 +185,9 @@ export function simulateMission(routes, a, o = {}) {
     drawConditions(s.seed + i, { ...o, evaMaxH: p0.evaMaxH, spaceWeatherLvl: o.spaceWeatherLvl ?? a.spaceWeather?.lvl }));
   const res = routes.map((r) => {
     if (!r.path || !r.budget) return { strategy: r.strategy, runs: [], summary: null };
-    const runs = conditions.map((c) => runOnce(r, a, c, o));
+    // Daylight per route (the web app applies it after planning): o.sunByStrategy = { SAFE: { endMarginH } }.
+    const ar = o.sunByStrategy?.[r.strategy] ? { ...a, sun: o.sunByStrategy[r.strategy] } : a;
+    const runs = conditions.map((c) => runOnce(r, ar, c, o));
     return { strategy: r.strategy, runs, summary: summarise(runs) };
   });
   // Recommend: most runs completed safely, then the most runs not NO-GO, then the best median O2 margin.

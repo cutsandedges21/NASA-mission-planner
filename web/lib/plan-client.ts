@@ -58,11 +58,100 @@ export type PlanArgs = {
   params?: Record<string, unknown>;
   roundTrip?: boolean;
   maxStops?: number;
+  /** Pit stop ("point 1.5", T-35): grid cell every route passes through on the way out. Its stop id is 'pitstop'. */
+  via?: [number, number] | null;
+};
+
+// ---- Mission Simulator (T-35, planner/src/simulate.js + steps.js) ----
+export type SimEvent = {
+  type: 'dust' | 'spe';
+  atS: number;
+  atM: number;
+  outbound: boolean;
+  tau?: number;
+  decision: string;
+  effect: string;
+  damage: string[];
+};
+export type SimRun = {
+  seed: number;
+  pace: number;
+  terrain: number;
+  effort: number;
+  events: SimEvent[];
+  outcome: 'completed' | 'turned back' | 'unsafe';
+  lvl: Lvl;
+  issues: { lvl: Lvl; msg: string }[];
+  turnedBackAtM: number | null;
+  stopsDone: string[];
+  stopsMissed: string[];
+  distance: number;
+  totalT: number;
+  o2: number;
+  marginPct: number;
+  doseMSv: number;
+  endMarginH: number | null;
+  /** Plain-language summary, compared with the typical run (written in the worker from the numbers). */
+  text: string;
+};
+export type SimSummary = {
+  n: number;
+  completed: number;
+  turnedBack: number;
+  unsafe: number;
+  nogo: number;
+  dustRuns: number;
+  speRuns: number;
+  medianTotalT: number;
+  p10TotalT: number;
+  p90TotalT: number;
+  medianMarginPct: number;
+  worstMarginPct: number;
+  medianDoseMSv: number;
+  typical: number;
+  best: number;
+  worst: number;
+};
+export type StepLeg = {
+  n: number;
+  fromM: number;
+  toM: number;
+  distM: number;
+  heading: number;
+  compass: string;
+  turn: number;
+  dhM: number;
+  maxSlope: number;
+  tS: number;
+  o2Kg: number;
+  steep: boolean;
+  climb: boolean;
+  stopAtEnd: string | null;
+  text: string;
+};
+export type SimResult = {
+  routes: { strategy: Strategy; runs: SimRun[]; summary: SimSummary | null }[];
+  recommended: Strategy | null;
+  text: string;
+  assumptions: Record<string, { value: number; why: string }>;
+  steps: Record<Strategy, StepLeg[]>;
+};
+export type SimOpts = {
+  Ls?: number;
+  runs?: number;
+  seed?: number;
+  spaceWeatherLvl?: string;
+  names?: Record<string, string>;
+  /** Simulate only these routes (the page may hide SCIENCE). Default: all planned routes. */
+  strategies?: Strategy[];
+  /** Daylight margin at the end of each route's nominal EVA (from routeDaylight). A run that takes longer can end after sunset. */
+  sunByStrategy?: Partial<Record<Strategy, { endMarginH: number }>>;
 };
 
 let worker: Worker | null = null;
 let seq = 0;
-const pending = new Map<number, { resolve: (r: PlannedRoute[]) => void; reject: (e: Error) => void }>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pending = new Map<number, { resolve: (r: any) => void; reject: (e: Error) => void }>();
 
 function getWorker() {
   if (!worker) {
@@ -72,7 +161,7 @@ function getWorker() {
       if (!p) return;
       pending.delete(e.data.id);
       if (e.data.error) p.reject(new Error(e.data.error));
-      else p.resolve(e.data.routes);
+      else p.resolve(e.data.routes ?? e.data.result);
     };
   }
   return worker;
@@ -83,5 +172,14 @@ export function plan(args: PlanArgs): Promise<PlannedRoute[]> {
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
     getWorker().postMessage({ id, args });
+  });
+}
+
+/** Simulate the routes from the most recent plan() call (the worker keeps its grid). Call after plan() resolves. */
+export function simulate(opts: SimOpts = {}): Promise<SimResult> {
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    getWorker().postMessage({ id, kind: 'simulate', opts });
   });
 }
