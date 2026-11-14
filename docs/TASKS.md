@@ -54,7 +54,8 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 - **Optional, only if everything else is done:** a simple Apollo-style "walkback" check (could the crew walk home on the remaining O₂ if the rover broke down?). It is standard NASA practice, so credit it as such.
 
 ## T-08 (reassigned to Teammate) · Challenge checklist: an honest audit, not a sales sheet
-- **Owner:** Teammate (was Moss's Claude) · **Time box:** 45 min · **Status:** IN PROGRESS (Teammate, 20:20)
+- **Owner:** Teammate (was Moss's Claude) · **Time box:** 45 min · **Status:** DONE (see commit "T-08 done")
+- **Result:** `docs/CHALLENGE.md` audited row by row against the code: O1–O4, O6, C4 ✅ · O5, O7, O8, C1, C2, C6 🟡 · C3, C5 ⬜, with files + datasets per row and a 7-item "Gaps we say out loud" list. **Three quick wins for Moss's Claude, each turning a 🟡 into a ✅:** (1) **THEMIS thermal layer**: `thermal.jpg` is baked but nothing loads it. Add an image source + toggle next to Slope (copy the `slope` source/layer in `MissionPlanner.tsx`, url `region.url('thermal.jpg')`). (2) **Rover assist toggle** (T-23 Result has the exact call). (3) **Carried kit** select (0/10/20 kg → `params: { kitKg }`).
 - **Steps:** open `docs/CHALLENGE.md`. Take your drafted answers (in the old T-08 block further down) but **audit each one against the repo as it is now** (grep the code and read the components; chat B rebuilt the screens). For every row O1–O8 and C1–C6 write: status (✅ built / 🟡 partial / ⬜ not built), one line on the feature, the exact file(s), and the NASA dataset. Do not claim what isn't there (boulders, CRISM minerals, two-person EVA). Claim C6 only once T-23 is done. For C2 ("a generator for other places"): the pipeline is region-driven but only `gale` has been run, so say exactly that. End with a **"Gaps we say out loud"** list for the README and the pitch.
 - **Done when:** every row has a status + files, and the Gaps list exists.
 

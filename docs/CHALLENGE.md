@@ -17,26 +17,39 @@ The background notes that tools like JPL's **Mars Trek** "are built for regional
 Use this as a scoring sheet. Every row must be answerable in the demo.
 
 ### Objectives
-| # | NASA asks for | How we answer it (fill in) |
-|---|---|---|
-| O1 | A map / tool / interface an astronaut could use on a surface mission, built on NASA data and tools | |
-| O2 | A location chosen for human explorers (NASA's 2015 human landing **Exploration Zones** are the reference) | |
-| O3 | **Start from science goals**, then pick a location that serves them | |
-| O4 | A location a rover has studied well, or a less-studied one | |
-| O5 | **At least three kinds of data** from: optical, thermal, spectral, topographic, geophysical, atmospheric, radiation, chemical | |
-| O6 | **Safety first**: radiation and space weather | |
-| O7 | Spacesuit mobility, and carrying science equipment | |
-| O8 | A route that reaches the science targets while avoiding big obstacles (e.g. large rock formations) | |
+
+**Audited Fri 20:55 by Teammate's Claude against the repo as it is now** (`grep` of `web/components`, `web/lib`, `planner/`, `data/`). ✅ built · 🟡 partial · ⬜ not built. Only claim ✅ rows in the pitch.
+
+| # | NASA asks for | Status | How we answer it | Files | NASA data |
+|---|---|---|---|---|---|
+| O1 | A map / tool / interface an astronaut could use on a surface mission, built on NASA data and tools | ✅ | Web planner: pick a science site → 3 Marswalk routes on the map, route cards (time, O₂ left, max slope, radiation, steep ground), GO/CAUTION/NO-GO, daylight bar, Mars clock, briefing, Simulate Mission | `web/components/MissionPlanner.tsx`, `map/*`, `Simulation*.tsx`, `planner/src/plan.js` | MSL Gale DEM, HiRISE colour |
+| O2 | A location chosen for human explorers (2015 Exploration Zones) | ✅ | Gale Crater, proposed as a human Exploration Zone at NASA's 2015 workshop (abstracts #1022, #1040). Base = Bradbury Landing, a proven safe landing | `data/regions/gale.json`, `docs/DATASETS.md` | NASA 2015 EZ workshop |
+| O3 | Start from science goals, then pick a location | ✅ | Science sites = Curiosity's habitability results (lake mudstone, Murray lake beds, hematite ridge, clays + organics), each with a "why it matters" line; SCIENCE route is built to reach them | `web/public/data/gale/pois.json`, `planner/src/plan.js` (`pickScienceStops`) | Curiosity results, MSL waypoints |
+| O4 | A well-studied (or less-studied) location | ✅ | The best-studied site on Mars. 3 of 5 sites sit on Curiosity's real end-of-drive stops, and the rover's real path is drawn on the map | `data/msl_traverse.mjs`, `web/public/data/gale/traverse.json`, traverse layer in `MissionPlanner.tsx` | NASA/JPL MSL waypoint feed |
+| O5 | At least three kinds of data | 🟡 → ✅ once thermal is shown | **Used in the app:** topographic (1 m DEM → routes, slope layer, 3D), optical (HiRISE colour overlay), radiation (Curiosity RAD dose per route), space weather (live DONKI). That's 4 kinds, so the requirement is met. **Not shown:** THEMIS night-IR `thermal.jpg` is baked but no component loads it (no `thermal` anywhere in `web/components`). Add it as a toggle layer next to Slope (5 min) to claim thermal too | `web/lib/region.ts`, `MissionPlanner.tsx`, `planner/src/plan.js` (`doseMSv`), `web/app/api/space-weather/route.ts` | MSL DEM, HiRISE, RAD, DONKI, THEMIS (baked only) |
+| O6 | Safety first: radiation and space weather | ✅ | Each route has its EVA radiation dose (RAD's measured Gale rate, 0.64 mSv/day). A live DONKI CME forecast at Mars turns every route to CAUTION with the reason, shown as a badge and in the briefing | `planner/src/plan.js`, `web/lib/space-weather.ts`, `RouteCards.tsx`, `Briefing.tsx` | Curiosity RAD (Hassler et al. 2014), NASA DONKI WSA-ENLIL |
+| O7 | Spacesuit mobility, and carrying science equipment | 🟡 | Suit model: Pandolf metabolic cost at Mars g with a pressure-suit penalty, Tobler-style speed vs slope, 20° walking limit, 8 h suit rating, 25 % O₂ reserve, 20 min work per stop. Carried kit (`params.kitKg`) works in the planner (sensitivity in `docs/VALIDATION.md`: 20 kg turns Pahrump from GO to CAUTION) but **has no UI control yet** | `planner/src/eva.js`, `docs/VALIDATION.md` | Apollo EVA metabolic data (comparison only) |
+| O8 | A route that reaches the targets while avoiding big obstacles | 🟡 | SAFE avoids steep ground: quadratic penalty above 10° on both the cell-to-cell grade and the steepest slope inside each 25 m cell, limit 15°. Validated: the routes follow Curiosity's real path within 250 m for 93.5–100 % of the way. **Not built:** boulders / rock fields (below 25 m cells) | `planner/src/route.js`, `docs/VALIDATION.md` | MSL Gale DEM (1 m source) |
 
 ### Potential considerations (optional, but each one answered is a point with judges)
-| # | Consideration | How we answer it (fill in) |
-|---|---|---|
-| C1 | Form factor: a display in the habitat, a tablet the crew carries, or a HUD on the helmet visor | |
-| C2 | A static map, an interactive product, or a **generator** for other places and data | |
-| C3 | Inspiration from maps made for other worlds (e.g. Apollo traverse maps) | |
-| C4 | Past, predicted, or no specific time frame | |
-| C5 | Point-of-view images from Mars surface missions so the astronaut knows what to expect | |
-| C6 | Rovers carrying crew and tools, or **astronauts working in pairs** | |
+| # | Consideration | Status | How we answer it | Files |
+|---|---|---|---|---|
+| C1 | Form factor: habitat display, crew tablet, or helmet HUD | 🟡 | Built for a laptop/tablet in the habitat. Phone layout is "not broken" (route cards become a bottom sheet). No helmet HUD | `MissionPlanner.tsx` (`md:hidden` bottom sheet) |
+| C2 | Static map, interactive product, or a generator for other places | 🟡 | Interactive product: ✅. Generator: **the pipeline is region-driven** (`data/regions/<id>.json` + `python data/build_region.py <id>`) and the planner runs on any grid, but **only `gale` has ever been baked**. Say exactly that | `data/build_region.py`, `data/regions/gale.json` |
+| C3 | Inspiration from maps of other worlds (e.g. Apollo traverse maps) | ⬜ | Not claimed. The EVA model's Apollo comparison is in `docs/VALIDATION.md`, but no Apollo-style map styling was built | n/a |
+| C4 | Past, predicted, or no specific time frame | ✅ | "Now": live Mars clock (Mars24), today's daylight at Gale, live space weather | `MarsClockBar.tsx`, `DaylightBar.tsx`, `web/lib/mars-context.ts` |
+| C5 | Point-of-view images from surface missions | ⬜ | Not built (no Mastcam/Navcam images in the app) | n/a |
+| C6 | Rovers carrying crew and tools, or astronauts in pairs | 🟡 | **Rover assist works in the planner** (T-23: Glen Torridon NO-GO on foot → GO by rover, 224 min, 76 % O₂) but **the UI toggle isn't wired yet**. Claim it only once the toggle ships. Two-person EVA: not built | `planner/src/route.js`, `planner/test/rover.test.js` |
+
+### Gaps we say out loud (README + pitch)
+
+1. **Boulders and rock fields aren't modelled.** 25 m cells see slopes, not individual rocks. NASA's rover drivers used 25 cm HiRISE images for that.
+2. **No spectral (CRISM) mineral layer.** The mineral facts in the site descriptions come from published Curiosity results, not from a layer we process.
+3. **One region baked.** The pipeline is generic, but only Gale has been run.
+4. **Two of five site positions are approximate** (Glen Torridon, Woodland Bay, ± ~150 m–0.5 km). The other three are Curiosity's real stops.
+5. **The suit model is a planning estimate** (Pandolf + suit penalty). Its 313–353 W sits at the top of Apollo's measured 228–352 W range, and it's not a validated Mars-suit model.
+6. **Single astronaut.** No buddy / two-person EVA logic.
+7. **Not yet in the UI** (only claim them once they ship): THEMIS thermal layer, rover assist toggle, carried-kit input.
 
 ## Known gaps other teams hit (opportunities for us)
 
