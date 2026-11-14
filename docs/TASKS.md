@@ -18,7 +18,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 **Priority order: T-22 → T-23 → T-08 → T-24 → T-25 → T-26 → T-17 (final).** If you finish everything, see "Stretch" at the bottom.
 
 ## T-27 · Abuse protection for the public /api/explain (before any API key goes live)
-- **Owner:** Teammate · **Time box:** 30 min · **Priority:** do right after your current task · **Status:** TODO
+- **Owner:** Teammate · **Time box:** 30 min · **Priority:** do right after your current task · **Status:** IN PROGRESS (Teammate, 21:10)
 - **Why:** the site is public now (see DECISIONS, Fri 21:15). When Moss adds `ANTHROPIC_API_KEY` (T-19), anyone could call `POST /api/explain` in a loop and run up the bill. Today it only returns the template (no key), so nothing is exposed yet.
 - **Steps:**
   1. In `web/app/api/explain/route.ts` (your file) add, **before** calling Claude: (a) request body limit (reject > 20 KB with 413); (b) a per-IP limiter: at most 12 AI calls per 10 minutes per IP (`x-forwarded-for` first hop), kept in a module-level `Map` (it is per-serverless-instance, which is fine as a speed bump); over the limit → return the **template briefing** with `source: 'fallback'`, `reason: 'rate limited'` (never an error: the demo must keep working); (c) a global ceiling of 300 AI calls per hour per instance, same fallback; (d) `max_tokens` already 300: keep it.
