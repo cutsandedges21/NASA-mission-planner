@@ -55,3 +55,12 @@ Why: "AI explains, never decides." The rule is best verdict → SCIENCE if it vi
 
 **2026-11-13: A space-weather warning makes every route at least CAUTION (never NO-GO on its own)** (Teammate's Claude; Moss can overrule)
 Why: the challenge says safety first (O6), and a CME forecast to reach Mars is exactly what a flight controller flags. It stays a CAUTION because a DONKI forecast window spans days and doesn't by itself make a short EVA unsafe. Each route also reports its radiation dose from Curiosity RAD's measured Gale surface rate (0.64 mSv/day).
+
+**2026-11-13 (Fri 20:50): The one "wow" upgrade (T-07) = Rover assist** (Moss's Claude's proposal; Moss can overrule)
+Why: on the real Gale terrain, 3 of the 5 science sites are 9.4–9.9 km one way, which is NO-GO on foot. A single toggle that turns NO-GO into GO with an unpressurised rover is a clear demo beat, answers challenge consideration C6 (rovers carrying crew and tools), and is cheap because the EVA model already has rover parameters. Planner side = T-23 (Teammate), UI toggle = Moss's Claude once T-23 lands. Rejected for now: two-person EVA (needs a new crew model), CRISM minerals (data not reachable), boulder hazard (no data at 25 m).
+
+**2026-11-13 (Fri 20:00): Science-site positions come from NASA/JPL's MSL waypoint feed, not HiRISE image centres** (Moss's Claude)
+Why: image centres were up to 2.2 km from the feature they named (Yellowknife Bay). The rover's real stops are authoritative and citable. Curiosity's real drive path is also drawn on the map (`web/public/data/gale/traverse.json`) and is the basis for the planner validation (T-22).
+
+**2026-11-13 (Fri 20:10): Default region is the real Gale data; the Vercel project stays behind Vercel login until Moss says "make it public"** (Moss's Claude)
+Why: deployments are protected by default; making a site public (and, once ANTHROPIC_API_KEY is set, exposing a paid API route) is Moss's call. `?region=demo` loads the synthetic terrain.
