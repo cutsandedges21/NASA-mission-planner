@@ -12,8 +12,8 @@ import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from
 import type { ExplainRequest } from '@/lib/explain';
 import { pickRecommended } from '@/lib/explain-fallback';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
-import Intro from './Intro';
 import Hero from './Hero';
+import Loading from './Loading';
 import TopNav, { type NavTab } from './map/TopNav';
 import SetupPanel from './map/SetupPanel';
 import RouteCards from './map/RouteCards';
@@ -49,9 +49,20 @@ export default function MissionPlanner() {
   const [showSlope, setShowSlope] = useState(false);
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
-  const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
   const [hero, setHero] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
-  const [introSite, setIntroSite] = useState(0);
+  // loading screen: stays until the region data is in (at least 1.4 s so it reads as an intro), then fades
+  const [ldOut, setLdOut] = useState(false);
+  const [ldGone, setLdGone] = useState(false);
+  const [mountedAt] = useState(() => Date.now());
+  useEffect(() => {
+    if (!region) return;
+    const t1 = setTimeout(() => setLdOut(true), Math.max(0, 1400 - (Date.now() - mountedAt)));
+    const t2 = setTimeout(() => setLdGone(true), Math.max(0, 1400 - (Date.now() - mountedAt)) + 750);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [region, mountedAt]);
   const [startH, setStartH] = useState(9);
   const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
 
@@ -101,7 +112,7 @@ export default function MissionPlanner() {
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
-          { id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-saturation': -0.15, 'raster-brightness-max': 0.85 } },
+          { id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-saturation': -0.55, 'raster-brightness-max': 0.42 } },
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
           { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1a0d07' } },
           {
@@ -347,9 +358,9 @@ export default function MissionPlanner() {
       </div>
 
       <TopNav
-        tab={intro ? 'sites' : navTab}
+        tab={hero ? 'sites' : navTab}
         onTab={(t) => {
-          if (t === 'sites') setIntro(true);
+          if (t === 'sites') setHero(true);
           else setNavTab(t);
         }}
         regionName={region?.meta.name.replace(/\s*\(.*\)/, '') ?? 'Loading Mars…'}
@@ -367,15 +378,12 @@ export default function MissionPlanner() {
         placingBase={placing === 'base'}
         onMoveBase={moveBase}
         selected={selected}
-        onSelect={setSelected}
         clock={clock}
         startH={startClamped}
         onStart={setStartH}
         windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
         showSlope={showSlope}
         onSlope={setShowSlope}
-        view3d={view3d}
-        on3d={setView3d}
         weather={weather}
         base={base}
         hasTraverse={!!region?.traverse}
@@ -385,20 +393,15 @@ export default function MissionPlanner() {
 
       <DockCard
         base={base}
-        baseName={baseName}
-        destName={destName ?? (dest ? fmtLL(dest) : null)}
         routes={scored}
         selected={selected}
-        onSelect={setSelected}
         briefing={briefingRequest}
         onRecommended={setSelected}
         onFrame={() => setFrameTick((n) => n + 1)}
         showSlope={showSlope}
         onSlope={setShowSlope}
-        view3d={view3d}
-        on3d={setView3d}
-        onMoveBase={moveBase}
         onSimulate={simulation.canStart ? simulation.start : undefined}
+        hidden={simulation.running}
       />
       {simulation.panel}
 
@@ -424,7 +427,7 @@ export default function MissionPlanner() {
         </div>
       )}
 
-      {!scored.length && !intro && (
+      {!scored.length && !hero && (
         <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center md:hidden">
           <span className="rounded-full border border-white/10 bg-black/80 px-4 py-2.5 text-[13px] text-zinc-200 backdrop-blur">
             {busy ? 'Planning routes…' : 'Tap a science site to plan a walk'}
@@ -436,31 +439,20 @@ export default function MissionPlanner() {
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>
       )}
 
-      {navTab === 'data' && !intro && <Credits meta={region?.meta ?? null} onClose={() => setNavTab('plan')} />}
+      {navTab === 'data' && !hero && <Credits meta={region?.meta ?? null} onClose={() => setNavTab('plan')} />}
 
       {hero && (
         <Hero
           region={region}
-          onStart={() => setHero(false)}
-          onPickSite={(i) => {
-            setIntroSite(i);
+          onSkip={() => setHero(false)}
+          onPick={(p) => {
+            pickPoi(p);
             setHero(false);
           }}
         />
       )}
 
-      {intro && (
-        <Intro
-          key={introSite}
-          initial={introSite}
-          region={region}
-          onSkip={() => setIntro(false)}
-          onPick={(p) => {
-            pickPoi(p);
-            setIntro(false);
-          }}
-        />
-      )}
+      {!ldGone && <Loading out={ldOut} status={region ? 'NASA terrain loaded' : 'Loading NASA terrain…'} />}
 
       {error && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full border border-red-400/30 bg-black/80 px-4 py-2 text-sm text-red-300">{error}</div>

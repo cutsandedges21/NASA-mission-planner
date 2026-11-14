@@ -6,19 +6,22 @@ import { hm, MARS_HOUR_S } from '@/lib/mars-context';
 import type { Frame, Mission } from '@/lib/mission-timeline';
 import type { PlannedRoute, Strategy } from '@/lib/plan-client';
 import type { Poi } from '@/lib/region';
+import DotNum from './ui/DotNum';
+import { IPlay } from './map/icons';
 
 const SPEEDS = [1, 2, 4] as const;
 const START_DELAY = 0.9; // seconds: lets the camera settle on the base before the walk begins
 
-const fmtClock = (s: number) => {
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-};
+const two = (n: number) => String(Math.max(0, Math.floor(n))).padStart(2, '0');
 const fmtKm = (m: number) => (m / 1000).toFixed(1);
 
 /**
  * Playback controls and live readouts for "Simulate Mission". It owns the animation clock; the map
  * (marker, trail, camera) is driven through onFrame so the planner screen doesn't re-render every frame.
+ *
+ * Look (chat B, T-16): the countdown block of the "Flight to Mars" reference (red rule, small label,
+ * big digits in ruled boxes), the dashboard reference's dot-grid gauge for oxygen, and the Spherium gold
+ * slider / round white play button for the controls.
  */
 export default function SimulationHUD({
   route,
@@ -100,55 +103,71 @@ export default function SimulationHUD({
     } else setPlaying((p) => !p);
   };
 
+  const DOTS = 40;
+  const lit = Math.round((o2Left / 100) * DOTS);
+  const resDot = Math.round((reserve / 100) * DOTS);
+  const lh = ((localH % 24) + 24) % 24;
+
   return (
-    <div className="panel p-4">
+    <div className="sim">
+      {/* header: red rule + label, phase chip, close */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-          <h2 className="eyebrow">Mission simulation · {label}</h2>
+        <div className="sim-k">
+          <i style={{ background: color }} />
+          MISSION SIMULATION · {label.toUpperCase()}
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-md border border-white/10 px-2 py-0.5 text-[11px] font-medium text-zinc-200">{phase}</span>
-          <button onClick={onClose} aria-label="Close simulation" className="rounded-md px-2 py-0.5 text-zinc-400 transition hover:bg-white/10 hover:text-white">
+          <span className="sim-phase">{phase}</span>
+          <button onClick={onClose} aria-label="Close simulation" className="sim-x">
             ✕
           </button>
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-3 font-mono">
-        <Readout k="Mission clock" v={`T+${fmtClock(frame.tau)}`} />
-        <Readout k="Local solar time" v={hm(localH)} warn={nearSunset} />
-        <Readout k="Distance (km)" v={`${fmtKm(frame.d)} / ${fmtKm(mission.total)}`} />
-        <div>
-          <div className="font-sans text-[9px] uppercase tracking-[0.18em] text-zinc-500">Oxygen left</div>
-          <div className={`text-lg leading-tight ${lowO2 ? 'text-amber-300' : 'text-zinc-100'}`}>{o2Left.toFixed(0)} %</div>
-          <div className="relative mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full transition-[width]" style={{ width: `${o2Left}%`, background: lowO2 ? '#fbbf24' : '#34d399' }} />
-            <div className="absolute inset-y-0 w-px bg-red-400" style={{ left: `${reserve}%` }} title={`${reserve} % must remain at the airlock`} />
-          </div>
+      {/* big ruled digits */}
+      <div className="mt-3 flex items-end gap-2.5">
+        <Box k="T+ HOURS" v={two(frame.tau / 3600)} />
+        <Box k="MINUTES" v={two((frame.tau % 3600) / 60)} />
+        <span className="sim-sep" />
+        <Box k="LOCAL TIME" v={hm(lh)} warn={nearSunset} wide />
+        <Box k="KM WALKED" v={fmtKm(frame.d)} sub={`/ ${fmtKm(mission.total)}`} wide />
+        <div className="ml-auto text-right">
+          <div className="sim-box-k">OXYGEN LEFT</div>
+          <DotNum text={`${o2Left.toFixed(0)}%`} height={30} color={lowO2 ? '#fbbf24' : '#ffffff'} />
         </div>
       </div>
 
+      {/* oxygen dot gauge, gold dot = 25 % airlock reserve */}
+      <div className="sim-dots" title={`${reserve} % must remain at the airlock`}>
+        {Array.from({ length: DOTS }).map((_, i) => (
+          <i key={i} data-on={i < lit} data-res={i === resDot - 1} style={i < lit ? { background: lowO2 ? '#fbbf24' : color, borderColor: lowO2 ? '#fbbf24' : color } : undefined} />
+        ))}
+      </div>
+
       {stop && (
-        <div className="mt-3 rounded-xl border border-violet-300/20 bg-violet-400/10 p-3">
-          <div className="flex items-baseline justify-between">
-            <div className="text-sm font-semibold text-violet-100">{stop.name}</div>
-            <div className="font-mono text-[10px] text-violet-200/70">sampling · {Math.round(frame.stopProgress * 100)} %</div>
+        <div className="sim-stop">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="text-[14px] font-semibold">{stop.name}</div>
+            <div className="font-mono text-[10px] text-white/70">SAMPLING · {Math.round(frame.stopProgress * 100)} %</div>
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-violet-50/90">{stop.why}</p>
-          <p className="mt-1 text-[10px] text-violet-200/60">Source: {stop.source}{stop.approx ? ' (position approximate)' : ''}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-white/85">{stop.why}</p>
+          <p className="mt-1 text-[10px] text-white/55">
+            Source: {stop.source}
+            {stop.approx ? ' (position approximate)' : ''}
+          </p>
         </div>
       )}
       {done && (
-        <div className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-xs text-emerald-50/90">
-          Back at the airlock after {fmtClock(mission.totalT)} with {Math.max(0, route.budget.marginPct).toFixed(0)} % oxygen
+        <div className="sim-done">
+          Back at the airlock after {two(mission.totalT / 3600)}:{two((mission.totalT % 3600) / 60)} with {Math.max(0, route.budget.marginPct).toFixed(0)} % oxygen
           {route.budget.doseMSv !== undefined ? ` and ${route.budget.doseMSv.toFixed(2)} mSv of radiation.` : '.'}
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-3">
-        <button onClick={toggle} className="w-16 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-[#07080a] transition hover:bg-white">
-          {done ? 'Replay' : playing ? 'Pause' : 'Play'}
+      {/* controls */}
+      <div className="mt-3.5 flex items-center gap-3">
+        <button onClick={toggle} className="sim-play" aria-label={done ? 'Replay' : playing ? 'Pause' : 'Play'} title={done ? 'Replay' : playing ? 'Pause' : 'Play'}>
+          {playing && !done ? <span className="sim-pause" /> : done ? '↺' : <IPlay size={15} />}
         </button>
         <input
           type="range"
@@ -157,12 +176,12 @@ export default function SimulationHUD({
           step={0.05}
           value={Math.max(0, u)}
           onChange={(e) => seek(+e.target.value)}
-          className="h-1 flex-1 accent-orange-400"
+          className="sp-range flex-1"
           aria-label="Playback position"
         />
-        <div className="flex items-center gap-1 rounded-lg bg-white/5 p-0.5 text-[11px]">
+        <div className="flex items-center gap-0.5 rounded-full border border-white/10 bg-black/40 p-0.5 text-[11px]">
           {SPEEDS.map((s) => (
-            <button key={s} onClick={() => setSpeed(s)} className={`rounded-md px-2 py-0.5 transition ${speed === s ? 'bg-white/15 text-white' : 'text-zinc-400 hover:text-white'}`}>
+            <button key={s} onClick={() => setSpeed(s)} className={`rounded-full px-2.5 py-1 transition ${speed === s ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
               {s}×
             </button>
           ))}
@@ -172,11 +191,14 @@ export default function SimulationHUD({
   );
 }
 
-function Readout({ k, v, warn }: { k: string; v: string; warn?: boolean }) {
+function Box({ k, v, sub, warn, wide }: { k: string; v: string; sub?: string; warn?: boolean; wide?: boolean }) {
   return (
-    <div>
-      <div className="font-sans text-[9px] uppercase tracking-[0.18em] text-zinc-500">{k}</div>
-      <div className={`text-lg leading-tight ${warn ? 'text-amber-300' : 'text-zinc-100'}`}>{v}</div>
+    <div className={`sim-box ${wide ? 'min-w-[86px]' : ''}`}>
+      <span className="sim-box-k">{k}</span>
+      <span className={`sim-box-n ${warn ? 'text-amber-300' : ''}`}>
+        {v}
+        {sub && <span className="sim-box-sub">{sub}</span>}
+      </span>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import type { Strategy } from '@/lib/plan-client';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import { hm, marsClock, type Daylight, type MarsClock } from '@/lib/mars-context';
 import { ROUTE_STYLE, fmtLL } from './format';
-import { IChevDown, IChevUp, IInfo, ILayers, IPin, STRATEGY_ICON, ISun, IGrid, IClock } from './icons';
+import { IChevDown, IChevUp, IInfo, ILayers, IPin, ISun, IGrid, IClock } from './icons';
 
 // Mission setup, 1:1 with the Spherium panel reference (cosmos_979618069): near-black column, two tabs,
 // collapsible sections with an icon + title + chevron, small grey sub-labels, tile grids where the active
@@ -23,15 +23,12 @@ export default function SetupPanel({
   placingBase,
   onMoveBase,
   selected,
-  onSelect,
   clock,
   startH,
   onStart,
   windows,
   showSlope,
   onSlope,
-  view3d,
-  on3d,
   weather,
   base,
   hasTraverse = false,
@@ -45,15 +42,12 @@ export default function SetupPanel({
   placingBase: boolean;
   onMoveBase: () => void;
   selected: Strategy;
-  onSelect: (s: Strategy) => void;
   clock: MarsClock | null;
   startH: number;
   onStart: (h: number) => void;
   windows: { strategy: Strategy; d: Daylight | null }[];
   showSlope: boolean;
   onSlope: (v: boolean) => void;
-  view3d: boolean;
-  on3d: (v: boolean) => void;
   weather: SpaceWeatherStatus | null;
   base: [number, number] | null;
 }) {
@@ -122,25 +116,10 @@ export default function SetupPanel({
             </Section>
 
             {/* route */}
-            <Section icon={<ISun size={15} />} title="Route" open={open.route} onFlip={() => flip('route')}>
-              <Sub>Strategy</Sub>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(['SAFE', 'FAST', 'SCIENCE'] as const).map((s) => {
-                  const I = STRATEGY_ICON[s];
-                  return (
-                    <button key={s} onClick={() => onSelect(s)} className={`sp-tile sp-tile-tall ${selected === s ? 'sp-on' : ''}`}>
-                      <span style={{ color: selected === s ? undefined : ROUTE_STYLE[s].color }}>
-                        <I size={17} />
-                      </span>
-                      <span>{ROUTE_STYLE[s].label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
+            <Section icon={<ISun size={15} />} title="Daylight" open={open.route} onFlip={() => flip('route')}>
               {clock && (
                 <>
-                  <div className="mt-4 flex items-baseline justify-between">
+                  <div className="mt-3 flex items-baseline justify-between">
                     <Sub flush>EVA start (local solar time)</Sub>
                     <span className="sp-val">{hm(startH)}</span>
                   </div>
@@ -191,15 +170,6 @@ export default function SetupPanel({
                 </button>
                 <button onClick={() => onSlope(true)} className={`sp-tile ${showSlope ? 'sp-on' : ''}`}>
                   Slope
-                </button>
-              </div>
-              <Sub>Terrain</Sub>
-              <div className="grid grid-cols-2 gap-1.5">
-                <button onClick={() => on3d(false)} className={`sp-tile ${!view3d ? 'sp-on' : ''}`}>
-                  2D map
-                </button>
-                <button onClick={() => on3d(true)} className={`sp-tile ${view3d ? 'sp-on' : ''}`}>
-                  3D relief
                 </button>
               </div>
               {hasTraverse && (
