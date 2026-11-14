@@ -79,6 +79,8 @@ def lit_image_material(name, path):
     pb = nt.nodes.new("ShaderNodeBsdfPrincipled")
     pb.inputs["Roughness"].default_value = 0.85
     nt.links.new(tex.outputs["Color"], pb.inputs["Base Color"])
+    nt.links.new(tex.outputs["Color"], pb.inputs["Emission Color"])
+    pb.inputs["Emission Strength"].default_value = 0.45
     nt.links.new(pb.outputs["BSDF"], out.inputs["Surface"])
     return mat
 
@@ -135,7 +137,7 @@ def make_slab(name, tex_path, z_top, strength=1.0):
     return ob
 
 
-Z = {"relief": 0.0, "hazard": 3.0, "thermal": 6.0, "optical": 9.0, "plan": 12.0}
+Z = {"relief": 0.0, "hazard": 5.4, "thermal": 9.9, "optical": 14.4, "plan": 18.9}
 make_slab("hazard", os.path.join(BUILD, "hazard.png"), Z["hazard"], 0.95)
 make_slab("thermal", os.path.join(BUILD, "thermal.jpg"), Z["thermal"], 1.0)
 make_slab("optical", os.path.join(BUILD, "optical.jpg"), Z["optical"], 1.0)
@@ -254,13 +256,13 @@ for key, xz, col in marks:
 
 # ---------------------------------------------------------------------------------------------- lights and camera
 sun_data = bpy.data.lights.new("sun", "SUN")
-sun_data.energy = 2.3
+sun_data.energy = 3.2
 sun_data.angle = math.radians(1.2)
 sun = bpy.data.objects.new("sun", sun_data)
 sun.rotation_euler = (math.radians(52), 0, math.radians(-130))  # from the north-west, like a hillshade
 scn.collection.objects.link(sun)
 fill = bpy.data.lights.new("fill", "AREA")
-fill.energy = 120
+fill.energy = 240
 fill.size = 14
 fo = bpy.data.objects.new("fill", fill)
 fo.location = (-9, -12, 9)
@@ -269,14 +271,18 @@ scn.collection.objects.link(fo)
 
 cam_data = bpy.data.cameras.new("cam")
 cam_data.lens = 38
+cam_data.shift_x = 0.09  # slide the stack to the left; the labels live on the right
 cam = bpy.data.objects.new("cam", cam_data)
 scn.collection.objects.link(cam)
 scn.camera = cam
-cam.location = (-13.0, -31.0, 31.0)
-target = Vector((0.3, 0.6, 5.4))
+cam.location = (-14.0, -38.5, 30.0)
+target = Vector((0.3, 0.6, 9.4))
 cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
 
 # ---------------------------------------------------------------------------------------------- label anchors
+bpy.context.view_layer.update()  # new objects have an identity matrix until this runs
+
+
 def screen(p):
     c = world_to_camera_view(scn, cam, Vector(p))
     return [round(c.x * scn.render.resolution_x, 1), round((1 - c.y) * scn.render.resolution_y, 1)]
