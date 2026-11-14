@@ -269,7 +269,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-08 · Fill in the challenge checklist
 - **Owner:** Teammate's Claude (reassigned Fri 20:15: see the new T-08 block at the top)
-- **Status:** TODO
+- **Status:** DONE (superseded by the new T-08 block at the top, done Fri 20:55: see docs/CHALLENGE.md)
 - **Steps:** in `docs/CHALLENGE.md`, write one line per row O1–O8 / C1–C6 naming the feature and the NASA dataset behind it. Empty rows become quick tasks or an explicit "skip" with a reason.
 - **Teammate's Claude draft answers (Fri 17:55), paste into CHALLENGE.md and edit freely:**
   - O1: web planner (tablet/laptop in the hab): pick base + target → 3 EVA routes scored on O₂, time, slope, radiation; NASA/USGS data throughout.
