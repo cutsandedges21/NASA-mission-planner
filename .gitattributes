@@ -1,1 +1,3 @@
 *.bat text eol=crlf
+# bash scripts must keep LF on Windows, or bash fails with $'' errors
+*.sh text eol=lf
