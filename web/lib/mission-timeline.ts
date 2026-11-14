@@ -169,12 +169,19 @@ export function pointOnPolyline(cum: number[], pts: [number, number][], d: numbe
   return [pts[lo][0] + (pts[hi][0] - pts[lo][0]) * f, pts[lo][1] + (pts[hi][1] - pts[lo][1]) * f];
 }
 
-/** Position along a path of [x, y] cells given the distance walked on the out-and-back (path walked out, then reversed). */
-export function makePathLocator(path: [number, number][], cellX: number, cellY: number, toLonLat: (x: number, y: number) => [number, number]) {
+/**
+ * Position along a path of [x, y] cells given the distance walked on the out-and-back (path walked out, then reversed).
+ * `refOneWay`: the one-way length the mission timeline is measured on (`budget.oneWay`). Pass it when `path` is the
+ * smooth display line (`route.line`, T-32), which is up to ~8 % shorter than the cell path the budget was computed on:
+ * distances are then stretched so the marker reaches the end exactly when the timeline does.
+ */
+export function makePathLocator(path: [number, number][], cellX: number, cellY: number, toLonLat: (x: number, y: number) => [number, number], refOneWay?: number) {
   const cum = [0];
   for (let i = 1; i < path.length; i++) {
     cum.push(cum[i - 1] + Math.hypot((path[i][0] - path[i - 1][0]) * cellX, (path[i][1] - path[i - 1][1]) * cellY));
   }
+  const raw = cum[cum.length - 1];
+  if (refOneWay && raw > 0) for (let i = 0; i < cum.length; i++) cum[i] *= refOneWay / raw;
   const coords = path.map(([x, y]) => toLonLat(x, y));
   /** The same path in metres east / south of the region's north-west corner (the first-person view's frame). */
   const metresPts = path.map(([x, y]): [number, number] => [(x + 0.5) * cellX, (y + 0.5) * cellY]);

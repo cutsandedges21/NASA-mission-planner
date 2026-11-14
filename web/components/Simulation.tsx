@@ -74,7 +74,10 @@ export function useSimulation({
     const missions = { map: buildMission(route), rover: buildMission(route, { walkSeconds: 55, stopDwell: 5 }) };
     if (!missions.map || !missions.rover) return;
     const m = region.meta;
-    const locator = makePathLocator(route.path, m.cellM[0], m.cellM[1], (x, y) => toLonLat(m, x, y));
+    // follow the smooth line the map draws (T-32), on the timeline's distance base (the budget is computed on route.path)
+    const b = route.budget;
+    const ref = route.line ? (b?.oneWay ?? (b ? b.distance / 2 : undefined)) : undefined;
+    const locator = makePathLocator(route.line ?? route.path, m.cellM[0], m.cellM[1], (x, y) => toLonLat(m, x, y), ref);
     cam.current = null;
     setView(route.budget?.mode === 'rover' ? 'rover' : 'map');
     setSim({ route, missions: missions as Missions, locator, routes });
