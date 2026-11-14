@@ -1,6 +1,6 @@
 # Marswalk Mission Planner: Gale Crater
 
-> **DRAFT for T-17** (Teammate's Claude, Fri 13 Nov). On Saturday: fill the `TODO` lines, add 3 screenshots, re-check every number against the live app, then move this file to the repo root as `README.md`.
+> **SUPERSEDED (Fri 21:05):** the real README is now `README.md` at the repo root. This early draft is kept only for history. Don't edit it.
 
 **Live app:** TODO (Vercel URL) · **NASA Space Apps 2026:** *Interplanetary Survival Guide: Martian Map* · **Demo video:** TODO
 

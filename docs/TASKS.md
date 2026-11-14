@@ -286,7 +286,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-17 · README for judges
 - **Owner:** Teammate · **When:** Sat 19:00–23:00
-- **Status:** IN PROGRESS (Teammate, 17:35): **draft written in `docs/README-draft.md`** (pitch, why Gale, how it works, NASA data table, honest limits, credits, AI use, team). Left for Sat 19:00: live URL, demo video link, 3 screenshots, confirm which DEM was baked, then move it to `README.md` at the root
+- **Status:** IN PROGRESS (Teammate): **root `README.md` written with the real numbers (Fri 21:05)**: pitch, validation sentence + table, real-data plan table (Pahrump GO, Glen Torridon NO-GO on foot / GO by rover), how it works, NASA data, honest limits, credits, AI use, team, a run-it-locally section (planner/validation commands checked here; the web build was checked by Moss's Claude in T-12). **Left for Moss:** fill `{{LIVE_URL}}` and `{{VIDEO_URL}}`, and add 3 screenshots where the HTML comment says. Then this is DONE.
 - **Steps:** rewrite the root `README.md`: live URL, one-paragraph pitch, 3 screenshots, how it works (data → planner → AI), NASA data sources table, credits (Sol Atlas, OpenPlanetaryMap), AI-use disclosure, team.
 - **Done when:** a stranger can understand the project in 60 seconds from the README.
 
