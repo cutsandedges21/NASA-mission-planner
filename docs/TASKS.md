@@ -20,6 +20,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 | Time (EST) | Who | What | Files / outputs the other side needs |
 |---|---|---|---|
+| Sat 12:11 | Moss's Claude (Blender chat) | **T-29 part 7 DELIVERED** (first landed in 0131e6b): the layered-data graphic is on GitHub. Parts 1, 3, 5+6, 8 are handed to you (recommend CUT). State and re-run commands: the **T-29 FINAL STATE** block under this table. This chat is out of budget | `docs/graphics/layered-data.png` (3840x2160) + `web/public/graphics/layered-data.jpg` (1920 wide). **Gianluca's Claude:** T-30's links to both are now valid, keep them. `tools/blender/*` is yours now (e.g. `export_routes.mjs` can draw `r.line ?? r.path`, T-32). Corrects the 16:57 row that says T-29 is not delivered |
 | Sat 17:07 | Moss (human) via Moss's Claude | **DEPLOYED 5fa2e27** with `bash tools/deploy.sh` (Moss ran it himself: DEPLOY OK). The deploy path works without any Claude. This is Moss's Claude's last entry | Gianluca's Claude: when you need a deploy, push, then log `DEPLOY NEEDED: <commit>` and tell Gianluca to text Moss |
 | Sat 17:03 | Moss's Claude (path chat) | **Two new Moss decisions (in DECISIONS + HANDOFF):** (1) **no API keys, no AI at runtime**: remove `/api/explain` + its Claude client; the briefing is built in the browser from the template (HANDOFF §2 **Step 0, do first**); T-19 + T-27 cancelled. (2) **No video: we present with a slide deck** you build (HANDOFF §2 **Step 6**: outline `docs/SLIDES.md` → `.pptx` from `tools/slides/`) | Gianluca's Claude: start at HANDOFF Step 0 |
 | Sat 16:57 | Moss's Claude (path chat) | **HANDOFF.** Deployed `main` 80f2b9b to production (live checks OK). All tests green (planner 28/28, API 15/15, timeline, rover-terrain, tsc). Wrote `docs/HANDOFF.md` (everything left, in order) and `tools/deploy.sh`. **T-29 (Blender) is NOT delivered**: Moss stopped that chat; nothing on GitHub; treat as CUT. No Vercel env vars are set (AI briefing = template) | **Gianluca's Claude: start at HANDOFF.md §2 Step 1.** Moss's chats won't answer from here on |
@@ -33,6 +34,20 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 | Sat 11:15 | Moss's Claude | Started **T-29a** layered-data graphic in Blender (first renders look right: five layers stacked, real data). Posted **T-30** and **T-31** for Teammate | `tools/blender/*` (new, mine). Will deliver `docs/graphics/layered-data.png` and `web/public/graphics/layered-data.jpg` (T-30 references these exact paths) |
 | Sat 10:30 | Moss's Claude | Rover assist + first-person view verified on localhost and live | `web/components/RoverView.tsx`, `Simulation*.tsx`; C6 in `docs/CHALLENGE.md` can be ✅ |
 | Fri 21:00 | Teammate's Claude | Last seen: T-24/T-25/T-26/T-27/T-08 done, T-28 follow-up (commit b64bfdc). Idle since | none |
+
+## T-29 FINAL STATE (Moss's Claude, Sat 12:11): read this instead of the T-29 table further down
+
+**Part 7 is DELIVERED** (first landed in 0131e6b): `docs/graphics/layered-data.png` (3840x2160) and `web/public/graphics/layered-data.jpg` (1920 wide). Five real NASA layers of the Gale patch, stacked and labelled: mission plan (our routes, science stops, Curiosity's path), HiRISE optical, THEMIS thermal, slope hazard, 3D terrain. Use it as the project-page image. T-30's links to these two paths are now valid.
+
+**Parts 1 (moving shadows), 3 (rocks + regolith texture), 5+6 (descent/flyover video) and 8 (predicted panoramas): NOT STARTED, no scripts exist. Recommendation: CUT.** They need Blender 5.1, which is only on Moss's PC, and the submission works without them (we present with a slide deck, HANDOFF Step 6). In the T-30 texts: keep Blender in credits and AI-USE for the graphic only, and drop any mention of shadows, rocks, ground grain or a descent video.
+
+**Re-run part 7** (only if the data or routes change; Moss's PC has Blender 5.1.1 at `C:/Program Files/Blender Foundation/Blender 5.1/blender.exe`; run from the repo root; needs Node and Python 3 with numpy + Pillow; `tools/blender/build/` is git-ignored and rebuilt by steps 1-2):
+1. `node tools/blender/export_routes.mjs` -> `build/routes.json` (still draws `path`; T-32 asks it to draw `r.line ?? r.path`: not done, yours)
+2. `python tools/blender/prep_layers.py` -> five 1634x2048 textures in `build/`
+3. `"C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" -b --factory-startup -P tools/blender/layered_data.py -- --preview` -> `build/layered_render_preview.png` + `build/layered_anchors.json` (1920x1080, 40 samples, 18 s on Moss's i7-12650H, CPU only). Drop `--preview` for the final (3840x2160, 160 samples, a few minutes) -> `build/layered_render.png`.
+4. `python tools/blender/compose_labels.py [--preview]` -> adds title, five labels and footer: `docs/graphics/layered-data[-preview].png`; the final also writes `web/public/graphics/layered-data.jpg`.
+
+Optional polish: the plan layer draws Curiosity's path from `traverse.json` (end-of-drive stops); `traverse-detail.json` (T-34a) would look more like NASA's own line: change the traverse part of `export_routes.mjs`, then rerun steps 1-4.
 
 **To wake Teammate's Claude** (Gianluca pastes this into it): `git pull --rebase --autostash, then read the SYNC LOG and T-30, T-31 at the top of docs/TASKS.md, claim T-30 and start. Then run: /loop 2m git pull --rebase --autostash and re-read docs/TASKS.md for changes that affect you.`
 

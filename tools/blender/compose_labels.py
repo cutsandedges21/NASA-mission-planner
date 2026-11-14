@@ -88,16 +88,15 @@ for name, title, desc, source, accent in layers:
     d.text((col_x, ay + 24 * S), source, font=F_SRC, fill=(138, 146, 166, 255))
 
 # the same place across layers
-for key, label, col in (("base", "Bradbury Landing", (251, 146, 60)), ("pahrump", "Pahrump Hills", (167, 139, 250))):
+for key, label, col in (("pahrump", "Pahrump Hills", (167, 139, 250)),):
     pts = anchors["marks"][key]
     px, py = pts[0][0] * k, pts[0][1] * k
-    if key == "base":
-        d.text((px - 150 * S, py + 8 * S), label, font=F_SRC, fill=col + (255,))
-    else:
-        d.text((px + 14 * S, py + 8 * S), label, font=F_SRC, fill=col + (255,))
+    lx, ly = px + 14 * S, py + 8 * S
+    d.rounded_rectangle([lx - 8 * S, ly - 4 * S, lx + F_SRC.getlength(label) + 8 * S, ly + 24 * S], radius=int(8 * S), fill=(8, 10, 22, 215))
+    d.text((lx, ly), label, font=F_SRC, fill=col + (255,))
 
 # title block, top left (the free side of the picture), wrapped to fit
-tx, ty, tw = int(W * 0.035), int(110 * S), int(W * 0.255)
+tx, ty, tw = int(W * 0.035), int(110 * S), int(W * 0.235)
 d.text((tx, ty), "Five NASA layers.", font=F_TITLE, fill=(255, 255, 255, 255))
 d.text((tx, ty + 58 * S), "One plan.", font=F_TITLE, fill=(245, 200, 75, 255))
 y = ty + 140 * S
@@ -110,7 +109,8 @@ for para in (
         y += 30 * S
     y += 14 * S
 
-d.text((int(48 * S), int(H - 40 * S)), "Rendered in Blender from the real data. Data: NASA / JPL / USGS / ESA. Project: EVA Mission Planner, NASA Space Apps 2026.", font=F_FOOT, fill=(110, 118, 140, 255))
+FOOT = "Rendered in Blender from the real data. Data: NASA / JPL / USGS / ESA. Project: EVA Mission Planner, NASA Space Apps 2026."
+d.text((W - F_FOOT.getlength(FOOT) - 48 * S, H - 40 * S), FOOT, font=F_FOOT, fill=(110, 118, 140, 255))
 
 out_full = os.path.join(ROOT, "docs", "graphics", "layered-data-preview.png" if PREVIEW else "layered-data.png")
 os.makedirs(os.path.dirname(out_full), exist_ok=True)
