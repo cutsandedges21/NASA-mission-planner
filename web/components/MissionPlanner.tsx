@@ -15,6 +15,7 @@ import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import MarsClockBar from './MarsClockBar';
 import DaylightBar from './DaylightBar';
 import Briefing from './Briefing';
+import Intro from './Intro';
 
 const BASEMAP = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
 
@@ -51,6 +52,7 @@ export default function MissionPlanner() {
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
   const [showSlope, setShowSlope] = useState(false);
+  const [intro, setIntro] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
   const [startH, setStartH] = useState(9);
   const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
 
@@ -417,6 +419,18 @@ export default function MissionPlanner() {
             colors={{ SAFE: ROUTE_STYLE.SAFE.color, FAST: ROUTE_STYLE.FAST.color, SCIENCE: ROUTE_STYLE.SCIENCE.color }}
           />
         </div>
+      )}
+
+      {intro && (
+        <Intro
+          region={region}
+          onSkip={() => setIntro(false)}
+          onPick={(p) => {
+            setDest([p.lon, p.lat]);
+            setDestName(p.name);
+            setIntro(false);
+          }}
+        />
       )}
 
       {error && (

@@ -1,0 +1,49 @@
+/* Visual layer owned by the UI chat (T-16): intro / landing, pill gallery, credits. Imported from globals.css. */
+
+/* ---------- site gallery (1:1 with the Figma pill-card reference) ---------- */
+.gal { background: var(--page); transition: background-color 0.6s ease, opacity 0.5s; font-family: var(--font-geist-sans), sans-serif; }
+.gal-win {
+  --ph: min(582px, 56vh);
+  position: relative; width: min(1180px, 92vw); height: min(820px, 86vh);
+  border-radius: 26px; background: var(--win); transition: background-color 0.6s ease;
+  box-shadow: 0 40px 120px -30px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  display: flex; flex-direction: column; padding: 26px 46px 34px; color: #fff; overflow: hidden;
+}
+.gal-nav { display: flex; align-items: center; justify-content: space-between; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(255 255 255 / 0.75); }
+.gal-nav button:hover { color: #fff; }
+.gal-logo { font-size: 14px; color: #fff; }
+.gal-skip { border: 1px solid rgb(255 255 255 / 0.35); border-radius: 9999px; padding: 6px 12px; }
+.gal-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.gal-row { display: flex; gap: calc(var(--ph) * 0.03); height: var(--ph); }
+.gal-pill {
+  position: relative; height: 100%; width: calc(var(--ph) * 0.2921); flex: none; overflow: hidden;
+  border-radius: calc(var(--ph) * 0.1753); cursor: pointer; text-align: left; background: #0003;
+  transition: width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.gal-pill[data-on='true'] { width: calc(var(--ph) * 0.8007); }
+.gal-img { position: absolute; inset: 0; background-repeat: no-repeat; transition: transform 0.8s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.gal-pill[data-on='true'] .gal-img { transform: scale(1.04); }
+.gal-shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgb(0 0 0 / 0.55) 100%); opacity: 0; transition: opacity 0.4s; }
+.gal-pill[data-on='true'] .gal-shade { opacity: 1; }
+.gal-cap { position: absolute; left: 13%; right: 13%; bottom: 13%; display: flex; flex-direction: column; gap: 4px; opacity: 0; transform: translateY(8px); transition: opacity 0.3s 0.2s, transform 0.4s 0.2s; }
+.gal-pill[data-on='true'] .gal-cap { opacity: 1; transform: none; }
+.gal-cap-t { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.gal-cap-d { font-size: 10px; line-height: 1.45; color: rgb(255 255 255 / 0.85); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 30ch; }
+.gal-go { position: absolute; left: 50%; bottom: 4.5%; transform: translateX(-50%); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; opacity: 0; transition: opacity 0.3s 0.25s; }
+.gal-pill[data-on='true'] .gal-go { opacity: 0.8; }
+.gal-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
+.gal-h1 { font-size: clamp(18px, 1.9vw, 24px); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; }
+.gal-meta { margin-top: 12px; font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.75; color: rgb(255 255 255 / 0.85); }
+.gal-link { font-weight: 800; text-decoration: underline; text-underline-offset: 2px; color: #fff; margin-right: 6px; }
+.gal-para { max-width: 270px; font-size: 9.5px; line-height: 1.55; color: rgb(255 255 255 / 0.8); padding-bottom: 4px; }
+.gal-credit { margin-top: 18px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: rgb(255 255 255 / 0.85); }
+.gal-avatar { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 9999px; background: #fff; color: var(--page); font-size: 11px; }
+
+@media (max-width: 767px) {
+  .gal-win { --ph: min(420px, 50vh); padding: 18px 18px 22px; height: 88vh; }
+  .gal-row { gap: 6px; }
+  .gal-pill { width: calc(var(--ph) * 0.16); }
+  .gal-pill[data-on='true'] { width: calc(var(--ph) * 0.62); }
+  .gal-nav > div > button { display: none; }
+  .gal-foot { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
