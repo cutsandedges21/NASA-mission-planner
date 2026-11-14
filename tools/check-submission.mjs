@@ -150,7 +150,7 @@ else {
 const PLACEHOLDER = [/\{\{(LIVE_URL|REPO_URL|VIDEO_URL)\}\}/, /\bTODO\b/];
 const AI_CLAIMS = [
   /ANTHROPIC_API_KEY/,
-  /\bAPI[ -]keys?\b/i,
+  /(?<!\b(?:no|without(?: an?)?|any) )\bAPI[ -]keys?\b/i, // "no API keys are needed" is fine
   /\bAI(?:[ -][\w-]+){0,2} (explains|explained|writes|wrote|words|briefing)\b/i,
   /\bAI-(written|worded)\b/i,
   /\b(written|worded|generated|explained) by (an |the )?(AI|Claude|LLM)\b/i,
