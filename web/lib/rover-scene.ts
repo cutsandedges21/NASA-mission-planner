@@ -64,12 +64,12 @@ const smooth = (a: number, b: number, x: number) => {
 };
 
 const NOISE_GLSL = /* glsl */ `
-float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-float noise(vec2 p){
+float hash21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p){
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+  return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
 }
-float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + 17.1; a *= 0.5; } return v; }
+float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * vnoise(p); p = p * 2.03 + 17.1; a *= 0.5; } return v; }
 `;
 
 const TERRAIN_VERT = /* glsl */ `
@@ -91,16 +91,16 @@ void main() {
   float dist = length(vWorld - cameraPosition);
   vec3 base = texture2D(uMap, vUv).rgb;
   // ground grain and pebbles, faded with distance so nothing shimmers on the horizon
-  float near = 1.0 - smoothstep(60.0, 700.0, dist);
+  float nearK = 1.0 - smoothstep(60.0, 700.0, dist);
   vec2 q = vWorld.xz;
-  float n0 = fbm(q * 0.045), n1 = fbm(q * 0.31), n2 = noise(q * 2.6), n3 = noise(q * 11.0);
-  float v = (n0 - 0.5) * 0.30 + near * ((n1 - 0.5) * 0.34 + (n2 - 0.5) * 0.40 + (n3 - 0.5) * 0.28);
+  float n0 = fbm(q * 0.045), n1 = fbm(q * 0.31), n2 = vnoise(q * 2.6), n3 = vnoise(q * 11.0);
+  float v = (n0 - 0.5) * 0.30 + nearK * ((n1 - 0.5) * 0.34 + (n2 - 0.5) * 0.40 + (n3 - 0.5) * 0.28);
   vec3 col = base * (1.0 + v);
   // micro-relief: bend the normal with the same noise
   float e = 0.12;
-  float gx = (noise((q + vec2(e, 0.0)) * 2.6) - noise((q - vec2(e, 0.0)) * 2.6)) + 0.6 * (noise((q + vec2(e, 0.0)) * 11.0) - noise((q - vec2(e, 0.0)) * 11.0));
-  float gz = (noise((q + vec2(0.0, e)) * 2.6) - noise((q - vec2(0.0, e)) * 2.6)) + 0.6 * (noise((q + vec2(0.0, e)) * 11.0) - noise((q - vec2(0.0, e)) * 11.0));
-  vec3 N = normalize(normalize(vNormal) + near * 1.3 * vec3(-gx, 0.0, -gz));
+  float gx = (vnoise((q + vec2(e, 0.0)) * 2.6) - vnoise((q - vec2(e, 0.0)) * 2.6)) + 0.6 * (vnoise((q + vec2(e, 0.0)) * 11.0) - vnoise((q - vec2(e, 0.0)) * 11.0));
+  float gz = (vnoise((q + vec2(0.0, e)) * 2.6) - vnoise((q - vec2(0.0, e)) * 2.6)) + 0.6 * (vnoise((q + vec2(0.0, e)) * 11.0) - vnoise((q - vec2(0.0, e)) * 11.0));
+  vec3 N = normalize(normalize(vNormal) + nearK * 1.3 * vec3(-gx, 0.0, -gz));
   float ndl = max(dot(N, uSunDir), 0.0);
   vec3 lit = col * (uAmbient + uSunColor * ndl);
   float f = 1.0 - exp(-pow(dist * uFogK, 2.0));
@@ -157,7 +157,7 @@ void main() {
   float low = 1.0 - smoothstep(0.0, 0.5, uSunEl);
   sky += mix(vec3(1.0, 0.82, 0.58), vec3(0.62, 0.74, 0.95), low) * (pow(sd, 18.0) * 0.55 + pow(sd, 3.0) * 0.12);
   sky += vec3(1.0, 0.97, 0.9) * smoothstep(0.9993, 0.9998, sd);
-  sky = mix(sky, horizon * 0.9, smoothstep(0.0, -0.12, d.y));
+  sky = mix(sky, horizon * 0.9, 1.0 - smoothstep(-0.12, 0.0, d.y));
   gl_FragColor = vec4(sky, 1.0);
 }`;
 
@@ -339,6 +339,7 @@ export class RoverScene {
       fragmentShader: RIBBON_FRAG,
       transparent: true,
       depthWrite: false,
+      side: THREE.DoubleSide,
       polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
