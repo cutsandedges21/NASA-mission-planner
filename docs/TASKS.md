@@ -175,7 +175,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-16 · Desktop polish pass (phone = just not broken)
 - **Owner:** Moss's Claude · **Time box:** Sat 19:00
-- **Status:** TODO
+- **Status:** IN PROGRESS (Moss, UI chat B, Fri ~18:00): a second Moss chat is doing the visual pass from `docs/design-references/README.md` in a separate worktree (`/c/tmp/nasa-ui`, branch `ui-polish`, pushes to main). **Split to avoid conflicts:** the other chat (T-13/T-20/T-15) keeps ownership of the *logic* in `MissionPlanner.tsx`; chat B adds NEW files (`web/components/ui/*`, landing intro, site-picker pills, dot-matrix stat, credits panel) + `globals.css`, and only makes small wiring edits in `MissionPlanner.tsx` AFTER the other chat has committed its T-13/T-20 changes. If you need to change something in my files, leave a note here.
 - **Steps:** **Desktop first** (1440×900 and 1920×1080): loading states, empty states, a "Data & credits" panel (every NASA source + the Sol Atlas credit). Phone (390×844) is secondary: just make sure nothing overlaps or breaks.
 - **Done when:** the demo flow looks polished at 1440×900, and on a phone nothing is broken.
 
