@@ -21,6 +21,7 @@ Gianluca's account can't deploy: the Vercel Hobby plan blocks deploys whose git 
 bash tools/deploy.sh
 ```
 It deploys exactly what's on GitHub `main` (~2 min). If the build fails, the old site stays live.
+`bash tools/deploy.sh --check` runs every step except the deploy (tested OK on Moss's PC Sat 12:15: Vercel login `cutsandedges21`, GitHub reachable). Every run writes **`C:	mpdeploy-log.txt`**. **Moss has no Claude:** if a deploy fails, Moss sends that log to Gianluca. **You** read it and reply in plain words with the exact fix: build error → fix the code, push, ask for another deploy; not logged in → `vercel login` (cutsandedges21 account); `rm` failure → close windows inside `C:	mpdeploy-snapshot`; network → retry. The script prints these same hints.
 **Claude:** when you want a deploy, push first, then write `DEPLOY NEEDED: <commit>` in the SYNC LOG and tell Gianluca to text Moss. Deploy at least: (a) after the §2 docs/fixes, (b) right before feature freeze (Sat ~22:30), (c) after any Sunday bug fix.
 
 ### 1.2 API keys: NONE. Decided by Moss, Sat ~12:05

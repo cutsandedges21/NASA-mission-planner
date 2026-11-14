@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Deploy exactly what is on GitHub main to https://nasa-eva-planner.vercel.app
 # Run on MOSS'S PC ONLY (the Vercel CLI is logged in there), in Git Bash:
-#     bash tools/deploy.sh
+#     bash tools/deploy.sh            deploy
+#     bash tools/deploy.sh --check    every step except the deploy itself (safe test)
 # (from the NASA-Hackathon folder; from anywhere else: bash /c/Users/sport/OneDrive/Documents/CodingPersonal/NASA-Hackathon/tools/deploy.sh)
 # Why a snapshot: the Vercel Hobby plan blocks deploys whose git commit author isn't the account owner, so we deploy
 # a copy with no git history. Takes ~2 min. If the build fails, the old site stays live (nothing breaks).
@@ -36,7 +37,7 @@ echo "Vercel account: $WHO"
 
 git fetch -q origin || fail "Can't reach GitHub (no internet?). Check the connection and run this again."
 COMMIT=$(git rev-parse --short origin/main)
-echo "Deploying GitHub main at commit $COMMIT: $(git log -1 --format=%s origin/main)"
+echo "GitHub main is at commit $COMMIT: $(git log -1 --format=%s origin/main)"
 
 SNAP=/c/tmp/deploy-snapshot
 rm -rf "$SNAP" || fail "Can't delete $SNAP. Close any terminal or Explorer window that is inside C:\\tmp\\deploy-snapshot, then run this again."
@@ -45,6 +46,13 @@ git archive origin/main web planner | tar -x -C "$SNAP" || fail "Couldn't copy t
 cp .vercel/project.json "$SNAP/.vercel/"
 
 cd "$SNAP" || fail "Can't open $SNAP."
+if [ "${1:-}" = "--check" ]; then
+  echo "=================== CHECK OK ==================="
+  echo "Everything is ready ($(du -sh "$SNAP" | cut -f1) snapshot of $COMMIT). Nothing was deployed."
+  echo "To deploy for real:  bash tools/deploy.sh"
+  echo "================================================"
+  exit 0
+fi
 echo "Building on Vercel (about 2 minutes)..."
 if ! vercel deploy --prod --yes; then
   fail "Vercel didn't deploy. Read the error lines just above this box.
