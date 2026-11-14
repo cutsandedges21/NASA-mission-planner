@@ -8,6 +8,7 @@ import { hm, marsClock, type Daylight, type MarsClock } from '@/lib/mars-context
 import { ROUTE_STYLE, fmtLL } from './format';
 import type { MapType } from '@/lib/trek';
 import { IChevDown, IChevUp, IInfo, ILayers, IPin, ISun, IGrid, IClock } from './icons';
+import { GEOLOGY_LEGEND, GEOLOGY_NOTE } from '@/lib/geology-layer';
 
 // Mission setup, 1:1 with the Spherium panel reference (cosmos_979618069): near-black column, two tabs,
 // collapsible sections with an icon + title + chevron, small grey sub-labels, tile grids where the active
@@ -35,8 +36,13 @@ export default function SetupPanel({
   hasTraverse = false,
   rover = false,
   onRover,
+  geology = false,
+  onGeology,
 }: {
   hasTraverse?: boolean;
+  /** Geologic units overlay (T-34, approximate, after NASA/JPL PIA26042). The toggle shows only when onGeology is passed. */
+  geology?: boolean;
+  onGeology?: (v: boolean) => void;
   /** Rover assist: plan and time the mission with an unpressurised rover. */
   rover?: boolean;
   onRover?: (v: boolean) => void;
@@ -198,10 +204,30 @@ export default function SetupPanel({
                 ))}
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{MAP_TYPES.find((t) => t.id === mapType)?.title}</p>
+              {onGeology && (
+                <>
+                  <Sub>Geology</Sub>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button onClick={() => onGeology(false)} className={`sp-tile ${!geology ? 'sp-on' : ''}`}>Off</button>
+                    <button onClick={() => onGeology(true)} className={`sp-tile ${geology ? 'sp-on' : ''}`} title={GEOLOGY_NOTE}>Rock units</button>
+                  </div>
+                  {geology && (
+                    <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-zinc-400">
+                      {GEOLOGY_LEGEND.map((u) => (
+                        <span key={u.id} className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: u.color }} />
+                          {u.name}
+                        </span>
+                      ))}
+                      <p className="col-span-2 mt-1 text-[10.5px] leading-relaxed text-zinc-500">{GEOLOGY_NOTE}</p>
+                    </div>
+                  )}
+                </>
+              )}
               {hasTraverse && (
                 <div className="mt-3 flex items-center gap-2.5 text-[11.5px] text-zinc-400">
                   <svg width="26" height="4" aria-hidden>
-                    <line x1="1" y1="2" x2="25" y2="2" stroke="#f4f4f5" strokeOpacity="0.7" strokeWidth="1.6" strokeDasharray="3 3" strokeLinecap="round" />
+                    <line x1="1" y1="2" x2="25" y2="2" stroke="#f5efe6" strokeOpacity="0.9" strokeWidth="1.6" strokeLinecap="round" />
                   </svg>
                   Curiosity&apos;s real drive path (NASA/JPL)
                 </div>

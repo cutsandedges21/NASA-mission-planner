@@ -23,6 +23,7 @@ import DockCard from './map/DockCard';
 import Credits from './map/Credits';
 import { useSimulation } from './Simulation';
 import { ROUTE_STYLE } from './map/format';
+import { setGeologyVisible } from '@/lib/geology-layer';
 
 
 export { ROUTE_STYLE };
@@ -53,6 +54,7 @@ export default function MissionPlanner() {
   const setShowSlope = useCallback((v: boolean) => setMapType(v ? 'slope' : 'colour'), []);
   const [globe, setGlobe] = useState(false);
   const [mapInst, setMapInst] = useState<MLMap | null>(null); // for children that listen to the map (HoverReadout)
+  const [geology, setGeology] = useState(false); // T-34: approximate rock units after NASA/JPL PIA26042
   const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
@@ -140,7 +142,8 @@ export default function MissionPlanner() {
           {
             id: 'traverse', type: 'line', source: 'traverse',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: { 'line-color': '#f4f4f5', 'line-width': 1.6, 'line-opacity': 0.6, 'line-dasharray': [2, 2] },
+            // NASA's detailed drive line (T-34a), drawn the way PIA26042 draws it: one thin, solid, pale line
+            paint: { 'line-color': '#f5efe6', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.1, 15, 2], 'line-opacity': 0.9 },
           },
           {
             id: 'routes-casing', type: 'line', source: 'routes',
@@ -306,6 +309,13 @@ export default function MissionPlanner() {
     }
   }, [mapReady, view3d]);
 
+  // 8b. geology (T-34): tint + channel + labels, loaded on first use (one 43 KB image + 24 KB JSON)
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp || !region) return;
+    if (geology || mp.getSource('geology-tint')) void setGeologyVisible(mp, geology, region);
+  }, [mapReady, region, geology]);
+
   // 9. map type (T-33): one global Trek layer + the matching region layer. Hidden layers load no tiles.
   const regionImgs = useRef<{ height?: string; thermal?: string }>({});
   useEffect(() => {
@@ -469,6 +479,8 @@ export default function MissionPlanner() {
         rover={rover}
         onRover={setRover}
         hasTraverse={!!region?.traverse}
+        geology={geology}
+        onGeology={region?.meta.id === 'gale' ? setGeology : undefined}
       />
 
       <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />
