@@ -402,6 +402,14 @@ export default function MissionPlanner() {
         </div>
       )}
 
+      {!scored.length && !intro && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center md:hidden">
+          <span className="rounded-full border border-white/10 bg-black/80 px-4 py-2.5 text-[13px] text-zinc-200 backdrop-blur">
+            {busy ? 'Planning routes…' : 'Tap a science site to plan a walk'}
+          </span>
+        </div>
+      )}
+
       {placing === 'base' && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>
       )}

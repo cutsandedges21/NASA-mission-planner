@@ -41,9 +41,12 @@
 
 @media (max-width: 767px) {
   .gal-win { --ph: min(420px, 50vh); padding: 18px 18px 22px; height: 88vh; }
-  .gal-row { gap: 6px; }
-  .gal-pill { width: calc(var(--ph) * 0.16); }
-  .gal-pill[data-on='true'] { width: calc(var(--ph) * 0.62); }
+  .gal-row { gap: 6px; width: 100%; }
+  .gal-pill { width: auto; flex: 1 1 0; min-width: 0; transition: flex-grow 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .gal-pill[data-on='true'] { width: auto; flex-grow: 5; }
+  .gal-cap { left: 10%; right: 8%; }
+  .gal-meta dd:nth-child(3) { display: none; }
+  .gal-h1 { font-size: 17px; }
   .gal-nav > div > button { display: none; }
   .gal-foot { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
