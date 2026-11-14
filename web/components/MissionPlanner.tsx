@@ -27,20 +27,15 @@ import ScenarioPanel from './ScenarioPanel';
 import { ROUTE_STYLE } from './map/format';
 import { setGeologyVisible } from '@/lib/geology-layer';
 import { radiationColourUrl, RAD_GLOBAL_URL, RAD_GLOBAL_CORNERS } from '@/lib/radiation-layer';
+import { lockToRegion, regionHome } from '@/lib/region-view';
 
 
 export { ROUTE_STYLE };
 
 /** 3D relief is drawn 1.5x taller than true scale so slopes read clearly. (MapLibre assumes Earth, see mars-scale.ts.) */
 const VERTICAL_EXAGGERATION = 1.5;
-/**
- * Zoom out only as far as the edges of the map: the whole planet (Web Mercator, 512 px at zoom 0) always
- * covers the window. (maxBounds would do it, but MapLibre 6.18 throws in calcMatrices with it.)
- */
-function fitWorld(mp: MLMap) {
-  const c = mp.getContainer();
-  mp.setMinZoom(Math.max(0, Math.log2(Math.max(c.clientWidth, c.clientHeight) / 512)));
-}
+/** 3D camera angle. */
+const PITCH_3D = 62, BEARING_3D = -25;
 
 /** What the next map click does: set the destination, move the base, or fill in a new bookmark. */
 type Placing = 'dest' | 'base' | 'bookmark' | 'pitstop';
@@ -72,6 +67,9 @@ export default function MissionPlanner() {
   const showSlope = mapType === 'slope';
   const setShowSlope = useCallback((v: boolean) => setMapType(v ? 'slope' : 'colour'), []);
   const [globe, setGlobe] = useState(false);
+  // 2D / 3D is locked to the region; only the Globe shows (and downloads) the rest of Mars. See lib/region-view.ts.
+  const globeRef = useRef(false);
+  const globeFly = useRef<[number, number] | null>(null); // a place outside the region to fly to once the globe is on
   const [mapInst, setMapInst] = useState<MLMap | null>(null); // for children that listen to the map (HoverReadout)
   const [geology] = useState(false); // T-34: approximate rock units after NASA/JPL PIA26042
   const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
@@ -124,7 +122,7 @@ export default function MissionPlanner() {
     const mp = new maplibregl.Map({
       container: mapEl.current,
       center: centre,
-      zoom: 4,
+      zoom: 11,
       attributionControl: false,
       maxPitch: 75,
       // you can zoom out only as far as the edges of the map (no empty space around Mars)
@@ -132,7 +130,8 @@ export default function MissionPlanner() {
       style: {
         version: 8,
         sources: {
-          // global NASA layers via NASA Mars Trek (T-33): only the active one is visible, so only its tiles load
+          // global NASA layers via NASA Mars Trek (T-33): shown on the Globe only, and only the active one, so
+          // no tile outside the region downloads while planning in 2D / 3D
           'trek-colour': trekSource('colour'),
           'trek-height': trekSource('height'),
           'trek-thermal': trekSource('thermal'),
@@ -141,8 +140,8 @@ export default function MissionPlanner() {
           'region-height': { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
           'region-thermal': { type: 'image', url: region.url('thermal.jpg'), coordinates: corners(m) },
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
-          // Radiation map type: NASA PIA03480 worldwide + the planner's dose rate over the region (built on first use)
-          'rad-global': { type: 'image', url: RAD_GLOBAL_URL, coordinates: RAD_GLOBAL_CORNERS },
+          // Radiation map type: the planner's dose rate over the region (built on first use). NASA PIA03480
+          // worldwide ('rad-global') is added on the Globe only, see the map-type effect.
           'region-rad': { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
           dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
@@ -154,10 +153,9 @@ export default function MissionPlanner() {
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
-          { id: 'trek-colour', type: 'raster', source: 'trek-colour', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.6, 'raster-fade-duration': 0 } },
+          { id: 'trek-colour', type: 'raster', source: 'trek-colour', layout: { visibility: 'none' }, paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.6, 'raster-fade-duration': 0 } },
           { id: 'trek-height', type: 'raster', source: 'trek-height', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
           { id: 'trek-thermal', type: 'raster', source: 'trek-thermal', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
-          { id: 'rad-global', type: 'raster', source: 'rad-global', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.8, 'raster-fade-duration': 0 } },
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
           { id: 'region-height', type: 'raster', source: 'region-height', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
           { id: 'region-thermal', type: 'raster', source: 'region-thermal', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
@@ -203,11 +201,15 @@ export default function MissionPlanner() {
     });
     mp.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
     mp.addControl(new MarsScaleControl(), 'bottom-left');
+    // start on the whole region, locked to it (no flight in from space: that would download the planet's tiles)
+    lockToRegion(mp, m, true);
+    mp.jumpTo(regionHome(m, mp));
+    mp.on('resize', () => {
+      if (!globeRef.current) lockToRegion(mp, m, true);
+    });
     mp.on('load', () => {
-      fitWorld(mp);
       setMapReady(true);
       setMapInst(mp);
-      mp.flyTo({ center: centre, zoom: 11.6, duration: 2600, essential: true });
     });
     map.current = mp;
     return () => {
@@ -389,7 +391,7 @@ export default function MissionPlanner() {
     }
     if (view3d) {
       mp.setTerrain({ source: 'dem', exaggeration: VERTICAL_EXAGGERATION * MARS_TERRAIN_FACTOR });
-      mp.easeTo({ pitch: 62, bearing: -25, duration: 1400 });
+      mp.easeTo({ pitch: PITCH_3D, bearing: BEARING_3D, duration: 1400 });
       mp.dragRotate.enable();
     } else {
       mp.setTerrain(null);
@@ -411,15 +413,21 @@ export default function MissionPlanner() {
     if (!mapReady || !mp || !region) return;
     const show = (id: string, on: boolean) => mp.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     const base = mapType === 'height' || mapType === 'thermal' ? mapType : 'colour';
-    show('trek-colour', base === 'colour');
-    show('trek-height', base === 'height');
-    show('trek-thermal', base === 'thermal');
+    // the rest of Mars only on the Globe (hidden layers download nothing)
+    show('trek-colour', globe && base === 'colour');
+    show('trek-height', globe && base === 'height');
+    show('trek-thermal', globe && base === 'thermal');
     show('region', base === 'colour');
     show('region-height', base === 'height');
     show('region-thermal', base === 'thermal');
     show('slope', mapType === 'slope');
-    show('rad-global', mapType === 'radiation');
     show('region-rad', mapType === 'radiation');
+    // NASA PIA03480 worldwide: added the first time it is needed on the Globe
+    if (globe && mapType === 'radiation' && !mp.getLayer('rad-global')) {
+      mp.addSource('rad-global', { type: 'image', url: RAD_GLOBAL_URL, coordinates: RAD_GLOBAL_CORNERS });
+      mp.addLayer({ id: 'rad-global', type: 'raster', source: 'rad-global', paint: { 'raster-opacity': 0.8, 'raster-fade-duration': 0 } }, 'region');
+    }
+    if (mp.getLayer('rad-global')) show('rad-global', globe && mapType === 'radiation');
     if (mapType === 'radiation' && !regionImgs.current.rad) {
       regionImgs.current.rad = 'pending';
       const m = region.meta;
@@ -433,37 +441,51 @@ export default function MissionPlanner() {
     if (base === 'height' && !regionImgs.current.height) {
       regionImgs.current.height = 'pending';
       const m = region.meta;
-      elevationColourUrl(region.elev, m.width, m.height).then((url) => {
+      elevationColourUrl(region.elev, m.width, m.height, m.cellM).then(({ url }) => {
         regionImgs.current.height = url;
         src('region-height')?.updateImage({ url, coordinates: corners(m) });
       });
     }
     if (base === 'thermal' && !regionImgs.current.thermal) {
       regionImgs.current.thermal = 'pending';
-      falseColourUrl(region.url('thermal.jpg')).then((url) => {
+      falseColourUrl(region.url('thermal.jpg'), 0.8).then((url) => {
         regionImgs.current.thermal = url;
         src('region-thermal')?.updateImage({ url, coordinates: corners(region.meta) });
       });
     }
-  }, [mapReady, mapType, region]);
+  }, [mapReady, mapType, region, globe]);
 
-  // 10. globe view (MapLibre's own globe projection: no extra library)
+  // 10. globe view (MapLibre's own globe projection: no extra library). Leaving the globe flies back to the
+  // region and locks the view to it again.
   const globeInit = useRef(false);
   useEffect(() => {
     const mp = map.current;
-    if (!mapReady || !mp) return;
+    globeRef.current = globe;
+    if (!mapReady || !mp || !region) return;
     if (!globeInit.current) {
       globeInit.current = true;
       if (!globe) return;
     }
-    mp.setProjection({ type: globe ? 'globe' : 'mercator' });
-    if (globe) mp.setMinZoom(0);
-    else fitWorld(mp);
+    const m = region.meta;
     if (globe) {
-      mp.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 1400 });
-    } else {
-      mp.easeTo({ zoom: 11.6, center: region ? [(region.meta.lon[0] + region.meta.lon[1]) / 2, (region.meta.lat[0] + region.meta.lat[1]) / 2] : undefined, duration: 1400 });
+      lockToRegion(mp, m, false);
+      mp.setProjection({ type: 'globe' });
+      const to = globeFly.current;
+      globeFly.current = null;
+      if (to) mp.flyTo({ center: to, zoom: 5, pitch: 0, bearing: 0, duration: 2200, essential: true });
+      else mp.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 1400 });
+      return;
     }
+    mp.setProjection({ type: 'mercator' });
+    const home = regionHome(m, mp);
+    const relock = () => {
+      if (!globeRef.current) lockToRegion(mp, m, true);
+    };
+    mp.once('moveend', relock);
+    mp.easeTo({ ...home, pitch: view3d ? PITCH_3D : 0, bearing: view3d ? BEARING_3D : 0, duration: 1400 });
+    return () => {
+      mp.off('moveend', relock);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the globe toggle only
   }, [mapReady, globe]);
 
@@ -531,12 +553,17 @@ export default function MissionPlanner() {
       setDestName(t.name);
       return;
     }
+    // outside the region: open the Globe there (2D / 3D show only the region)
     const mp = map.current;
     if (mp) {
       if (view3d) setView3d(false);
-      mp.flyTo({ center: [t.lon, t.lat], zoom: Math.max(5, Math.min(mp.getZoom(), 8)), pitch: 0, duration: 2200, essential: true });
+      if (globe) mp.flyTo({ center: [t.lon, t.lat], zoom: 5, pitch: 0, duration: 2200, essential: true });
+      else {
+        globeFly.current = [t.lon, t.lat];
+        setGlobe(true);
+      }
     }
-    setError(`${t.name} is outside the Gale planning area: you can look around, but walks are planned only inside the NASA 1 m terrain.`);
+    setError(`${t.name} is outside the Gale planning area: you can look around on the globe, but walks are planned only inside the NASA 1 m terrain.`);
     setTimeout(() => setError(null), 6000);
   };
   useEffect(() => {
@@ -550,7 +577,7 @@ export default function MissionPlanner() {
         <div ref={mapEl} className="h-full w-full" />
       </div>
       {simulation.viewLayer}
-      {!simulation.immersive && <HoverReadout map={mapInst} region={region} mapType={mapType} base={base} />}
+      {!simulation.immersive && <HoverReadout map={mapInst} region={region} mapType={mapType} base={base} globe={globe} />}
 
       <TopNav
         tab={hero ? 'sites' : navTab}

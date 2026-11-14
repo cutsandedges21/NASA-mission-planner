@@ -310,9 +310,9 @@ export default function SetupPanel({
 }
 
 const LAYER_INFO: Record<'colour' | 'thermal' | 'height' | 'radiation', string> = {
-  colour: 'True colour: the Viking global mosaic (NASA Mars Trek), with HiRISE colour over Gale. Turn on Thermal or Elevation to see more.',
-  thermal: 'Thermal: THEMIS infrared (NASA Mars Odyssey). Warm colours = ground that holds heat (rock); dark = dust and sand that cool fast.',
-  height: 'Elevation: MOLA colour relief worldwide, the 1 m NASA terrain over Gale. Blue = low, red/white = high.',
+  colour: 'True colour: HiRISE colour over Gale (NASA MRO). The map shows only the Gale planning area; press Globe for the rest of Mars.',
+  thermal: 'Thermal: THEMIS night infrared (NASA Mars Odyssey), contrast stretched to Gale. Warm colours = ground that holds heat (rock); dark = dust and sand that cool fast.',
+  height: 'Elevation: the 1 m NASA terrain of Gale. Purple and blue = low, green and yellow = middle, red to white = high. Each colour covers about the same area, so small rises stand out.',
   radiation: 'Radiation: cosmic-ray dose at the surface (NASA Mars Odyssey map PIA03480). Low ground has more air overhead, so less dose. Over Gale: the dose rate the SAFE route avoids, from the 1 m terrain.',
 };
 

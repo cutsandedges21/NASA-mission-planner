@@ -52,13 +52,36 @@ function colourise(img: ImageData) {
   }
 }
 
-/** False-colour a greyscale image (e.g. the region's THEMIS night-IR thermal.jpg). Returns a blob URL. */
-export async function falseColourUrl(url: string): Promise<string> {
+/**
+ * Spread grey levels so each band of the colour ramp covers about the same ground (histogram equalisation),
+ * mixed with the plain values by `mix` (1 = fully equalised). Makes a small region's few grey levels use the whole ramp.
+ */
+function equaliseGrey(img: ImageData, mix: number) {
+  const d = img.data;
+  const hist = new Float64Array(256);
+  for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
+  const lut = new Uint8Array(256);
+  const n = d.length / 4;
+  let acc = 0;
+  for (let v = 0; v < 256; v++) {
+    const cdf = (acc + hist[v] / 2) / n; // mid-rank of this grey level
+    acc += hist[v];
+    lut[v] = Math.round(255 * (mix * cdf + (1 - mix) * (v / 255)));
+  }
+  for (let i = 0; i < d.length; i += 4) d[i] = lut[d[i]];
+}
+
+/**
+ * False-colour a greyscale image (e.g. the region's THEMIS night-IR thermal.jpg). Returns a blob URL.
+ * `stretch` (0..1) equalises the grey levels first, so the region's own warm/cold spots use the whole ramp.
+ */
+export async function falseColourUrl(url: string, stretch = 0): Promise<string> {
   const bmp = await createImageBitmap(await (await fetch(url)).blob());
   const c = new OffscreenCanvas(bmp.width, bmp.height);
   const ctx = c.getContext('2d')!;
   ctx.drawImage(bmp, 0, 0);
   const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
+  if (stretch > 0) equaliseGrey(img, stretch);
   colourise(img);
   ctx.putImageData(img, 0, 0);
   return URL.createObjectURL(await c.convertToBlob({ type: 'image/png' }));
@@ -182,29 +205,80 @@ export function molaElevation(lon: number, lat: number): Promise<number | null> 
   return molaTile(r, c).then(read);
 }
 
-// --- the region's own elevation as a colour relief (same ramp as the HoverReadout legend) ----------------------
+// --- colour relief ---------------------------------------------------------------------------------------------
+// The globe keeps MOLA's own colour shaded relief (HEIGHT_GRADIENT is its legend). Gale gets its own, richer ramp,
+// spread over Gale's heights only (Moss, Sat 14 Nov: "higher and lower ground in clearly different colours").
 const HEIGHT_STOPS: [number, [number, number, number]][] = [
   [0, [43, 42, 143]], [0.2, [47, 127, 208]], [0.4, [63, 181, 122]], [0.6, [233, 216, 74]], [0.8, [217, 84, 47]], [1, [243, 233, 228]],
 ];
 export const HEIGHT_GRADIENT = `linear-gradient(90deg, ${HEIGHT_STOPS.map(([t, c]) => `rgb(${c.join(',')}) ${t * 100}%`).join(', ')})`;
 
-/** Colour-relief PNG of an elevation grid (row 0 = north), stretched between its 1st and 99th percentile. Returns a blob URL. */
-export async function elevationColourUrl(elev: Float32Array, w: number, h: number): Promise<string> {
-  const sorted = Float32Array.from(elev).sort();
-  const lo = sorted[Math.floor(sorted.length * 0.01)], hi = sorted[Math.floor(sorted.length * 0.99)];
+const GALE_STOPS: [number, [number, number, number]][] = [
+  [0, [26, 14, 78]], [0.12, [52, 48, 178]], [0.24, [30, 128, 214]], [0.36, [28, 186, 186]], [0.48, [72, 196, 96]],
+  [0.6, [212, 222, 64]], [0.72, [250, 168, 40]], [0.84, [226, 66, 44]], [0.93, [176, 40, 120]], [1, [248, 232, 244]],
+];
+export const GALE_HEIGHT_GRADIENT = `linear-gradient(90deg, ${GALE_STOPS.map(([t, c]) => `rgb(${c.join(',')}) ${t * 100}%`).join(', ')})`;
+
+function ramp(stops: [number, [number, number, number]][], t: number, out: Uint8ClampedArray, o: number) {
+  let k = 0;
+  while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+  const [t0, c0] = stops[k], [t1, c1] = stops[k + 1];
+  const f = Math.max(0, Math.min(1, (t - t0) / (t1 - t0)));
+  out[o] = c0[0] + (c1[0] - c0[0]) * f;
+  out[o + 1] = c0[1] + (c1[1] - c0[1]) * f;
+  out[o + 2] = c0[2] + (c1[2] - c0[2]) * f;
+  out[o + 3] = 255;
+}
+
+/** How much of the Gale height ramp is spread by area (equalised) vs by metres (linear). */
+const EQUALISE = 0.85;
+const BINS = 4096;
+/** Relief shading baked into the Gale colours: slopes drawn this many times steeper, lit from the north-west. */
+const SHADE_EXAG = 4;
+const LIGHT: [number, number, number] = [-0.5, 0.5, Math.SQRT1_2]; // sun at azimuth 315°, 45° up (east, north, up)
+
+/** Per cell: how lit the ground is vs flat ground (1 = flat, < 1 = facing away from the sun, > 1 = facing it). */
+function reliefShade(elev: Float32Array, w: number, h: number, cellX: number, cellY: number): Float32Array {
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const yn = Math.max(0, y - 1), ys = Math.min(h - 1, y + 1);
+    for (let x = 0; x < w; x++) {
+      const xw = Math.max(0, x - 1), xe = Math.min(w - 1, x + 1);
+      const gx = ((elev[y * w + xe] - elev[y * w + xw]) / ((xe - xw || 1) * cellX)) * SHADE_EXAG; // rise per metre east
+      const gy = ((elev[yn * w + x] - elev[ys * w + x]) / ((ys - yn || 1) * cellY)) * SHADE_EXAG; // rise per metre north
+      const lit = (-gx * LIGHT[0] - gy * LIGHT[1] + LIGHT[2]) / Math.sqrt(gx * gx + gy * gy + 1);
+      out[y * w + x] = Math.max(0.35, Math.min(1.3, Math.max(0, lit) / LIGHT[2]));
+    }
+  }
+  return out;
+}
+
+/**
+ * Colour relief of the region's elevation grid (row 0 = north), with Gale's own ramp. Heights are mostly
+ * histogram-equalised, so the crater floor where the walks happen spreads over many colours instead of one,
+ * while Mount Sharp still ends at the top of the ramp. Relief shading is baked in so ridges and hollows read at any
+ * zoom. Returns a blob URL plus the height range (m) for the legend.
+ */
+export async function elevationColourUrl(elev: Float32Array, w: number, h: number, cellM: [number, number] = [25, 25]): Promise<{ url: string; lo: number; hi: number }> {
+  let lo = Infinity, hi = -Infinity;
+  for (const z of elev) { if (z < lo) lo = z; if (z > hi) hi = z; }
+  const span = hi - lo || 1;
+  const cdf = new Float64Array(BINS + 1);
+  for (const z of elev) cdf[1 + Math.min(BINS - 1, Math.floor(((z - lo) / span) * BINS))]++;
+  for (let b = 1; b <= BINS; b++) cdf[b] += cdf[b - 1];
+  for (let b = 0; b <= BINS; b++) cdf[b] /= elev.length;
+  const shade = reliefShade(elev, w, h, cellM[0], cellM[1]);
   const c = new OffscreenCanvas(w, h);
   const ctx = c.getContext('2d')!;
   const img = ctx.createImageData(w, h);
+  const d = img.data;
   for (let i = 0; i < elev.length; i++) {
-    const t = Math.max(0, Math.min(1, (elev[i] - lo) / (hi - lo || 1)));
-    const k = Math.min(HEIGHT_STOPS.length - 2, Math.floor(t * (HEIGHT_STOPS.length - 1)));
-    const [t0, c0] = HEIGHT_STOPS[k], [t1, c1] = HEIGHT_STOPS[k + 1];
-    const f = (t - t0) / (t1 - t0);
-    img.data[i * 4] = c0[0] + (c1[0] - c0[0]) * f;
-    img.data[i * 4 + 1] = c0[1] + (c1[1] - c0[1]) * f;
-    img.data[i * 4 + 2] = c0[2] + (c1[2] - c0[2]) * f;
-    img.data[i * 4 + 3] = 255;
+    const u = ((elev[i] - lo) / span) * BINS;
+    const b = Math.min(BINS - 1, Math.floor(u));
+    const eq = cdf[b] + (cdf[b + 1] - cdf[b]) * (u - b); // interpolated within the bin: no visible steps
+    ramp(GALE_STOPS, EQUALISE * eq + (1 - EQUALISE) * (u / BINS), d, i * 4);
+    d[i * 4] *= shade[i]; d[i * 4 + 1] *= shade[i]; d[i * 4 + 2] *= shade[i]; // Uint8Clamped: brightening clips at 255
   }
   ctx.putImageData(img, 0, 0);
-  return URL.createObjectURL(await c.convertToBlob({ type: 'image/png' }));
+  return { url: URL.createObjectURL(await c.convertToBlob({ type: 'image/png' })), lo, hi };
 }

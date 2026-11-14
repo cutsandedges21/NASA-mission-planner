@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type * as maplibregl from 'maplibre-gl';
 import type { Region } from '@/lib/region';
 import { probe, loadThermal, TEMP_MODEL_ERR_C, MOLA8_ERR_M, type Probe } from '@/lib/probe';
-import { THERMAL_GRADIENT, HEIGHT_GRADIENT, TREK_LAYERS, type MapType } from '@/lib/trek';
+import { THERMAL_GRADIENT, HEIGHT_GRADIENT, GALE_HEIGHT_GRADIENT, TREK_LAYERS, type MapType } from '@/lib/trek';
 import { hm } from '@/lib/mars-context';
 import { RAD_GRADIENT, radRate } from '@/lib/radiation-layer';
 
@@ -15,23 +15,27 @@ export default function HoverReadout({
   region,
   mapType,
   base,
+  globe = false,
 }: {
   map: maplibregl.Map | null;
   region: Region | null;
   mapType: MapType;
   /** The Mars base [lon, lat]: elevations are shown relative to it (base = 0 m). */
   base: [number, number] | null;
+  /** Globe on: readout anywhere on Mars. Off (2D / 3D): only inside the region, so nothing outside it downloads. */
+  globe?: boolean;
 }) {
   const [p, setP] = useState<Probe | null>(null);
   // the base's own elevation (from the region's 1 m DEM; the base is always inside the region)
   const baseElev = useMemo(() => (base && region ? probe(region, base[0], base[1]).now.elevM : null), [base, region]);
-  // dose-rate range over the region (legend of the Radiation map type)
-  const radRange = useMemo(() => {
+  // the region's height range (Elevation legend) and dose-rate range (Radiation legend)
+  const zRange = useMemo(() => {
     if (!region) return null;
     let lo = Infinity, hi = -Infinity;
     for (const z of region.elev) { if (z < lo) lo = z; if (z > hi) hi = z; }
-    return [radRate(lo), radRate(hi)] as const;
+    return [lo, hi] as const;
   }, [region]);
+  const radRange = zRange ? ([radRate(zRange[0]), radRate(zRange[1])] as const) : null;
   const pending = useRef<{ lng: number; lat: number } | null>(null);
   const seq = useRef(0);
 
@@ -54,7 +58,14 @@ export default function HoverReadout({
       });
     };
     const onMove = (e: maplibregl.MapMouseEvent) => {
-      pending.current = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+      const { lng, lat } = e.lngLat;
+      const m = region?.meta;
+      if (!globe && m && (lng < m.lon[0] || lng > m.lon[1] || lat < m.lat[0] || lat > m.lat[1])) {
+        pending.current = null; // the dark margin around the region: nothing to read, nothing to fetch
+        setP(null);
+        return;
+      }
+      pending.current = { lng, lat };
       if (!raf) raf = requestAnimationFrame(flush);
     };
     const onOut = () => {
@@ -68,11 +79,22 @@ export default function HoverReadout({
       map.off('mouseout', onOut);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [map, region]);
+  }, [map, region, globe]);
 
   const legend =
-    mapType === 'thermal' ? { g: THERMAL_GRADIENT, lo: 'cold', hi: 'warm', src: region ? 'THEMIS IR: day (global), night (Gale)' : TREK_LAYERS.thermal.name } :
-    mapType === 'height' ? { g: HEIGHT_GRADIENT, lo: 'low', hi: 'high', src: 'MOLA relief (global), 1 m DEM (Gale)' } :
+    mapType === 'thermal'
+      ? globe
+        ? { g: THERMAL_GRADIENT, lo: 'cold', hi: 'warm', src: region ? 'THEMIS IR: day (global), night (Gale)' : TREK_LAYERS.thermal.name }
+        : { g: THERMAL_GRADIENT, lo: 'cold', hi: 'warm', src: 'THEMIS night IR, contrast stretched to Gale' } :
+    mapType === 'height'
+      ? globe
+        ? { g: HEIGHT_GRADIENT, lo: 'low', hi: 'high', src: 'MOLA relief (global), 1 m DEM (Gale)' }
+        : {
+            g: GALE_HEIGHT_GRADIENT,
+            lo: zRange ? fmtRel(zRange[0] - (baseElev ?? 0)) : 'low',
+            hi: zRange ? `${fmtRel(zRange[1] - (baseElev ?? 0))} vs base` : 'high',
+            src: '1 m DEM. Each colour covers about the same area of Gale, so small rises show up',
+          } :
     mapType === 'radiation' ? {
       g: RAD_GRADIENT,
       lo: radRange ? `Gale ${radRange[0].toFixed(2)}` : 'low',
