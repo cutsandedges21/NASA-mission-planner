@@ -79,6 +79,12 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'NASA data',
+    name: 'Mars Dust Activity Database (MDAD), Battalio & Wang 2021',
+    what: 'How often a dust storm covered our Gale area, by season (MGS MOC + MRO MARCI daily maps, Mars Years 24–32). Sets the storm chance in the Mission simulator (data/dust_gale.py → dust.json)',
+    url: 'https://doi.org/10.7910/DVN/F8R2JX',
+  },
+  {
+    group: 'NASA data',
     name: 'PIA26042: Curiosity\'s Path to Gediz Vallis Ridge and Beyond (NASA/JPL-Caltech/ESA/University of Arizona/JHUAPL/MSSS/USGS Astrogeology)',
     what: 'The guide for our approximate rock-unit outlines (unit names and colours). No pixels copied: the outlines come from the MSL DEM and HiRISE',
     url: 'https://photojournal.jpl.nasa.gov/catalog/PIA26042',

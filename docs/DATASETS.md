@@ -22,6 +22,7 @@ Bucket root: `https://asc-pds-services.s3.us-west-2.amazonaws.com/` (same files 
 | `visible.jpg` (**primary**) | MSL Gale HiRISE LRGB colour mosaic (78 quads, COG) | MRO HiRISE | 25 cm/px source | `mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif` (~1 GB COG) |
 | `visible.jpg` (fallback) | Viking MDIM 2.1 colour | Viking Orbiter | ~232 m/px | `wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif` |
 | `thermal.jpg` | THEMIS Night IR controlled mosaic v2 | Mars Odyssey THEMIS | 100 m/px | `wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif` |
+| `dust.json` (T-35, Mission simulator) | **Mars Dust Activity Database (MDAD)** v1.0, Battalio & Wang 2021, *Icarus* 354, 114059. CC0. Not in the USGS bucket: Harvard Dataverse [doi:10.7910/DVN/F8R2JX](https://doi.org/10.7910/DVN/F8R2JX) (`MDAD.tab`, 2.4 MB) | MGS MOC + MRO MARCI Mars Daily Global Maps, 14,974 storm-sol records, Mars Years 24–32 | 30° Ls bins over the Gale box centre | `PYTHONUTF8=1 python data/dust_gale.py` (downloads to `data-cache/`). Storm over Gale on at most ~3 % of sols (Ls 270–300), 0 % at Ls 0–150. Approximation: storms as equal-area circles inside their latitude range; planet-encircling storms (MY 25, 28) are undercounted |
 
 Product pages (for `meta.json` → `sources[].url` and the credits panel):
 - DEM: https://astrogeology.usgs.gov/search/map/mars_msl_gale_merged_dem_1m
