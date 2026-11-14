@@ -75,7 +75,7 @@
 .dock-round { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9999px; background: #0b0b0d; border: 1.5px solid rgb(255 255 255 / 0.12); color: #fff; }
 
 /* credits: same dark surface as every other panel */
-.cr-frame { width: min(900px, 100%); max-height: 90vh; overflow-y: auto; border-radius: 26px; background: rgb(14 14 16 / 0.97); padding: 18px; border: 1px solid rgb(255 255 255 / 0.08); box-shadow: 0 40px 120px -20px #000; }
+.cr-frame { scrollbar-width: thin; scrollbar-color: #3f3f46 transparent; width: min(900px, 100%); max-height: 90vh; overflow-y: auto; border-radius: 26px; background: rgb(14 14 16 / 0.97); padding: 18px; border: 1px solid rgb(255 255 255 / 0.08); box-shadow: 0 40px 120px -20px #000; }
 .cr-star { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9999px; background: rgb(255 255 255 / 0.08); color: #f5c84b; font-size: 15px; }
 .cr-close { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9999px; background: #fff; color: #000; font-size: 12px; }
 .cr-card { border-radius: 18px; background: rgb(255 255 255 / 0.035); border: 1px solid rgb(255 255 255 / 0.06); color: #e4e4e7; padding: 16px 18px; }
