@@ -6,6 +6,53 @@ People: **Moss** (product, frontend, UI/UX) and **Teammate** (data, routing, bac
 
 Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DONE (commit)`
 
+## 🔄 SYNC LOG: both Claudes, read this first (Moss: "everything both of you do must be in sync")
+
+**Rules (30 seconds to follow):**
+1. `git pull --rebase --autostash` before every step; `git push` right after it.
+2. Starting, finishing or stuck? Add **one line at the top of the table below** (newest first): time (EST) · who · what · files the other side needs. Commit it together with the work.
+3. About to touch a file the other side owns, or change something the other side builds on (planner output, `web/public/data/gale/*`, `web/lib/credits.ts`, any number quoted in the docs)? **Write it in the log before you push**, so the other Claude re-checks its work.
+4. Never edit the same file as the other Claude at the same time. Ownership is in "Who owns what" below. Unsure? Say so in the log and wait one pull.
+5. Idle? Don't stop. Take the next `TODO` with your name on it, or add a task. (Teammate's Claude sat idle ~15 h because nobody had written it tasks. T-30 and T-31 below are its next work.)
+
+| Time (EST) | Who | What | Files / outputs the other side needs |
+|---|---|---|---|
+| Sat 11:15 | Moss's Claude | Started **T-29a** layered-data graphic in Blender (first renders look right: five layers stacked, real data). Posted **T-30** and **T-31** for Teammate | `tools/blender/*` (new, mine). Will deliver `docs/graphics/layered-data.png` and `web/public/graphics/layered-data.jpg` (T-30 references these exact paths) |
+| Sat 10:30 | Moss's Claude | Rover assist + first-person view verified on localhost and live | `web/components/RoverView.tsx`, `Simulation*.tsx`; C6 in `docs/CHALLENGE.md` can be ✅ |
+| Fri 21:00 | Teammate's Claude | Last seen: T-24/T-25/T-26/T-27/T-08 done, T-28 follow-up (commit b64bfdc). Idle since | none |
+
+**To wake Teammate's Claude** (Gianluca pastes this into it): `git pull --rebase --autostash, then read the SYNC LOG and T-30, T-31 at the top of docs/TASKS.md, claim T-30 and start. Then run: /loop 2m git pull --rebase --autostash and re-read docs/TASKS.md for changes that affect you.`
+
+## T-29 · Blender package (Moss's Claude; Moss approved ideas 1, 3, 5, 6, 7 on Sat 11:00; **7 is the priority**)
+Blender 5.1.1 runs headless on Moss's PC (CPU only: ~8 s per 960×540 frame). Everything is scripted in `tools/blender/` so it can be re-run when the data changes. **Assets can land until Sun 08:00** (feature freeze is for features, not for pictures and videos).
+
+| Part | What | Deliverable (paths are final) | Status |
+|---|---|---|---|
+| **7** | **Layered-data graphic**: five NASA layers of the same Gale patch, stacked and pulled apart: mission plan (our routes + Curiosity's real path), HiRISE colour, THEMIS thermal, slope hazard (from the MSL DEM), 3D terrain. Proves the challenge's "layered, integrated view from multiple NASA missions" in one picture | `docs/graphics/layered-data.png` (3840×2160), `web/public/graphics/layered-data.jpg` | IN PROGRESS (Moss's Claude, Sat 11:15) |
+| 1 | **Moving shadows**: sun shadows + ambient occlusion baked from the real terrain for ~8 times of day; the 3D map and the rover view darken and lengthen shadows as the EVA clock moves | `web/public/data/gale/shade/*.png` + app integration | TODO (next) |
+| 3 | **Rocks and ground detail**: a small set of real 3D rock models and a tileable regolith texture, so close-ups stop looking flat. Rocks are illustrative (the data has no boulders at 25 m) and are labelled so | `web/public/models/rocks.glb`, `web/public/textures/regolith-*.jpg` | TODO |
+| 5 + 6 | **Descent + flyover** as one ~20 s video: orbit → drop into Gale Crater → fly along the planned route with the route glowing. For the landing page, the README and the submission video | `web/public/video/mars-descent.mp4` + `.jpg` poster | TODO (renders in the background) |
+| 8 | Predicted first-person panoramas at each science site (optionally next to NASA's real Curiosity photo) | n/a | NOT STARTED: waiting for Moss's decision |
+
+## T-30 · Keep every document in step with the Blender package (Teammate's Claude, start now)
+- **Owner:** Teammate · **Time box:** 60 min · **Status:** TODO
+- **Why:** the graphics change what the docs may claim, and Moss wants nothing out of sync. The file paths in T-29 are final, so write the text now; the files appear as I finish them (each arrival gets a SYNC LOG line).
+- **Steps:**
+  1. `docs/AI-USE.md`: add a short section: graphics and 3D assets were made in **Blender 5.1** from real NASA data (terrain, imagery, thermal, slope) and our own planner output; nothing in them is AI-generated imagery; the **rocks and ground grain are illustrative** (the data has no boulders at 25 m). The descent video's globe uses NASA Viking MDIM 2.1 colour.
+  2. `web/lib/credits.ts`: add entries: Blender 5.1 (GPL-3.0, used to render the graphics and build the 3D assets), and the Viking MDIM 2.1 global colour mosaic (NASA/USGS) for the descent video. Keep the same shape as the existing entries; `cd web && npx tsc --noEmit` if you can run it.
+  3. `README.md`: add a section **"Five NASA layers, one plan"** right after the pitch: `![Five NASA data layers stacked over Gale Crater](docs/graphics/layered-data.png)`, a one-sentence caption, and a 5-row table (layer · NASA mission/instrument · resolution · what the planner does with it). Take mission names and resolutions from `web/public/data/gale/meta.json` `sources`.
+  4. `docs/SUBMISSION.md`: list `web/public/graphics/layered-data.jpg` as the image to upload to the project page, with a caption of at most 140 characters; add the same table.
+  5. `docs/DEMO-SCRIPT.md`: add two **optional** beats, marked "only if the file exists": (a) 0:00–0:08 the descent/flyover clip under the hook narration; (b) at the "real data" beat, show the layered graphic for 5 s with narration that names the five layers. Write the narration lines word for word.
+  6. `docs/CHALLENGE.md`: in row O5 add one sentence pointing to the layered graphic as the picture of how the data kinds combine. Leave C5 ⬜ until Moss decides on idea 8.
+  7. Add a SYNC LOG line per file group, push after each.
+- **Done when:** all six files updated and pushed, and a SYNC LOG line says which paths still need to land from Moss's side.
+
+## T-31 · One command that proves the submission is consistent (Teammate's Claude, after T-30)
+- **Owner:** Teammate · **Time box:** 60 min · **Status:** TODO
+- **Why:** with two people, two Claudes and many documents, the cheapest way to stay in sync is a check anyone can run: `node tools/check-submission.mjs`.
+- **Steps:** create `tools/check-submission.mjs` (plain Node, no dependencies) that: (a) finds every relative image/link path in `README.md`, `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` and fails if the file doesn't exist; (b) fetches the live site `https://nasa-eva-planner.vercel.app`, `/data/gale/meta.json`, `/api/space-weather` (`ok: true`) and POSTs a small body to `/api/explain` (expects a briefing), **skipping with a clear message when offline** (you have no internet; Moss's Claude will run it); (c) re-runs the planner for the numbers quoted in `docs/SUBMISSION.md` and `docs/DEMO-SCRIPT.md` (your `planner/scripts/demo-numbers.mjs` already prints them) and fails if a quoted number no longer matches (keep a small `docs/numbers.json` of `{phrase: value}` if that is easiest); (d) fails on leftover `{{LIVE_URL}}`, `{{REPO_URL}}`, `{{VIDEO_URL}}` or `TODO` in those three docs; (e) exits 0 only if everything passes, and prints one line per check.
+- **Done when:** it runs offline, prints OK for (a), (c), (d) and "skipped" for (b), and the SYNC LOG says how to run it.
+
 ## 📣 FOR TEAMMATE'S CLAUDE (Fri 20:15, from Moss's Claude): you are NOT out of work. Do these in this order
 
 **Pull first** (`git pull --rebase --autostash`). A lot changed in the last hour:
