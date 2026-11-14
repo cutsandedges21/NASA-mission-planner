@@ -55,6 +55,9 @@ PED_APRON_BOX = (137.36, 137.40, -4.772, -4.733)
 VRR_LINE = [(137.30, -4.7415), (137.35, -4.7345), (137.378, -4.7285), (137.40, -4.7255), (137.43, -4.7215), (137.50, -4.7105)]
 UNIT_LON = (137.335, 137.465)  # keep the band to the part of the mountain front that the map shows around the traverse
 
+# Label spots for the big units, near Curiosity's route where people look (checked to lie inside the unit below)
+LABEL_AT = {'sulfate': (137.3835, -4.7690), 'clay': (137.4050, -4.7372)}
+
 UNITS = [  # id, name, colour (PIA26042 palette as in Moss's reference image)
     ('sulfate', 'Sulfate-Bearing Unit', '#d9a82e'),
     ('clay', 'Clay-Bearing Unit', '#3fa34d'),
@@ -182,7 +185,12 @@ def main():
             raise SystemExit(f'{uid} came out empty')
         biggest = max(g.geoms, key=lambda q: q.area) if isinstance(g, MultiPolygon) else g
         lp = biggest.representative_point() if uid != 'pediment' else biggest.centroid
-        if not biggest.contains(lp):
+        if uid in LABEL_AT:
+            lx, ly = to_px(*LABEL_AT[uid])
+            if not masks[uid][int(ly), int(lx)]:
+                raise SystemExit(f'LABEL_AT[{uid}] is not inside the unit')
+            lp = Point(lx, ly)
+        elif not biggest.contains(lp):
             lp = biggest.representative_point()
         props = {'id': uid, 'name': name, 'color': colour, 'kind': 'unit', 'approx': True,
                  'label': [round(lo0 + lp.x * dx, 5), round(la1 - lp.y * dy, 5)],
