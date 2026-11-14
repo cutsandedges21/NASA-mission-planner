@@ -164,6 +164,12 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   const b = budget(samples, stops.map((s) => s.d), params);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;
+  if (!Number.isFinite(b.avgW)) b.avgW = 0; // zero-length route (start == end)
+  // Max slope = the steeper of the cell-to-cell grade and the steepest ground inside any cell walked
+  // through (from fineSlope). The grade alone misses short steep pitches, e.g. a target on a cliff.
+  b.gradeMaxSlope = b.maxSlope;
+  b.fineMaxSlope = ctx.fineSlope ? Math.max(0, ...path.map(([x, y]) => ctx.fineSlope[y * w + x])) : 0;
+  b.maxSlope = Math.max(b.gradeMaxSlope, b.fineMaxSlope);
   // Radiation: surface dose rate measured by Curiosity's RAD in Gale crater × time outside.
   b.doseMSv = evaDoseMSv(b.totalT);
   // Terrain risk: share of the outbound distance on cells whose steepest fine-scale slope > STEEP_DEG.

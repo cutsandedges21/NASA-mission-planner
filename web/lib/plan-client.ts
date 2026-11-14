@@ -13,7 +13,12 @@ export type Budget = {
   marginPct: number;
   gain: number;
   loss: number;
+  /** Steeper of gradeMaxSlope and fineMaxSlope (deg): what the verdict and the card should show. */
   maxSlope: number;
+  /** Steepest cell-to-cell grade along the route (deg). */
+  gradeMaxSlope?: number;
+  /** Steepest fine-scale slope inside any cell on the route, from slope.png (deg). */
+  fineMaxSlope?: number;
   timeline: { d: number; t: number; o2: number }[];
   /** Radiation dose for the whole EVA (mSv), from Curiosity RAD's measured Gale surface rate. */
   doseMSv?: number;
