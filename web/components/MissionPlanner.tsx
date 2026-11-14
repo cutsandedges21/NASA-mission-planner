@@ -359,6 +359,7 @@ export default function MissionPlanner() {
         on3d={setView3d}
         weather={weather}
         base={base}
+        hasTraverse={!!region?.traverse}
       />
 
       <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />

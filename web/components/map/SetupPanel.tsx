@@ -34,7 +34,9 @@ export default function SetupPanel({
   on3d,
   weather,
   base,
+  hasTraverse = false,
 }: {
+  hasTraverse?: boolean;
   meta: RegionMeta | null;
   pois: Poi[];
   destName: string | null;
@@ -200,6 +202,14 @@ export default function SetupPanel({
                   3D relief
                 </button>
               </div>
+              {hasTraverse && (
+                <div className="mt-3 flex items-center gap-2.5 text-[11.5px] text-zinc-400">
+                  <svg width="26" height="4" aria-hidden>
+                    <line x1="1" y1="2" x2="25" y2="2" stroke="#f4f4f5" strokeOpacity="0.7" strokeWidth="1.6" strokeDasharray="3 3" strokeLinecap="round" />
+                  </svg>
+                  Curiosity&apos;s real drive path (NASA/JPL)
+                </div>
+              )}
               {meta?.synthetic && (
                 <p className="mt-3 flex gap-2 text-[11px] leading-relaxed text-zinc-500">
                   <IInfo size={14} className="mt-0.5 shrink-0" />
