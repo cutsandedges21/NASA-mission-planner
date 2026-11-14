@@ -6,6 +6,7 @@ import type { Strategy } from '@/lib/plan-client';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import { hm, marsClock, type Daylight, type MarsClock } from '@/lib/mars-context';
 import { ROUTE_STYLE, fmtLL } from './format';
+import type { MapType } from '@/lib/trek';
 import { IChevDown, IChevUp, IInfo, ILayers, IPin, ISun, IGrid, IClock } from './icons';
 
 // Mission setup, 1:1 with the Spherium panel reference (cosmos_979618069): near-black column, two tabs,
@@ -27,8 +28,8 @@ export default function SetupPanel({
   startH,
   onStart,
   windows,
-  showSlope,
-  onSlope,
+  mapType,
+  onMapType,
   weather,
   base,
   hasTraverse = false,
@@ -51,8 +52,9 @@ export default function SetupPanel({
   startH: number;
   onStart: (h: number) => void;
   windows: { strategy: Strategy; d: Daylight | null }[];
-  showSlope: boolean;
-  onSlope: (v: boolean) => void;
+  /** Map type (T-33): NASA Trek global layer + the region's matching layer; slope = colour + slope overlay. */
+  mapType: MapType;
+  onMapType: (t: MapType) => void;
   weather: SpaceWeatherStatus | null;
   base: [number, number] | null;
 }) {
@@ -187,15 +189,15 @@ export default function SetupPanel({
 
             {/* environment */}
             <Section icon={<ILayers size={15} />} title="Environment" open={open.env} onFlip={() => flip('env')}>
-              <Sub>Hazard layer</Sub>
+              <Sub>Map type</Sub>
               <div className="grid grid-cols-2 gap-1.5">
-                <button onClick={() => onSlope(false)} className={`sp-tile ${!showSlope ? 'sp-on' : ''}`}>
-                  Colour
-                </button>
-                <button onClick={() => onSlope(true)} className={`sp-tile ${showSlope ? 'sp-on' : ''}`}>
-                  Slope
-                </button>
+                {MAP_TYPES.map((t) => (
+                  <button key={t.id} onClick={() => onMapType(t.id)} className={`sp-tile ${mapType === t.id ? 'sp-on' : ''}`} title={t.title}>
+                    {t.label}
+                  </button>
+                ))}
               </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{MAP_TYPES.find((t) => t.id === mapType)?.title}</p>
               {hasTraverse && (
                 <div className="mt-3 flex items-center gap-2.5 text-[11.5px] text-zinc-400">
                   <svg width="26" height="4" aria-hidden>
@@ -280,3 +282,10 @@ function Meter({ k, v, frac, title }: { k: string; v: string; frac?: number; tit
     </div>
   );
 }
+
+const MAP_TYPES: { id: MapType; label: string; title: string }[] = [
+  { id: 'colour', label: 'Colour', title: 'Viking colour mosaic (NASA Trek) + HiRISE colour over Gale' },
+  { id: 'height', label: 'Height', title: 'MOLA colour relief (NASA Trek) + the 1 m NASA DEM over Gale' },
+  { id: 'thermal', label: 'Thermal', title: 'THEMIS day IR (NASA Trek) + THEMIS night IR over Gale: warm = rock that holds heat' },
+  { id: 'slope', label: 'Slope', title: 'Hazard: steepest ground in each 25 m cell, from the 1 m NASA DEM' },
+];

@@ -7,6 +7,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { corners, loadRegion, toCell, toLonLat, type Poi, type Region } from '@/lib/region';
 import { plan, type PlannedRoute, type Strategy } from '@/lib/plan-client';
 import { registerRegionTerrain } from '@/lib/terrain';
+import { registerTrek, trekSource, falseColourUrl, elevationColourUrl, type MapType } from '@/lib/trek';
+import HoverReadout from './map/HoverReadout';
 import { MARS_TERRAIN_FACTOR, MarsScaleControl } from '@/lib/mars-scale';
 import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
 import type { ExplainRequest } from '@/lib/explain';
@@ -22,7 +24,6 @@ import Credits from './map/Credits';
 import { useSimulation } from './Simulation';
 import { ROUTE_STYLE } from './map/format';
 
-const BASEMAP = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
 
 export { ROUTE_STYLE };
 
@@ -46,7 +47,12 @@ export default function MissionPlanner() {
   const [error, setError] = useState<string | null>(null);
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
-  const [showSlope, setShowSlope] = useState(false);
+  // map type (T-33): colour / height / thermal / slope. Slope keeps the colour base + the slope overlay.
+  const [mapType, setMapType] = useState<MapType>('colour');
+  const showSlope = mapType === 'slope';
+  const setShowSlope = useCallback((v: boolean) => setMapType(v ? 'slope' : 'colour'), []);
+  const [globe, setGlobe] = useState(false);
+  const [mapInst, setMapInst] = useState<MLMap | null>(null); // for children that listen to the map (HoverReadout)
   const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
@@ -92,6 +98,7 @@ export default function MissionPlanner() {
     const m = region.meta;
     maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
     registerRegionTerrain(region);
+    registerTrek();
     const centre: [number, number] = [(m.lon[0] + m.lon[1]) / 2, (m.lat[0] + m.lat[1]) / 2];
     const mp = new maplibregl.Map({
       container: mapEl.current,
@@ -102,8 +109,14 @@ export default function MissionPlanner() {
       style: {
         version: 8,
         sources: {
-          basemap: { type: 'raster', tiles: [BASEMAP], tileSize: 256, maxzoom: 9, attribution: 'OpenPlanetaryMap (NASA MOLA/Viking)' },
+          // global NASA layers via NASA Mars Trek (T-33): only the active one is visible, so only its tiles load
+          'trek-colour': trekSource('colour'),
+          'trek-height': trekSource('height'),
+          'trek-thermal': trekSource('thermal'),
           region: { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
+          // the region's own NASA layers in false colour (urls swapped in once built, see the map-type effect)
+          'region-height': { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
+          'region-thermal': { type: 'image', url: region.url('thermal.jpg'), coordinates: corners(m) },
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
           dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
@@ -113,8 +126,12 @@ export default function MissionPlanner() {
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
-          { id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-saturation': -0.55, 'raster-brightness-max': 0.42 } },
+          { id: 'trek-colour', type: 'raster', source: 'trek-colour', paint: { 'raster-saturation': -0.3, 'raster-brightness-max': 0.6, 'raster-fade-duration': 0 } },
+          { id: 'trek-height', type: 'raster', source: 'trek-height', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
+          { id: 'trek-thermal', type: 'raster', source: 'trek-thermal', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': 0.8, 'raster-fade-duration': 0 } },
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
+          { id: 'region-height', type: 'raster', source: 'region-height', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
+          { id: 'region-thermal', type: 'raster', source: 'region-thermal', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
           { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1a0d07' } },
           {
             id: 'slope', type: 'raster', source: 'slope', layout: { visibility: 'none' },
@@ -147,12 +164,14 @@ export default function MissionPlanner() {
     mp.addControl(new MarsScaleControl(), 'bottom-left');
     mp.on('load', () => {
       setMapReady(true);
+      setMapInst(mp);
       mp.flyTo({ center: centre, zoom: 11.6, duration: 2600, essential: true });
     });
     map.current = mp;
     return () => {
       mp.remove();
       map.current = null;
+      setMapInst(null);
     };
   }, [region]);
 
@@ -287,10 +306,56 @@ export default function MissionPlanner() {
     }
   }, [mapReady, view3d]);
 
+  // 9. map type (T-33): one global Trek layer + the matching region layer. Hidden layers load no tiles.
+  const regionImgs = useRef<{ height?: string; thermal?: string }>({});
   useEffect(() => {
     const mp = map.current;
-    if (mapReady && mp) mp.setLayoutProperty('slope', 'visibility', showSlope ? 'visible' : 'none');
-  }, [mapReady, showSlope]);
+    if (!mapReady || !mp || !region) return;
+    const show = (id: string, on: boolean) => mp.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    const base = mapType === 'height' || mapType === 'thermal' ? mapType : 'colour';
+    show('trek-colour', base === 'colour');
+    show('trek-height', base === 'height');
+    show('trek-thermal', base === 'thermal');
+    show('region', base === 'colour');
+    show('region-height', base === 'height');
+    show('region-thermal', base === 'thermal');
+    show('slope', mapType === 'slope');
+    // build the region's false-colour images once, on first use
+    const src = (id: string) => mp.getSource(id) as maplibregl.ImageSource | undefined;
+    if (base === 'height' && !regionImgs.current.height) {
+      regionImgs.current.height = 'pending';
+      const m = region.meta;
+      elevationColourUrl(region.elev, m.width, m.height).then((url) => {
+        regionImgs.current.height = url;
+        src('region-height')?.updateImage({ url, coordinates: corners(m) });
+      });
+    }
+    if (base === 'thermal' && !regionImgs.current.thermal) {
+      regionImgs.current.thermal = 'pending';
+      falseColourUrl(region.url('thermal.jpg')).then((url) => {
+        regionImgs.current.thermal = url;
+        src('region-thermal')?.updateImage({ url, coordinates: corners(region.meta) });
+      });
+    }
+  }, [mapReady, mapType, region]);
+
+  // 10. globe view (MapLibre's own globe projection: no extra library)
+  const globeInit = useRef(false);
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp) return;
+    if (!globeInit.current) {
+      globeInit.current = true;
+      if (!globe) return;
+    }
+    mp.setProjection({ type: globe ? 'globe' : 'mercator' });
+    if (globe) {
+      mp.easeTo({ zoom: 2.2, pitch: 0, bearing: 0, duration: 1400 });
+    } else {
+      mp.easeTo({ zoom: 11.6, center: region ? [(region.meta.lon[0] + region.meta.lon[1]) / 2, (region.meta.lat[0] + region.meta.lat[1]) / 2] : undefined, duration: 1400 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the globe toggle only
+  }, [mapReady, globe]);
 
   const poiName = useCallback((id: string) => region?.pois.find((p) => p.id === id)?.name ?? id, [region]);
 
@@ -360,6 +425,7 @@ export default function MissionPlanner() {
         <div ref={mapEl} className="h-full w-full" />
       </div>
       {simulation.viewLayer}
+      {!simulation.immersive && <HoverReadout map={mapInst} region={region} mapType={mapType} />}
 
       <TopNav
         tab={hero ? 'sites' : navTab}
@@ -370,7 +436,15 @@ export default function MissionPlanner() {
         regionName={region?.meta.name.replace(/\s*\(.*\)/, '') ?? 'Loading Mars…'}
         weather={weather}
         view3d={view3d}
-        onToggle3d={() => setView3d((v) => !v)}
+        onToggle3d={() => {
+          setGlobe(false);
+          setView3d((v) => !v);
+        }}
+        globe={globe}
+        onToggleGlobe={() => {
+          setView3d(false);
+          setGlobe((g) => !g);
+        }}
       />
 
       {!simulation.immersive && (
@@ -388,8 +462,8 @@ export default function MissionPlanner() {
         startH={startClamped}
         onStart={setStartH}
         windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
-        showSlope={showSlope}
-        onSlope={setShowSlope}
+        mapType={mapType}
+        onMapType={setMapType}
         weather={weather}
         base={base}
         rover={rover}

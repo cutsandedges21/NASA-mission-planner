@@ -15,6 +15,8 @@ export default function TopNav({
   weather,
   view3d,
   onToggle3d,
+  globe = false,
+  onToggleGlobe,
 }: {
   tab: NavTab;
   onTab: (t: NavTab) => void;
@@ -22,6 +24,8 @@ export default function TopNav({
   weather: SpaceWeatherStatus | null;
   view3d: boolean;
   onToggle3d: () => void;
+  globe?: boolean;
+  onToggleGlobe?: () => void;
 }) {
   const tabs: { id: NavTab; label: string }[] = [
     { id: 'plan', label: 'Mission planner' },
@@ -60,6 +64,12 @@ export default function TopNav({
           <ICube size={16} />
           {view3d ? '3D' : '2D'}
         </button>
+        {onToggleGlobe && (
+          <button onClick={onToggleGlobe} className={`round-btn h-10 gap-1.5 px-3.5 text-xs font-medium ${globe ? 'round-btn-on' : ''}`} title="Whole-planet globe view">
+            <IGlobe size={16} />
+            Globe
+          </button>
+        )}
       </div>
     </header>
   );

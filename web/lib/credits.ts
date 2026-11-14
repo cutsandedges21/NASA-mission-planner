@@ -73,9 +73,15 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'NASA data',
-    name: 'OpenPlanetaryMap Mars basemap',
-    what: 'The whole-planet basemap around the planning area (built from NASA MOLA and Viking data)',
-    url: 'https://www.openplanetary.org/opm',
+    name: 'NASA Mars Trek (JPL Solar System Treks), global map layers',
+    what: 'The whole-planet map types around the planning area, reprojected in the browser: Viking MDIM 2.1 colour mosaic (232 m), MGS MOLA colour shaded relief (463 m), Mars Odyssey THEMIS day IR (100 m), and the MOLA 8-bit DEM for approximate elevations outside Gale (±0.5 km)',
+    url: 'https://trek.nasa.gov/mars/',
+  },
+  {
+    group: 'Models & methods',
+    name: 'Curiosity REMS ground temperature at Gale (Martínez et al. 2017, Space Sci. Rev. 212: 295–338)',
+    what: 'Basis of the hover readout’s surface-temperature model: the typical sol range at Gale by local solar time, scaled by latitude, nudged by THEMIS night IR. A model, not a measurement',
+    url: 'https://doi.org/10.1007/s11214-017-0360-x',
   },
 
   // ---- Models & methods
