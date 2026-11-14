@@ -174,7 +174,11 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   b.doseMSv = evaDoseMSv(b.totalT);
   // Terrain risk: share of the outbound distance on cells whose steepest fine-scale slope > STEEP_DEG.
   b.steepPct = steepShare(path, out, ctx.fineSlope, w);
-  const v = verdict(b, sun, params);
+  b.mode = params.rover ? 'rover' : 'foot';
+  // The rover has its own slope limit; the verdict judges the route against the limit of the mode used.
+  const vParams = params.rover ? { ...params, maxSlope: params.roverMaxSlope ?? 20 } : params;
+  const v = verdict(b, sun, vParams);
+  if (params.rover) for (const i of v.issues) i.msg = i.msg.replace('(limit ', '(rover limit ');
   if (ctx.spaceWeather && ctx.spaceWeather.lvl === 'warn') {
     v.issues.push({ lvl: 'caution', msg: `Space weather: ${ctx.spaceWeather.short || 'solar storm forecast at Mars'}. Check before egress, keep the shelter close` });
     if (v.lvl === 'go') v.lvl = 'caution';

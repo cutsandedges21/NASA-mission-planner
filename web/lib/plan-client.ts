@@ -20,6 +20,8 @@ export type Budget = {
   /** Steepest fine-scale slope inside any cell on the route, from slope.png (deg). */
   fineMaxSlope?: number;
   timeline: { d: number; t: number; o2: number }[];
+  /** 'rover' when planned with params.rover (rover assist), else 'foot'. */
+  mode?: 'foot' | 'rover';
   /** Radiation dose for the whole EVA (mSv), from Curiosity RAD's measured Gale surface rate. */
   doseMSv?: number;
   /** % of the outbound distance on ground steeper than 15° (from slope.png). Terrain risk for the card. */
@@ -50,6 +52,8 @@ export type PlanArgs = {
   sun?: { endMarginH: number } | null;
   /** Pass `status` from /api/space-weather: 'warn' adds a CAUTION to every route. */
   spaceWeather?: { lvl: string; short?: string } | null;
+  /** EVA_DEFAULTS overrides, e.g. { rover: true } for rover assist, { kitKg: 10 } for carried gear. */
+  params?: Record<string, unknown>;
   roundTrip?: boolean;
   maxStops?: number;
 };

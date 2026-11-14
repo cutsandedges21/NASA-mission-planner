@@ -1,5 +1,5 @@
 // Adapted from Sol Atlas by The SOL Explorers.
-// Changes: none to the model; this header only. Copied so our planner owns its EVA maths.
+// Changes: added EVA_DEFAULTS.roverMaxSlope (20°, rover assist mode, T-23). Model otherwise unchanged.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 
 // Marswalk EVA budget: the "Watney math".
@@ -28,6 +28,7 @@ export const EVA_DEFAULTS = {
   rover: false,        // drive between stops on an unpressurised rover (Apollo LRV style)
   roverMs: 1.4,        // m/s driving over rough ground (5 km/h; the Apollo LRV averaged a little more)
   rideW: 150,          // metabolic rate seated on the rover in a suit (W): between rest and light work
+  roverMaxSlope: 20,   // deg: hard limit for driving the unpressurised rover (rover assist mode)
 };
 
 const DEG = Math.PI / 180;

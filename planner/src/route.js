@@ -1,7 +1,8 @@
 // Adapted from Sol Atlas by The SOL Explorers.
 // Changes: added `strategy` (ENERGY / FAST / SAFE) and `roundTrip` options to find(), a per-strategy
 // step cost and matching admissible heuristic, a SAFE slope penalty (on cell-to-cell grade and on the
-// fine-scale slope inside each cell), and an `iterations` stat.
+// fine-scale slope inside each cell), rover assist routing (params.rover: drive time / seated O2, roverMaxSlope),
+// and an `iterations` stat.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { stepCost, walkSpeed, EVA_DEFAULTS } from './eva.js';
 
@@ -56,6 +57,14 @@ const stepTime = (dist, dh, p) => dist / walkSpeed(Math.atan2(dh, dist), p);
  * so the cost is the sum of both directions.
  */
 export function strategyCost(strategy, dist, dh, p, roundTrip) {
+  if (p.rover) {
+    // Rover assist: constant driving speed; O2 use while seated is rideW × time, so ∝ distance.
+    const s = Math.atan2(Math.abs(dh), dist) / DEG;
+    const t = dist / p.roverMs;
+    const base = strategy === 'FAST' ? t : p.rideW * t;
+    const c = strategy === 'SAFE' ? base * (1 + SAFE_K * Math.max(0, s - SAFE_SOFT_DEG) ** 2) : base;
+    return roundTrip ? 2 * c : c;
+  }
   const one = (d) => {
     if (strategy === 'FAST') return stepTime(dist, d, p);
     const e = stepCost(dist, d, p);
@@ -74,6 +83,10 @@ export function strategyCost(strategy, dist, dh, p, roundTrip) {
  * one-way walking speed peaks at ~1.19× vFlat on a gentle downhill; round trips never beat 2× flat.
  */
 function costPerMetreLB(strategy, p, roundTrip) {
+  if (p.rover) {
+    const perM = strategy === 'FAST' ? 1 / p.roverMs : p.rideW / p.roverMs;
+    return (roundTrip ? 2 : 1) * perM * 0.98;
+  }
   if (strategy === 'FAST') return roundTrip ? 2 / p.vFlat * 0.98 : 1 / (p.vFlat * Math.exp(0.175)) * 0.98;
   const flat = stepCost(1, 0, p) * 0.98;
   return roundTrip ? 2 * flat : flat;
@@ -104,7 +117,8 @@ export class CostGrid {
     const from = new Int32Array(N).fill(-1);
     const closed = new Uint8Array(N);
     const start = ay * w + ax, goal = by * w + bx;
-    const maxSlope = strategy === 'SAFE' ? Math.min(params.maxSlope, SAFE_MAX_SLOPE) : params.maxSlope;
+    const limit = params.rover ? (params.roverMaxSlope ?? 20) : params.maxSlope;
+    const maxSlope = strategy === 'SAFE' ? Math.min(limit, SAFE_MAX_SLOPE) : limit;
     const maxTan = Math.tan(maxSlope * DEG);
     const lb = costPerMetreLB(strategy, params, roundTrip);
     const heur = (i) => {
