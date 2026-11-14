@@ -159,7 +159,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-13 · Mission context: daylight, Earth delay, AI panel
 - **Owner:** Moss's Claude · **Time box:** Sat 13:00 · **Needs:** T-11, T-12
-- **Status:** IN PROGRESS (Moss, 17:22)
+- **Status:** DONE (Moss's Claude, Fri 19:35). **Result:** top bar = live Curiosity sol, local solar time, season, Earth-signal delay (11.0 min) and the NASA DONKI space-weather badge (today: CME, amber). Left panel = EVA start slider + 24 h daylight strip with each route's window. Every route card shows `Back HH:MM · Xh before sunset`; the planner's own `verdict()` is re-run per route with its daylight margin (a route that ends after sunset turns NO-GO). Bottom-centre **Mission briefing** calls `/api/explain` (typing reveal; falls back to the template if the API is offline) and auto-selects the recommended route. Files: `web/lib/marstime.js` (vendored copy), `web/lib/mars-context.ts`, `web/components/{MarsClockBar,DaylightBar,Briefing}.tsx`. Also fixed: scale bar + 3D height were Earth-sized (see `web/lib/mars-scale.ts`), and a black strip below the region in 2D (hillshade now has its own un-faded feed).
 - **Steps:**
   1. Copy Sol Atlas's `marstime.js` → `web/lib/marstime.js` (credit header). Top bar: sol, local solar time at the region, season, Earth–Mars signal delay.
   2. Add a start-time picker, then compute sunrise/sunset at the region. Add "ends X h before sunset" to each route card, and NO-GO if the walk ends after dark (pass `sun` into `verdict()`).

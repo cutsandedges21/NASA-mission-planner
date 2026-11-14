@@ -4,12 +4,12 @@ import * as maplibregl from 'maplibre-gl';
 import type { Region } from './region';
 
 const SIZE = 256;
-const FADE_DEG = 0.03; // ~1.8 km: outside the region, relief fades down to the region's lowest point
+const FADE_DEG = 0.03; // ~1.8 km: for the 3D terrain only, relief fades down to the region's lowest point outside the bounds
 
 let registered = false;
 let current: Region | null = null;
 
-function sample(r: Region, lon: number, lat: number): number {
+function sample(r: Region, lon: number, lat: number, fade: boolean): number {
   const m = r.meta;
   const fx = ((lon - m.lon[0]) / (m.lon[1] - m.lon[0])) * m.width - 0.5;
   const fy = ((m.lat[1] - lat) / (m.lat[1] - m.lat[0])) * m.height - 0.5;
@@ -26,10 +26,11 @@ function sample(r: Region, lon: number, lat: number): number {
   const dLon = Math.max(m.lon[0] - lon, 0, lon - m.lon[1]);
   const dLat = Math.max(m.lat[0] - lat, 0, lat - m.lat[1]);
   const out = Math.hypot(dLon, dLat);
-  return out > 0 ? rel * Math.max(0, 1 - out / FADE_DEG) : rel;
+  // hillshade (fade = false) keeps the edge height flat outside, so no fake cliff is shaded dark
+  return fade && out > 0 ? rel * Math.max(0, 1 - out / FADE_DEG) : rel;
 }
 
-async function tile(z: number, x: number, y: number): Promise<ArrayBuffer> {
+async function tile(z: number, x: number, y: number, fade: boolean): Promise<ArrayBuffer> {
   const canvas = new OffscreenCanvas(SIZE, SIZE);
   const ctx = canvas.getContext('2d')!;
   const img = ctx.createImageData(SIZE, SIZE);
@@ -38,7 +39,7 @@ async function tile(z: number, x: number, y: number): Promise<ArrayBuffer> {
     const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + (py + 0.5) / SIZE)) / n))) * 180) / Math.PI;
     for (let px = 0; px < SIZE; px++) {
       const lon = ((x + (px + 0.5) / SIZE) / n) * 360 - 180;
-      const v = (current ? sample(current, lon, lat) : 0) + 32768;
+      const v = (current ? sample(current, lon, lat, fade) : 0) + 32768;
       const i = (py * SIZE + px) * 4;
       img.data[i] = Math.floor(v / 256);
       img.data[i + 1] = Math.floor(v) % 256;
@@ -51,7 +52,7 @@ async function tile(z: number, x: number, y: number): Promise<ArrayBuffer> {
   return blob.arrayBuffer();
 }
 
-/** Register the elev:// protocol for this region. Call before adding the raster-dem sources. */
+/** Register the elev:// protocol for this region. Hosts: elev://dem/… (3D terrain, edges fade out) and elev://hs/… (hillshade, no fade). */
 export function registerRegionTerrain(region: Region) {
   current = region;
   if (registered) return;
@@ -59,6 +60,6 @@ export function registerRegionTerrain(region: Region) {
   maplibregl.addProtocol('elev', async (params: maplibregl.RequestParameters) => {
     const m = /elev:\/\/[^/]+\/(\d+)\/(\d+)\/(\d+)/.exec(params.url);
     if (!m) throw new Error(`bad elev url ${params.url}`);
-    return { data: await tile(+m[1], +m[2], +m[3]) };
+    return { data: await tile(+m[2], +m[3], +m[4], m[1] === 'dem') };
   });
 }

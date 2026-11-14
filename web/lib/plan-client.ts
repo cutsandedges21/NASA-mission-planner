@@ -1,6 +1,7 @@
 // Main-thread wrapper around the planner Web Worker.
 
-export type Verdict = { lvl: 'go' | 'caution' | 'nogo'; issues: { lvl: string; msg: string }[] };
+export type Lvl = 'go' | 'caution' | 'nogo';
+export type Verdict = { lvl: Lvl; issues: { lvl: Lvl; msg: string }[] };
 export type Budget = {
   distance: number;
   oneWay?: number;

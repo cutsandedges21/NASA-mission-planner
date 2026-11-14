@@ -7,6 +7,14 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { corners, loadRegion, toCell, toLonLat, type Poi, type Region } from '@/lib/region';
 import { plan, type PlannedRoute, type Strategy } from '@/lib/plan-client';
 import { registerRegionTerrain } from '@/lib/terrain';
+import { MARS_TERRAIN_FACTOR, MarsScaleControl } from '@/lib/mars-scale';
+import { fmtMargin, hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
+import type { ExplainRequest } from '@/lib/explain';
+import { pickRecommended } from '@/lib/explain-fallback';
+import type { SpaceWeatherStatus } from '@/lib/space-weather';
+import MarsClockBar from './MarsClockBar';
+import DaylightBar from './DaylightBar';
+import Briefing from './Briefing';
 
 const BASEMAP = 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png';
 
@@ -21,6 +29,9 @@ const fmtDur = (s: number) => {
   const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
   return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
 };
+
+/** 3D relief is drawn 1.5x taller than true scale so slopes read clearly. (MapLibre assumes Earth, see mars-scale.ts.) */
+const VERTICAL_EXAGGERATION = 1.5;
 
 type Placing = 'dest' | 'base';
 
@@ -40,6 +51,16 @@ export default function MissionPlanner() {
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
   const [showSlope, setShowSlope] = useState(false);
+  const [startH, setStartH] = useState(9);
+  const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
+
+  // 0. live space weather (NASA DONKI), once
+  useEffect(() => {
+    fetch('/api/space-weather')
+      .then((r) => r.json())
+      .then((j) => setWeather(j.status ?? null))
+      .catch(() => setWeather({ lvl: 'off', short: 'not checked', long: 'Could not reach NASA DONKI' }));
+  }, []);
 
   // 1. load region data
   useEffect(() => {
@@ -71,15 +92,15 @@ export default function MissionPlanner() {
           basemap: { type: 'raster', tiles: [BASEMAP], tileSize: 256, maxzoom: 9, attribution: 'OpenPlanetaryMap (NASA MOLA/Viking)' },
           region: { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
-          dem: { type: 'raster-dem', tiles: [`elev://${m.id}/{z}/{x}/{y}`], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
-          hs: { type: 'raster-dem', tiles: [`elev://${m.id}/{z}/{x}/{y}`], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
+          dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
+          hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           routes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
         },
         layers: [
           { id: 'bg', type: 'background', paint: { 'background-color': '#120a07' } },
           { id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-saturation': -0.15, 'raster-brightness-max': 0.85 } },
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
-          { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#1a0d07' } },
+          { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1a0d07' } },
           {
             id: 'slope', type: 'raster', source: 'slope', layout: { visibility: 'none' },
             paint: { 'raster-opacity': 0.75, 'raster-hue-rotate': 0 },
@@ -98,7 +119,7 @@ export default function MissionPlanner() {
       },
     });
     mp.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
-    mp.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+    mp.addControl(new MarsScaleControl(), 'bottom-left');
     mp.on('load', () => {
       setMapReady(true);
       mp.flyTo({ center: centre, zoom: 11.6, duration: 2600, essential: true });
@@ -232,7 +253,7 @@ export default function MissionPlanner() {
       if (!view3d) return;
     }
     if (view3d) {
-      mp.setTerrain({ source: 'dem', exaggeration: 2.2 });
+      mp.setTerrain({ source: 'dem', exaggeration: VERTICAL_EXAGGERATION * MARS_TERRAIN_FACTOR });
       mp.easeTo({ pitch: 62, bearing: -25, duration: 1400 });
       mp.dragRotate.enable();
     } else {
@@ -247,7 +268,44 @@ export default function MissionPlanner() {
   }, [mapReady, showSlope]);
 
   const poiName = useCallback((id: string) => region?.pois.find((p) => p.id === id)?.name ?? id, [region]);
-  const sel = useMemo(() => routes?.find((r) => r.strategy === selected) ?? null, [routes, selected]);
+
+  // daylight at the base: sunrise/sunset for today's solar declination
+  const clock = useMemo(() => (base ? marsClock(base[0], base[1]) : null), [base]);
+  const startClamped = clock ? Math.min(Math.max(startH, Math.ceil(clock.rise * 4) / 4), Math.floor((clock.set - 1) * 4) / 4) : startH;
+
+  // routes with each one's daylight window, and the verdict re-run with its own daylight margin
+  const scored = useMemo(
+    () =>
+      (routes ?? []).map((r) => {
+        const d: Daylight | null = clock ? routeDaylight(r, startClamped, clock.set) : null;
+        return { ...r, verdict: verdictWithDaylight(r, d), daylight: d };
+      }),
+    [routes, clock, startClamped],
+  );
+  const sel = useMemo(() => scored.find((r) => r.strategy === selected) ?? null, [scored, selected]);
+
+  // what the mission briefing explains: computed numbers only
+  const briefingRequest = useMemo<ExplainRequest | null>(() => {
+    const rs = scored.filter((r) => r.budget);
+    if (!rs.length || !region) return null;
+    const routesIn = rs.map((r) => ({
+      strategy: r.strategy,
+      distanceKm: +(r.budget.distance / 1000).toFixed(1),
+      durationMin: Math.round(r.budget.totalT / 60),
+      o2MarginPct: Math.round(Math.max(0, r.budget.marginPct)),
+      maxSlopeDeg: +r.budget.maxSlope.toFixed(1),
+      verdict: r.verdict,
+      poisVisited: r.poisVisited.map(poiName),
+      note: r.note,
+    }));
+    const rec = scored.find((r) => r.strategy === pickRecommended(routesIn));
+    return {
+      region: region.meta.name,
+      routes: routesIn,
+      daylight: clock && rec?.daylight ? { endMarginH: +rec.daylight.endMarginH.toFixed(1), sunsetLocal: hm(clock.set) } : null,
+      spaceWeather: weather ? { lvl: weather.lvl, short: weather.short } : null,
+    };
+  }, [scored, region, clock, weather, poiName]);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-[#07080a] text-zinc-100">
@@ -261,6 +319,7 @@ export default function MissionPlanner() {
           <div className="text-[10px] font-medium uppercase tracking-[0.25em] text-orange-300/80">EVA Mission Planner</div>
           <div className="text-sm font-semibold">{region?.meta.name ?? 'Loading Mars…'}</div>
         </div>
+        {base && <MarsClockBar lon={base[0]} lat={base[1]} weather={weather} />}
         <div className="panel pointer-events-auto flex items-center gap-1 p-1 text-xs font-medium">
           {(['2D', '3D'] as const).map((v) => (
             <button
@@ -288,6 +347,17 @@ export default function MissionPlanner() {
             <Row k="Target" v={destName ?? (dest ? fmtLL(dest) : 'Click the map or a site')} />
           </div>
         </section>
+        {clock && (
+          <DaylightBar
+            rise={clock.rise}
+            set={clock.set}
+            startH={startClamped}
+            onStart={setStartH}
+            windows={scored.map((r) => ({ strategy: r.strategy, d: r.daylight }))}
+            colors={{ SAFE: ROUTE_STYLE.SAFE.color, FAST: ROUTE_STYLE.FAST.color, SCIENCE: ROUTE_STYLE.SCIENCE.color }}
+            selected={selected}
+          />
+        )}
         <section>
           <h2 className="eyebrow">Science sites</h2>
           <ul className="mt-2 space-y-1">
@@ -325,8 +395,8 @@ export default function MissionPlanner() {
           <p className="mt-2 text-sm text-zinc-400">Pick a target: click the map or a science site. Three EVA routes appear here, scored for oxygen, time and slope.</p>
         )}
         <div className="mt-2 space-y-2">
-          {routes?.map((r) => (
-            <RouteCard key={r.strategy} r={r} active={r.strategy === selected} onSelect={() => setSelected(r.strategy)} poiName={poiName} />
+          {scored.map((r) => (
+            <RouteCard key={r.strategy} r={r} daylight={r.daylight} active={r.strategy === selected} onSelect={() => setSelected(r.strategy)} poiName={poiName} />
           ))}
         </div>
         {sel?.budget && (
@@ -336,8 +406,19 @@ export default function MissionPlanner() {
         )}
       </aside>
 
+      {/* bottom centre: mission briefing (desktop) */}
+      {briefingRequest && (
+        <div className="absolute bottom-4 left-1/2 hidden w-[min(560px,calc(100vw-48rem))] min-w-[380px] -translate-x-1/2 md:block">
+          <Briefing
+            request={briefingRequest}
+            onRecommended={setSelected}
+            colors={{ SAFE: ROUTE_STYLE.SAFE.color, FAST: ROUTE_STYLE.FAST.color, SCIENCE: ROUTE_STYLE.SCIENCE.color }}
+          />
+        </div>
+      )}
+
       {error && (
-        <div className="panel absolute bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 text-sm text-red-300 md:bottom-6">{error}</div>
+        <div className="panel absolute left-1/2 top-24 -translate-x-1/2 px-4 py-2 text-sm text-red-300">{error}</div>
       )}
     </div>
   );
@@ -367,7 +448,19 @@ const VERDICT = {
   nogo: { t: 'NO-GO', c: 'bg-red-500/15 text-red-300 border-red-500/30' },
 };
 
-function RouteCard({ r, active, onSelect, poiName }: { r: PlannedRoute; active: boolean; onSelect: () => void; poiName: (id: string) => string }) {
+function RouteCard({
+  r,
+  daylight,
+  active,
+  onSelect,
+  poiName,
+}: {
+  r: PlannedRoute;
+  daylight: Daylight | null;
+  active: boolean;
+  onSelect: () => void;
+  poiName: (id: string) => string;
+}) {
   const s = ROUTE_STYLE[r.strategy];
   const v = VERDICT[r.verdict.lvl];
   const b = r.budget;
@@ -392,6 +485,11 @@ function RouteCard({ r, active, onSelect, poiName }: { r: PlannedRoute; active: 
           <Stat k="Max slope" v={`${b.maxSlope.toFixed(0)}°`} warn={b.maxSlope > 15} />
         </div>
       ) : null}
+      {daylight && (
+        <div className={`mt-1.5 font-mono text-[11px] ${daylight.endMarginH < 0.75 ? 'text-amber-300' : 'text-zinc-500'}`}>
+          Back {hm(daylight.endH)} · {fmtMargin(daylight.endMarginH)}
+        </div>
+      )}
       {r.poisVisited.length > 0 && (
         <div className="mt-2 text-xs text-violet-200/90">Stops: {r.poisVisited.map(poiName).join(' → ')}</div>
       )}
