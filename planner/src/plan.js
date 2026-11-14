@@ -24,25 +24,33 @@ export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
  * @param {object} [a.params]   overrides for EVA_DEFAULTS (crew mass, O2 capacity, …)
  * @param {boolean} [a.roundTrip=true]  walk back to the start along the same route (a Marswalk ends at the airlock)
  * @param {number} [a.maxStops=2]  most POIs the SCIENCE route visits
+ * @param {[number,number]} [a.via]  pit stop ("point 1.5", T-35): every route passes through this cell on the way out
+ *   and spends `params.stopMin` there. Never dropped by the SCIENCE safety loop.
  * @returns {Array<{strategy, path, line, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
  */
 export function planMission(a) {
   const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null, spaceWeather = null,
     roundTrip = true, maxStops = 2 } = a;
   const params = { ...EVA_DEFAULTS, ...(a.params || {}) };
-  for (const [x, y] of [start, end]) {
+  const via = a.via ? { id: PIT_STOP_ID, x: a.via[0], y: a.via[1], forced: true } : null;
+  for (const [x, y] of via ? [start, end, a.via] : [start, end]) {
     if (!(x >= 0 && y >= 0 && x < w && y < h)) throw new RangeError(`cell [${x}, ${y}] is outside the ${w}×${h} grid`);
   }
   const grid = new CostGrid(elev, w, h, cellX, cellY, fineSlope);
   const ctx = { grid, elev, w, cellX, cellY, fineSlope, params, sun, spaceWeather, roundTrip };
+  const viaStops = via ? [via] : [];
+  const through = (list) => [start, ...list.map((p) => [p.x, p.y]), end];
+  // Pit stop + science stops, in the order they're met walking start → end.
+  const withVia = (list) => (via ? orderAlong([...list, via], start, end, cellX, cellY) : list);
 
-  const fast = timed(() => legs(ctx, [start, end], 'FAST'));
-  const safe = timed(() => legs(ctx, [start, end], 'SAFE'));
-  const { stops: chosen, target } = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
+  const fast = timed(() => legs(ctx, through(viaStops), 'FAST'));
+  const safe = timed(() => legs(ctx, through(viaStops), 'SAFE'));
+  const { stops: chosen0, target } = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
+  const chosen = via ? chosen0.filter((p) => Math.max(Math.abs(p.x - via.x), Math.abs(p.y - via.y)) > POI_SNAP_CELLS) : chosen0;
   let science;
   if (!chosen.length && !target) {
     // No science site worth the walk: reuse the SAFE path rather than force a big detour.
-    science = score(ctx, 'SCIENCE', safe.value, [], null, safe.ms);
+    science = score(ctx, 'SCIENCE', safe.value, viaStops, null, safe.ms);
     science.note = 'No science site within reach of this route';
   } else {
     // Try the chosen stops; if they make the EVA worse than going without them (e.g. NO-GO on O₂),
@@ -55,32 +63,32 @@ export function planMission(a) {
     let path = null;
     let fellBackToSafe = false;
     for (;;) {
-      const sci = timed(() => legs(ctx, [start, ...stops.map((p) => [p.x, p.y]), end], 'ENERGY'));
+      const sci = timed(() => legs(ctx, through(withVia(stops)), 'ENERGY'));
       ms += sci.ms;
       path = sci.value;
-      science = score(walkCtx, 'SCIENCE', path, stops, target, ms);
+      science = score(walkCtx, 'SCIENCE', path, withVia(stops), target, ms);
       if (!stops.length || RANK[science.verdict.lvl] === 0) break;
       const worst = stops.reduce((a, b) => (detourOf(a, start, end, cellX, cellY) >= detourOf(b, start, end, cellX, cellY) ? a : b));
       const fewer = stops.filter((p) => p !== worst);
       if (!fewer.length && !target) {
         // without any site the route is just SAFE: keep the stop if SAFE is no better
-        const safeScore = score(walkCtx, 'SAFE', safe.value, [], null, 0);
+        const safeScore = score(walkCtx, 'SAFE', safe.value, viaStops, null, 0);
         if (RANK[safeScore.verdict.lvl] >= RANK[science.verdict.lvl]) break;
         fellBackToSafe = true;
         break;
       }
-      const trial = timed(() => legs(ctx, [start, ...fewer.map((p) => [p.x, p.y]), end], 'ENERGY'));
+      const trial = timed(() => legs(ctx, through(withVia(fewer)), 'ENERGY'));
       ms += trial.ms;
-      const t = score(walkCtx, 'SCIENCE', trial.value, fewer, target, ms);
+      const t = score(walkCtx, 'SCIENCE', trial.value, withVia(fewer), target, ms);
       const better = RANK[t.verdict.lvl] < RANK[science.verdict.lvl] ||
         (science.verdict.lvl === 'nogo' && t.verdict.lvl === 'nogo' && t.budget.marginPct > science.budget.marginPct);
       if (better) { stops = fewer; path = trial.value; science = t; continue; }
       break;
     }
     if (fellBackToSafe) {
-      science = { ...score(ctx, 'SAFE', safe.value, [], null, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
+      science = { ...score(ctx, 'SAFE', safe.value, viaStops, null, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
     } else {
-      science = score(ctx, 'SCIENCE', path, stops, target, ms); // final score, with space weather
+      science = score(ctx, 'SCIENCE', path, withVia(stops), target, ms); // final score, with space weather
     }
     if (stops.length < chosen.length && !science.note) {
       const n = chosen.length - stops.length;
@@ -90,10 +98,21 @@ export function planMission(a) {
     }
   }
   return [
-    score(ctx, 'SAFE', safe.value, [], null, safe.ms),
-    score(ctx, 'FAST', fast.value, [], null, fast.ms),
+    score(ctx, 'SAFE', safe.value, viaStops, null, safe.ms),
+    score(ctx, 'FAST', fast.value, viaStops, null, fast.ms),
     science,
   ];
+}
+
+/** Stop id used for the user's pit stop (`a.via`) in `route.stops` / `poisVisited`. */
+export const PIT_STOP_ID = 'pitstop';
+
+/** Sort stops by how far along start → end they sit (projection on the straight line). */
+function orderAlong(list, start, end, cellX, cellY) {
+  const [ux, uy] = [(end[0] - start[0]) * cellX, (end[1] - start[1]) * cellY];
+  const d2 = ux * ux + uy * uy || 1;
+  const t = (p) => ((p.x - start[0]) * cellX * ux + (p.y - start[1]) * cellY * uy) / d2;
+  return list.slice().sort((a, b) => t(a) - t(b));
 }
 
 /** Cells within this many cells (Chebyshev) of a POI count as "at" the POI (clicking a marker). */
