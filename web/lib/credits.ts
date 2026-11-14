@@ -3,7 +3,7 @@
 // Keep in sync with web/public/data/gale/meta.json when a region is re-baked.
 
 export type Credit = {
-  group: 'NASA data' | 'Models & methods' | 'Software' | 'Inspiration';
+  group: 'NASA data' | 'Models & methods' | 'Software';
   name: string;
   what: string;
   url: string;
@@ -73,6 +73,18 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'NASA data',
+    name: 'MSL traverse line (NASA/JPL MMGIS)',
+    what: 'Curiosity\'s detailed drive line drawn on the map (2,494 of the 12,919 points inside the Gale box, simplified to 1 m)',
+    url: 'https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_traverse.json',
+  },
+  {
+    group: 'NASA data',
+    name: 'PIA26042: Curiosity\'s Path to Gediz Vallis Ridge and Beyond (NASA/JPL-Caltech/ESA/University of Arizona/JHUAPL/MSSS/USGS Astrogeology)',
+    what: 'The guide for our approximate rock-unit outlines (unit names and colours). No pixels copied: the outlines come from the MSL DEM and HiRISE',
+    url: 'https://photojournal.jpl.nasa.gov/catalog/PIA26042',
+  },
+  {
+    group: 'NASA data',
     name: 'NASA Mars Trek (JPL Solar System Treks), global map layers',
     what: 'The whole-planet map types around the planning area, reprojected in the browser: Viking MDIM 2.1 colour mosaic (232 m), MGS MOLA colour shaded relief (463 m), Mars Odyssey THEMIS day IR (100 m), and the MOLA 8-bit DEM for approximate elevations outside Gale (±0.5 km)',
     url: 'https://trek.nasa.gov/mars/',
@@ -118,20 +130,12 @@ export const CREDITS: Credit[] = [
     url: 'https://github.com/saracen66/the-sol-explorers',
   },
   { group: 'Software', name: 'MapLibre GL JS', what: 'Map rendering, layers, 3D terrain', url: 'https://maplibre.org/', license: 'BSD-3-Clause' },
-  { group: 'Software', name: 'Next.js', what: 'Web app framework and API routes', url: 'https://nextjs.org/', license: 'MIT' },
+  { group: 'Software', name: 'Next.js', what: 'Web app framework (and the space-weather server route)', url: 'https://nextjs.org/', license: 'MIT' },
   { group: 'Software', name: 'Rasterio, NumPy, SciPy, Pillow', what: 'Python data pipeline (data/build_region.py)', url: 'https://rasterio.readthedocs.io/' },
   {
     group: 'Software',
-    name: 'Anthropic Claude',
-    what: 'At runtime: words the mission briefing from numbers the planner computed (number-checked, template fallback). In development: Claude Code helped write the code under our direction',
+    name: 'Claude Code (Anthropic)',
+    what: 'Development only: Claude Code helped write the code and docs under our direction. Nothing in the running app uses AI',
     url: 'https://www.anthropic.com/claude',
-  },
-
-  // ---- Inspiration
-  {
-    group: 'Inspiration',
-    name: 'Sol Atlas (sol-atlas.netlify.app)',
-    what: 'A friend team\'s NASA Space Apps 2026 entry for the same challenge (Jezero Crater). We reused logic with credit, not its design',
-    url: 'https://sol-atlas.netlify.app/',
   },
 ];

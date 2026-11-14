@@ -7,7 +7,7 @@ import { CREDITS, type Credit } from '@/lib/credits';
 // "Data & credits": same dark surface, gold-for-selected and white-for-primary as the rest of the app.
 // The list itself comes from web/lib/credits.ts (Teammate's T-25), grouped by tabs.
 
-const GROUPS: Credit['group'][] = ['NASA data', 'Models & methods', 'Software', 'Inspiration'];
+const GROUPS: Credit['group'][] = ['NASA data', 'Models & methods', 'Software'];
 
 export default function Credits({ meta, onClose }: { meta: RegionMeta | null; onClose: () => void }) {
   const [group, setGroup] = useState<Credit['group']>('NASA data');
@@ -21,8 +21,8 @@ export default function Credits({ meta, onClose }: { meta: RegionMeta | null; on
             <div className="ui-label">Data &amp; credits</div>
             <h2 className="mt-1 text-[20px] font-semibold">Everything this planner is built on</h2>
             <p className="mt-1 max-w-xl text-[12.5px] leading-relaxed text-zinc-400">
-              Routes, oxygen, slope, daylight and radiation are computed from these sources. The AI only words the briefing, and the server rejects any number it
-              wasn&apos;t given.{meta?.synthetic ? ' The map currently shows demo terrain.' : ''}
+              Routes, oxygen, slope, daylight and radiation are computed from these sources. The briefing restates those computed numbers in plain
+              language; no AI runs in the app.{meta?.synthetic ? ' The map currently shows demo terrain.' : ''}
             </p>
           </div>
           <button onClick={onClose} className="cr-close shrink-0" aria-label="Close">

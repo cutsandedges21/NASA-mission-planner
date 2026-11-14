@@ -9,14 +9,14 @@ We built this with **Claude Code** (Anthropic) as a coding assistant, under our 
 - **Reused code is credited:** routing, the EVA oxygen model, Mars time and the data pipeline were adapted from Sol Atlas by The SOL Explorers.
 - **Checking:** the planner has automated tests (`cd planner && npm test`), including tests on the real Gale terrain, and we validated routes against Curiosity's real drive path (`docs/VALIDATION.md`).
 
-## 2. AI inside the app (runtime)
+## 2. AI inside the app (runtime): none
 
-Exactly one feature uses AI: the **mission briefing**.
+**The running app uses no AI and no API keys** (decided by Moss, Sat 14 Nov 12:05). An earlier version had Claude word the mission briefing; it was removed.
 
-- The **planner computes everything**: routes (A* on NASA elevation data), time, oxygen, slopes, radiation dose, verdicts. No AI is involved in any of it.
-- The **recommended route is chosen by a fixed rule**, not by the AI: best verdict (GO > CAUTION > NO-GO), then SCIENCE if it reaches a site, then SAFE, then FAST (`web/lib/explain.ts` → `pickRecommended`).
-- **Claude only words the briefing**: three sentences explaining that choice, from the numbers the planner sends it (`POST /api/explain`).
-- **A guard rejects invented numbers:** every number in Claude's reply must appear in the computed data (or be a difference between two routes). If it doesn't, or the API is down or slow (10 s), the app shows a template sentence built from the same numbers. The UI shows which one you got (`source: 'claude' | 'fallback'`).
+- The **planner computes everything**: routes (A* on NASA elevation data), time, oxygen, slopes, radiation dose, verdicts.
+- The **recommended route is chosen by a fixed rule**: best verdict (GO > CAUTION > NO-GO), then SAFE, then FAST (`web/lib/briefing.ts` → `pickRecommended`).
+- The **briefing is plain code**: sentences built in the browser from those computed numbers (`briefingText`). A test checks it quotes no number that wasn't computed.
+- The **hover temperature is a labelled model** (Curiosity REMS range at Gale by local solar time), not AI and not a measurement.
 
 ## 3. No AI-generated media
 

@@ -33,7 +33,7 @@ Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (32 % O
 NASA / USGS rasters ──► data pipeline ──► region files ──► planner (in the browser) ──► map + route cards
  1 m DEM · HiRISE ·       (Python)         elevation,        A* × 3 strategies              │
  THEMIS · MSL waypoints                    slope, imagery,   + suit O₂ / time model         ▼
-                                           sites, rover path                     AI briefing (number-checked)
+                                           sites, rover path                     briefing from the numbers  
                                                                                  + live NASA space weather
 ```
 
@@ -46,7 +46,7 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 3. **Suit model:** walking speed vs slope (Tobler-style), metabolic power from the Pandolf load-carriage equation scaled to Mars gravity with a pressure-suit penalty, a 25 % O₂ reserve, an 8 h suit limit and a 20° walking limit. It comes out at 313–353 W, at the top of Apollo's measured 228–352 W range, which fits Mars gravity being ~2.3× the Moon's.
 4. **Safety:** radiation dose per route from the rate Curiosity's RAD measured at Gale (0.64 mSv/day). Live NASA DONKI forecasts of solar storms reaching Mars. Daylight vs Gale's sunset (Mars24).
 5. **Recommendation** is a fixed rule: best verdict, then SCIENCE if it reaches a site, then SAFE, then FAST.
-6. **AI briefing** (Claude) explains the recommended route in three sentences. The server checks every number in its reply against the computed data and uses a template if any number is new.
+6. **Mission briefing**, written in the browser from the computed numbers (no AI, no server call): the recommended route and how it compares with the alternative.
 
 ## Validation
 
@@ -114,4 +114,4 @@ pip install rasterio numpy pillow scipy
 python data/build_region.py gale
 ```
 
-Optional environment variables for the web app: `ANTHROPIC_API_KEY` (AI briefing; without it the template briefing is used) and `NASA_API_KEY` (space weather; falls back to NASA's shared `DEMO_KEY`).
+No API keys are needed. Optional environment variable: `NASA_API_KEY` (space weather; falls back to NASA's shared `DEMO_KEY`).

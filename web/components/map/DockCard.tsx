@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Strategy } from '@/lib/plan-client';
-import type { ExplainRequest } from '@/lib/explain';
+import type { BriefingRequest } from '@/lib/briefing';
 import { hm, marsClock } from '@/lib/mars-context';
 import Briefing from '../Briefing';
 import type { ScoredRoute } from './RouteCards';
@@ -28,7 +28,7 @@ export default function DockCard({
   base: [number, number] | null;
   routes: ScoredRoute[];
   selected: Strategy;
-  briefing: ExplainRequest | null;
+  briefing: BriefingRequest | null;
   onRecommended: (s: Strategy) => void;
   onFrame: () => void;
   showSlope: boolean;

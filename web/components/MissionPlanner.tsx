@@ -11,8 +11,8 @@ import { registerTrek, trekSource, falseColourUrl, elevationColourUrl, type MapT
 import HoverReadout from './map/HoverReadout';
 import { MARS_TERRAIN_FACTOR, MarsScaleControl } from '@/lib/mars-scale';
 import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
-import type { ExplainRequest } from '@/lib/explain';
-import { pickRecommended } from '@/lib/explain-fallback';
+import type { BriefingRequest } from '@/lib/briefing';
+import { pickRecommended } from '@/lib/briefing';
 import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import Hero from './Hero';
 import Loading from './Loading';
@@ -384,7 +384,7 @@ export default function MissionPlanner() {
   );
 
   // what the mission briefing explains: computed numbers only
-  const briefingRequest = useMemo<ExplainRequest | null>(() => {
+  const briefingRequest = useMemo<BriefingRequest | null>(() => {
     const rs = scored.filter((r) => r.budget);
     if (!rs.length || !region) return null;
     const routesIn = rs.map((r) => ({
@@ -435,7 +435,7 @@ export default function MissionPlanner() {
         <div ref={mapEl} className="h-full w-full" />
       </div>
       {simulation.viewLayer}
-      {!simulation.immersive && <HoverReadout map={mapInst} region={region} mapType={mapType} />}
+      {!simulation.immersive && <HoverReadout map={mapInst} region={region} mapType={mapType} base={base} />}
 
       <TopNav
         tab={hero ? 'sites' : navTab}

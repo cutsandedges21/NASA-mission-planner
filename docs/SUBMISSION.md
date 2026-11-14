@@ -21,7 +21,7 @@ The first humans on Mars will explore on foot, and every walk outside is a budge
 
 Marswalk Mission Planner is that tool for Gale Crater, proposed for human explorers at NASA's 2015 landing-site workshop and explored by Curiosity since 2012. You pick a science site, and the app computes three routes on NASA's 1-metre elevation model of Gale: SAFE (avoids steep ground), FAST (least walking time) and SCIENCE (adds work time at the sites). Each is scored with a spacesuit model for walking time, oxygen left at the airlock, steepest slope, and radiation dose from Curiosity's own measurements, and gets a GO, CAUTION or NO-GO verdict. A live NASA DONKI feed warns when a solar storm is forecast to reach Mars, and a daylight bar shows the walk against Gale's sunset.
 
-An AI briefing explains the recommended route. It can't invent anything: the route is chosen by a fixed rule, and any number the AI quotes that we didn't compute is rejected.
+A plain-language briefing explains the recommended route. It is written in the browser from the computed numbers only: no AI runs in the app, and no API keys are used.
 
 We checked the routes against reality. On the 5.9 km walk to the foot of Mount Sharp, our FAST route stays within 250 m of the path NASA's Curiosity drivers chose for 100 % of its length, and SAFE for 93.5 %. Example plan: Bradbury Landing → Pahrump Hills, 11.8 km round trip, 3 h 41 min, 49 % oxygen left: GO.
 *(255 words)*
@@ -38,7 +38,7 @@ We checked the routes against reality. On the 5.9 km walk to the foot of Mount S
 ### How we built it
 - **Data pipeline (Python, rasterio):** reads only the needed window of NASA/USGS rasters from the USGS cloud bucket and bakes a 473 × 593 grid of 25 m cells: elevation, the steepest slope inside each cell, colour and thermal images. It's driven by one config file per region.
 - **Planner (JavaScript, in a Web Worker):** A* search on the elevation grid with three cost functions (O₂ with a slope penalty, walking time, O₂ with science stops), scored as an out-and-back walk. Suit model: Pandolf load-carriage metabolism scaled to Mars gravity with a pressure-suit penalty, a Tobler-style speed curve, an O₂ reserve and suit limits. 24 automated tests, including tests on the real terrain.
-- **Web app:** Next.js + MapLibre GL, a 2D/3D map driven by our own elevation grid, API routes for the AI briefing (Claude) and NASA DONKI.
+- **Web app:** Next.js + MapLibre GL, a 2D/3D map driven by our own elevation grid, a server route for NASA DONKI.
 - **Validation:** compared our routes with Curiosity's real path from the NASA/JPL waypoint feed.
 
 ### Challenges we ran into

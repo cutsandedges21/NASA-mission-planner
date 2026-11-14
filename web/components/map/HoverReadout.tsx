@@ -2,17 +2,28 @@
 // Trek-style cursor readout (T-33): latitude / longitude under the mouse, elevation and a modelled surface
 // temperature, plus the legend of the current map type. Listens to the map itself and updates at most
 // once per animation frame, so moving the mouse never re-renders the planner screen.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type * as maplibregl from 'maplibre-gl';
 import type { Region } from '@/lib/region';
 import { probe, loadThermal, TEMP_MODEL_ERR_C, MOLA8_ERR_M, type Probe } from '@/lib/probe';
 import { THERMAL_GRADIENT, HEIGHT_GRADIENT, TREK_LAYERS, type MapType } from '@/lib/trek';
 import { hm } from '@/lib/mars-context';
 
-
-
-export default function HoverReadout({ map, region, mapType }: { map: maplibregl.Map | null; region: Region | null; mapType: MapType }) {
+export default function HoverReadout({
+  map,
+  region,
+  mapType,
+  base,
+}: {
+  map: maplibregl.Map | null;
+  region: Region | null;
+  mapType: MapType;
+  /** The Mars base [lon, lat]: elevations are shown relative to it (base = 0 m). */
+  base: [number, number] | null;
+}) {
   const [p, setP] = useState<Probe | null>(null);
+  // the base's own elevation (from the region's 1 m DEM; the base is always inside the region)
+  const baseElev = useMemo(() => (base && region ? probe(region, base[0], base[1]).now.elevM : null), [base, region]);
   const pending = useRef<{ lng: number; lat: number } | null>(null);
   const seq = useRef(0);
 
@@ -63,9 +74,11 @@ export default function HoverReadout({ map, region, mapType }: { map: maplibregl
           <div className="flex justify-between"><span className="text-zinc-500">Lat</span><span>{fmtLat(p.lat)}</span></div>
           <div className="flex justify-between"><span className="text-zinc-500">Lon</span><span>{fmtLon(p.lon)}</span></div>
           <div className="flex justify-between">
-            <span className="text-zinc-500">Elev</span>
-            <span title={p.elevSrc === 'dem' ? 'USGS MSL Gale 1 m DEM (25 m cells)' : `MGS MOLA 463 m via NASA Trek, ±${MOLA8_ERR_M} m`}>
-              {p.elevM == null ? '…' : `${p.elevSrc === 'mola' ? '≈ ' : ''}${Math.round(p.elevM).toLocaleString('en-US')} m`}
+            <span className="text-zinc-500" title="Height above (+) or below (−) the Mars base, which is 0 m">Elev vs base</span>
+            <span
+              title={`${p.elevM == null ? '' : `${Math.round(p.elevM).toLocaleString('en-US')} m vs the Mars datum. `}${p.elevSrc === 'dem' ? 'USGS MSL Gale 1 m DEM (25 m cells)' : `MGS MOLA 463 m via NASA Trek, ±${MOLA8_ERR_M} m`}`}
+            >
+              {p.elevM == null ? '…' : `${p.elevSrc === 'mola' ? '≈ ' : ''}${fmtRel(p.elevM - (baseElev ?? 0))}`}
             </span>
           </div>
           <div className="flex justify-between">
@@ -93,3 +106,8 @@ export default function HoverReadout({ map, region, mapType }: { map: maplibregl
 const fmtLat = (v: number) => `${Math.abs(v).toFixed(4)}° ${v < 0 ? 'S' : 'N'}`;
 /** Planetocentric, east-positive 0–360 like NASA Trek. */
 const fmtLon = (v: number) => `${(((v % 360) + 360) % 360).toFixed(4)}° E`;
+/** Signed metres relative to the base: "+123 m", "−45 m", "0 m". */
+const fmtRel = (d: number) => {
+  const v = Math.round(d);
+  return `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toLocaleString('en-US')} m`;
+};

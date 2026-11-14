@@ -9,7 +9,7 @@
 | Mars basemap | **NASA Mars Trek global layers** (T-33), reprojected from Trek's equirectangular WMTS (`https://trek.nasa.gov/tiles/Mars/EQ/<layer>/1.0.0/default/default028mm/{z}/{row}/{col}`) to Web Mercator by the `trek://` protocol in `web/lib/trek.ts`. Map types: Colour (Viking MDIM 2.1, 232 m), Height (MOLA colour shaded relief, 463 m), Thermal (THEMIS day IR, 100 m), Slope; Globe = MapLibre `projection: globe` | Whole-planet context from NASA itself, light (no Cesium). The region's NASA layers sit on top |
 | Region layers | Images baked by our data pipeline, added as MapLibre `image` sources with lon/lat corners | No tile server needed |
 | Routing | `planner/` (pure JS, T-05), run in a **Web Worker** from the web app | 30 ms–1 s per route. The UI never freezes |
-| AI explanation | Next.js route handler `web/app/api/explain/route.ts` → Claude API (Anthropic), key in `ANTHROPIC_API_KEY` | Server-side only. It gets **only computed numbers** and must not invent any |
+| Briefing | `web/lib/briefing.ts` (pure, runs in the browser): `pickRecommended` (fixed rule on the computed verdicts) + `briefingText` (plain-language sentences from the computed numbers). **No AI at runtime, no API keys** (Moss, Sat 12:05). `/api/explain` was removed | Can't fail, costs nothing, can't invent a number |
 | Space weather | Next.js route handler `web/app/api/space-weather/route.ts` (port of Sol Atlas's DONKI function), key in `NASA_API_KEY` (falls back to `DEMO_KEY`) | Live NASA data, answers challenge objective O6 |
 | Deploy | **Vercel**, from `main`, root directory `web/` | Moss already uses it. Every push = live preview |
 
@@ -66,14 +66,9 @@ planMission({ elev, w, h, cellX, cellY, fineSlope, start: [x, y], end: [x, y], p
 ```
 Strategies: **FAST** = least walking time · **SAFE** = least O₂ with a penalty that grows quadratically above 10° and a 15° routing limit · **SCIENCE** = least-O₂ legs through up to 2 POIs that add the least detour (≤ max(1 km, 50 % of the direct distance)), 20 min work at each stop. With `roundTrip` (default) A* minimises the cost of going *and* coming back, and the budget covers the whole out-and-back EVA.
 
-## AI explanation contract
+## Briefing (no AI)
 
-`POST /api/explain` with `{ region, routes: [{ strategy, distanceKm, durationMin, o2MarginPct, maxSlopeDeg, verdict, poisVisited: [names] }], daylight, spaceWeather }` → `{ recommended, text }`.
-The system prompt says: use only the numbers given, recommend one route, keep it to 3 sentences, and mention the tradeoff. If the API fails, the UI shows a template sentence built from the same numbers, so the demo never breaks.
-
-**As built (T-12):** response = `{ recommended, text, source: 'claude'|'fallback', reason? }`. `recommended` is picked by a **fixed rule, not the AI**: best verdict (GO > CAUTION > NO-GO); on a tie SCIENCE if it visits a site, then SAFE, then FAST (`pickRecommended` in `web/lib/explain.ts`). Claude (`claude-haiku-5-5`, override with `ANTHROPIC_MODEL`) only explains it. **Number guard:** every number in Claude's reply must appear in the request (or be a difference between two routes). Otherwise the server returns the template briefing with `reason`. No key / timeout (10 s) / HTTP error → template too, always HTTP 200. Bad body → 400 `{ error }`. Each `verdict` may be `'go'` or the full `{ lvl, issues }` object from the planner. Client-side fallback if the endpoint can't be reached: `fallbackExplanation(req)` from `web/lib/explain-fallback.ts`.
-
-**Abuse protection (T-27), because the site is public:** bodies > 20 KB → 413. At most **12 AI calls per IP per 10 min** (first `x-forwarded-for` hop) and **300 per hour per serverless instance**. Over a limit → still HTTP 200 with the template briefing, `source: 'fallback'`, `reason: 'rate limited'`. Identical requests are answered from a **10-minute cache** (`cached: true`), so re-clicking a route is free. `max_tokens` 300. Without `ANTHROPIC_API_KEY` there's nothing to protect: always the template. Limits are per instance (module memory): a speed bump, not a wall. For a hard cap, also set a monthly spend limit in the Anthropic console.
+`briefingText(req)` and `pickRecommended(routes)` in `web/lib/briefing.ts`, called by `web/components/Briefing.tsx` with `{ region, routes: [{ strategy, distanceKm, durationMin, o2MarginPct, maxSlopeDeg, verdict, poisVisited }], daylight, spaceWeather }`. Recommendation rule: best verdict (GO > CAUTION > NO-GO), then SAFE, then FAST. The text quotes only numbers from the request (test: `node --test web/app/api/_tests/`). The runtime-AI path (`/api/explain`, Claude API, rate limiter) was removed Sat 14 Nov (no API keys).
 
 ## Space weather contract (T-12)
 

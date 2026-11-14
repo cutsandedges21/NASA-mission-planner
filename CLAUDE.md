@@ -28,13 +28,13 @@ Two-person team. Both of us work with Claude, so **this repo is our shared memor
 
 ## One-line summary
 
-A web-based **Mars mission-planning platform** for the challenge *Interplanetary Survival Guide: Martian Map*. You pick a base and a destination. The app computes SAFE / FAST / SCIENCE routes from real NASA terrain data, shows the tradeoffs on a dashboard, has AI explain the recommendation, and animates a rover driving the route.
+A web-based **Mars mission-planning platform** for the challenge *Interplanetary Survival Guide: Martian Map*. You pick a base and a destination. The app computes SAFE / FAST / SCIENCE routes from real NASA terrain data, shows the tradeoffs on a dashboard, explains the recommendation in plain language from the computed numbers, and animates a rover driving the route.
 
 ## Rules for Claude sessions in this repo
 
 - **Every step you write must be actionable.** When you add a task or a plan, give the owner, the exact files, the commands, and a "done when" check, so the other Claude can pick it up cold and act immediately. No vague "look into X".
 - **Keep the docs current.** When a decision is made, add it to `docs/DECISIONS.md` (date, decision, why, who). When a question gets answered, move it out of `OPEN-QUESTIONS.md`. Commit doc changes with the code that caused them.
 - **Pull before you start, push when you finish.** Two people and two Claudes are working in parallel. Small commits, clear messages.
-- **AI is a component, not the product.** Routes, hazards and stats must be *computed* from data. AI explains the results. It never makes them up.
+- **No AI at runtime, no API keys** (Moss, Sat 14 Nov 12:05). Routes, hazards and stats are *computed* from data; the briefing only restates computed numbers. Never make numbers up.
 - **Tier 1 before Tier 2 before Tier 3.** The biggest risk is a half-finished project that's technically impressive but incomplete. See the tiers in `docs/PLAN.md`.
 - **Real NASA data beats synthetic data.** Synthetic terrain is fine as a placeholder, but the submission must visibly use NASA datasets.

@@ -39,7 +39,7 @@ It's a **mission planner**, not "a map of Mars". Judges should experience *plann
 3. Choose a destination.
 4. The system generates multiple route options.
 5. A dashboard shows the tradeoffs (distance, travel time, risk, science value).
-6. AI explains the recommendation.
+6. The app explains the recommendation in plain language from the computed numbers (runtime AI dropped Sat 14 Nov: no API keys).
 7. A rover simulation animates the journey.
 
 ## The "wow" demo
@@ -52,7 +52,7 @@ This is the moment we want judges to remember:
    - **SAFE**: lower terrain risk, longer distance
    - **FAST**: shortest route, higher terrain risk
    - **SCIENCE**: passes near sites of geological interest
-3. AI explains, for example:
+3. The briefing explains (from computed numbers; runtime AI dropped Sat 14 Nov), for example:
    > "The Science route adds 18.4 km but passes within 2 km of three geological targets while avoiding slopes above 15°. It maintains communication visibility for 82% of the journey."
 4. Press **Simulate Mission**, and the rover drives across the Martian surface.
 
