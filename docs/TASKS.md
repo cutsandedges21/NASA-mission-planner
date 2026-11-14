@@ -200,7 +200,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-11 · Plan a mission in the UI (Tier 1 core)
 - **Owner:** Moss's Claude · **Time box:** Sat 01:00 · **Needs:** T-09, and T-05 for real routes (stub `planMission` with straight lines until it lands)
-- **Status:** IN PROGRESS (Moss): steps 1–5 work on demo data (3 routes + cards, real planner in a worker). Left: swap to the real `gale` region once T-10 lands
+- **Status:** DONE (Moss's Claude, Fri 20:35). Real Gale terrain is the default; two clicks plan three routes in < 1 s; the planner runs in a Web Worker; daylight, briefing, radiation and space weather are on the cards.
 - **Steps:**
   1. `web/lib/region.ts`: load `meta.json` + `elev.i16` → `Float32Array`, plus lon/lat ↔ grid-cell helpers.
   2. `web/workers/plan.worker.ts`: imports `planner/src/plan.js` and runs `planMission` off the main thread.
@@ -244,7 +244,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-15 · "Simulate Mission" animation
 - **Owner:** Moss's Claude · **Time box:** Sat 19:00
-- **Status:** TODO
+- **Status:** DONE (Moss's Claude, Fri 20:35). **Result:** the ▶ on the dock card plays the selected route end to end: astronaut marker + white trail on the map, camera follows, HUD top-centre (mission clock, local solar time, distance, **O₂ gauge with the 25 % reserve line**, phase), a science-stop card with the site's "why it matters" + source (held 3.5 s so it can be read), speed 1×/2×/4×, scrubber, Replay and a completion summary. Verified on the real Gale terrain: Bradbury → Pahrump SCIENCE = 4h01, 46 % O₂, 0.11 mSv, identical to the route card. Code: `web/components/Simulation.tsx` (hook `useSimulation`), `SimulationHUD.tsx`, `web/lib/mission-timeline.ts` (+ `node web/scripts/test-mission-timeline.mjs`), `web/lib/rover-marker.ts`. Chat B: restyle `SimulationHUD.tsx` freely; keep `{simulation.panel}` and `onSimulate` wired in `MissionPlanner.tsx`.
 - **Steps:** an astronaut marker moves along the chosen route (time-compressed, ~20 s for the whole EVA), with a live HUD of elapsed time, O₂ remaining gauge (from `budget().timeline`) and distance. Pause at POIs with their "why it matters" card. The camera follows smoothly.
 - **Done when:** one button plays the whole EVA end to end without stutter on a phone.
 
