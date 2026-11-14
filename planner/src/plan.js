@@ -46,30 +46,40 @@ export function planMission(a) {
   } else {
     // Try the chosen stops; if they make the EVA worse than going without them (e.g. NO-GO on O₂),
     // drop the stop with the biggest detour and try again. Science should never cost the walk home.
+    // Judged without the space-weather caution (it applies to every route alike), then rescored with it.
     const RANK = { go: 0, caution: 1, nogo: 2 };
+    const walkCtx = { ...ctx, spaceWeather: null };
     let stops = chosen.slice();
     let ms = 0;
+    let path = null;
+    let fellBackToSafe = false;
     for (;;) {
       const sci = timed(() => legs(ctx, [start, ...stops.map((p) => [p.x, p.y]), end], 'ENERGY'));
       ms += sci.ms;
-      science = score(ctx, 'SCIENCE', sci.value, stops, target, ms);
+      path = sci.value;
+      science = score(walkCtx, 'SCIENCE', path, stops, target, ms);
       if (!stops.length || RANK[science.verdict.lvl] === 0) break;
       const worst = stops.reduce((a, b) => (detourOf(a, start, end, cellX, cellY) >= detourOf(b, start, end, cellX, cellY) ? a : b));
       const fewer = stops.filter((p) => p !== worst);
       if (!fewer.length && !target) {
         // without any site the route is just SAFE: keep the stop if SAFE is no better
-        const safeScore = score(ctx, 'SAFE', safe.value, [], null, 0);
+        const safeScore = score(walkCtx, 'SAFE', safe.value, [], null, 0);
         if (RANK[safeScore.verdict.lvl] >= RANK[science.verdict.lvl]) break;
-        science = { ...safeScore, strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
+        fellBackToSafe = true;
         break;
       }
       const trial = timed(() => legs(ctx, [start, ...fewer.map((p) => [p.x, p.y]), end], 'ENERGY'));
       ms += trial.ms;
-      const t = score(ctx, 'SCIENCE', trial.value, fewer, target, ms);
+      const t = score(walkCtx, 'SCIENCE', trial.value, fewer, target, ms);
       const better = RANK[t.verdict.lvl] < RANK[science.verdict.lvl] ||
         (science.verdict.lvl === 'nogo' && t.verdict.lvl === 'nogo' && t.budget.marginPct > science.budget.marginPct);
-      if (better) { stops = fewer; science = t; continue; }
+      if (better) { stops = fewer; path = trial.value; science = t; continue; }
       break;
+    }
+    if (fellBackToSafe) {
+      science = { ...score(ctx, 'SAFE', safe.value, [], null, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
+    } else {
+      science = score(ctx, 'SCIENCE', path, stops, target, ms); // final score, with space weather
     }
     if (stops.length < chosen.length && !science.note) {
       const n = chosen.length - stops.length;
