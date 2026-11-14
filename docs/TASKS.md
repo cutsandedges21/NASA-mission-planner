@@ -256,7 +256,7 @@ Status values: `TODO` · `IN PROGRESS (who, time)` · `BLOCKED (on what)` · `DO
 
 ## T-20 · Show radiation, terrain risk and space-weather caution on the route cards
 - **Owner:** Moss's Claude · **Time box:** 20 min · **When:** with T-13 (Sat 13:00)
-- **Status:** TODO
+- **Status:** DONE (Moss's Claude, Fri 19:35). **Result:** each route card shows Radiation (mSv, tooltip cites Curiosity RAD) and Steep ground (%, tooltip). The planner gets `spaceWeather` (today's CME → every route CAUTION with the reason in its issues; the daylight re-check keeps that caution). `/api/explain` body now includes `doseMSv` + `steepPct`.
 - **Why:** answers challenge O6 (radiation + space weather) and the PLAN's "risk" dashboard number, with data we already compute.
 - **Steps:**
   1. Planner now returns `budget.doseMSv` and `budget.steepPct` (types already in `web/lib/plan-client.ts`). On each route card add two stats: **Radiation** `${doseMSv.toFixed(2)} mSv` (tooltip: "Curiosity RAD measured 0.64 mSv/day at Gale's surface (Hassler et al. 2014)") and **Steep ground** `${steepPct.toFixed(0)} %` (tooltip: "share of the route steeper than 15°").

@@ -207,14 +207,14 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for async planning
     setBusy(true);
     setError(null);
-    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, pois })
+    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, pois, spaceWeather: weather })
       .then((r) => !cancelled && setRoutes(r))
       .catch((e) => !cancelled && setError(`Route planning failed: ${e.message}`))
       .finally(() => !cancelled && setBusy(false));
     return () => {
       cancelled = true;
     };
-  }, [region, base, dest]);
+  }, [region, base, dest, weather]);
 
   // 7. draw routes
   useEffect(() => {
@@ -294,6 +294,8 @@ export default function MissionPlanner() {
       durationMin: Math.round(r.budget.totalT / 60),
       o2MarginPct: Math.round(Math.max(0, r.budget.marginPct)),
       maxSlopeDeg: +r.budget.maxSlope.toFixed(1),
+      doseMSv: r.budget.doseMSv,
+      steepPct: r.budget.steepPct,
       verdict: r.verdict,
       poisVisited: r.poisVisited.map(poiName),
       note: r.note,
@@ -483,6 +485,12 @@ function RouteCard({
           <Stat k="EVA time" v={fmtDur(b.totalT)} />
           <Stat k="O₂ left" v={`${Math.max(0, b.marginPct).toFixed(0)} %`} warn={b.marginPct < 40} />
           <Stat k="Max slope" v={`${b.maxSlope.toFixed(0)}°`} warn={b.maxSlope > 15} />
+          {b.doseMSv !== undefined && (
+            <Stat k="Radiation" v={`${b.doseMSv.toFixed(2)} mSv`} title="Dose for the whole EVA. Curiosity's RAD instrument measured 0.64 mSv per day at Gale's surface (Hassler et al. 2014)." />
+          )}
+          {b.steepPct !== undefined && (
+            <Stat k="Steep ground" v={`${b.steepPct.toFixed(0)} %`} warn={b.steepPct > 10} title="Share of the route on ground steeper than 15°, from the 1 m terrain model." />
+          )}
         </div>
       ) : null}
       {daylight && (
@@ -505,9 +513,9 @@ function RouteCard({
   );
 }
 
-function Stat({ k, v, warn }: { k: string; v: string; warn?: boolean }) {
+function Stat({ k, v, warn, title }: { k: string; v: string; warn?: boolean; title?: string }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex justify-between gap-2 whitespace-nowrap" title={title}>
       <span className="text-zinc-500">{k}</span>
       <span className={warn ? 'text-amber-300' : 'text-zinc-100'}>{v}</span>
     </div>
