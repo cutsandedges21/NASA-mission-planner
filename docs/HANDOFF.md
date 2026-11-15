@@ -21,6 +21,7 @@ Gianluca's account can't deploy: the Vercel Hobby plan blocks deploys whose git 
 bash tools/deploy.sh
 ```
 It deploys exactly what's on GitHub `main` (~2 min). If the build fails, the old site stays live.
+**Daily limit (found Sat 20:20 EST):** Vercel Hobby allows **100 deployments per 24 h** for the whole account; the 15:02 deploy failed with `Resource is limited ... api-deployments-free-per-day`. Cause: every `git push` created 2 blocked deployments (projects `nasa-eva-planner` and `nasa-mission-planner` were both linked to the repo). Git deployments are now disabled on both projects (`createDeployments: disabled`), so pushing is free; ~17 deploys are left until Sun 10:00. Deploy on purpose (tested commits), not after every push. Check the count with `vercel api "/v6/deployments?teamId=team_FPJXre77iqiRUL0WvZ4TRloH&limit=100&since=<ms 24 h ago>"`.
 `bash tools/deploy.sh --check` runs every step except the deploy (tested OK on Moss's PC Sat 12:15: Vercel login `cutsandedges21`, GitHub reachable). Every run writes **`C:	mpdeploy-log.txt`**. **Moss has no Claude:** if a deploy fails, Moss sends that log to Gianluca. **You** read it and reply in plain words with the exact fix: build error → fix the code, push, ask for another deploy; not logged in → `vercel login` (cutsandedges21 account); `rm` failure → close windows inside `C:	mpdeploy-snapshot`; network → retry. The script prints these same hints.
 **Claude:** when you want a deploy, push first, then write `DEPLOY NEEDED: <commit>` in the SYNC LOG and tell Gianluca to text Moss. Deploy at least: (a) after the §2 docs/fixes, (b) right before feature freeze (Sat ~22:30), (c) after any Sunday bug fix.
 
@@ -37,7 +38,7 @@ Blender runs only on Moss's PC, and that chat stopped on Moss's instruction (sta
 
 ## 2. Your task list, in order (Gianluca's Claude)
 
-Keep the protocol: `git pull --rebase --autostash` before each step, push after, one SYNC LOG line per start and finish, **times from `TZ=America/Toronto date +%H:%M`** (both Claudes' logs had drifted up to 1.5 h ahead).
+Keep the protocol: `git pull --rebase --autostash` before each step, push after, one SYNC LOG line per start and finish, **times from `TZ=EST5 date +%H:%M`** (`TZ=America/Toronto` prints UTC in Git Bash on Windows: 5 h ahead).
 
 ### Step 0 · Remove everything that needs an API key (Moss's decision, Sat ~12:05) (45 min, do first)
 No runtime AI and no keys. The briefing becomes a plain-language explanation **written in the browser from the computed numbers** (the template we already have), so there's no server call: lighter and can't fail.
@@ -80,6 +81,7 @@ The reference image (PIA26042) draws the route as one **thin, pale** line. Ours 
 4. After 23:00: bug fixes only, each one deployed.
 
 ### Step 6 · The slide deck (replaces the video; Moss, Sat 12:05) (2–3 h, start after Step 2, finish by Sat 22:30)
+**Official limit (Space Apps 2026 Project Submission Guide): at most 7 slides including the title slide, or the project is not eligible for Global Judging.** The 10 suggested slides below must be merged into 7. Taken by Moss's Claude (freeze chat) Sat 20:24: see `docs/SLIDES.md`.
 We **present with slides**. You build the deck; the humans present it.
 1. **Requirements first:** find the official Space Apps 2026 rules for presenting/submitting with slides (max slides, max minutes, file format, where the link goes on the project page) and write them at the top of T-14 with the source URL. Follow them over anything below.
 2. **Outline first, then build:** write `docs/SLIDES.md`: one section per slide with title, the on-slide words (short), the visual, and **speaker notes word for word with a time per slide**. Get Gianluca's OK on the outline (Moss's too if he's around) before building.
