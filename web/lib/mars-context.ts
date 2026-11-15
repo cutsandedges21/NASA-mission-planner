@@ -1,5 +1,5 @@
 // Mission context at the region: Mars clock, daylight window, Earth–Mars signal delay, and the
-// per-route daylight check. Sun maths come from marstime.js (Mars24 algorithm, via Sol Atlas).
+// per-route daylight check. Sun maths come from marstime.js (NASA GISS Mars24 algorithm).
 import { dayLength, earthMarsLightTime, formatHM, localTime, marsTime, SOL_SECONDS } from './marstime.js';
 import { EVA_DEFAULTS, verdict as evaVerdict } from '../../planner/src/eva.js';
 import type { PlannedRoute, Verdict } from './plan-client';

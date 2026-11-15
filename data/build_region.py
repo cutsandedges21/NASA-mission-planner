@@ -2,12 +2,10 @@
 """
 Bake one Mars region into the web app's data contract (docs/ARCHITECTURE.md).
 
-Adapted from Sol Atlas by The SOL Explorers.
-Changes: one generic region stage driven by data/regions/<id>.json instead of the Jezero stages;
-reads projected sources (the 1 m MSL DEM) through a window + reproject onto a lon/lat grid; exports
-exactly meta.json / elev.i16 / slope.png / visible.jpg / thermal.jpg / pois.json; adds --synthetic
-(test the export without network) and --check (validate the output). Colour ramps, stretch and
-nodata fill are copied from Sol Atlas.
+One generic region stage driven by data/regions/<id>.json: reads each NASA/USGS source through a
+window (projected sources such as the 1 m MSL DEM are reprojected onto a lon/lat grid) and exports
+exactly meta.json / elev.i16 / slope.png / visible.jpg / thermal.jpg / pois.json. --synthetic tests
+the export without network, --check validates the output.
 
 Usage (from the repo root, on a machine that can reach the USGS bucket):
     pip install rasterio numpy pillow scipy
@@ -58,40 +56,23 @@ def log(*a):
     print(f"[{time.strftime('%H:%M:%S')}]", *a, flush=True)
 
 
-# --------------------------------------------------------------------------- from Sol Atlas
-def lut(stops, n=256):
-    t = np.linspace(0, 1, n)
-    out = np.zeros((n, 3))
-    xs = [s[0] for s in stops]
-    for c in range(3):
-        out[:, c] = np.interp(t, xs, [s[1][c] for s in stops])
-    return out.astype(np.float32) / 255.0
-
-
-THERMAL = lut([
-    (0.00, (58, 26, 6)), (0.22, (122, 53, 16)), (0.45, (192, 90, 28)),
-    (0.68, (236, 138, 69)), (0.86, (249, 199, 154)), (1.00, (255, 240, 224)),
-])
-
-
-def apply_lut(x, table):
-    x = np.clip(x, 0, 1)
-    return table[(x * (len(table) - 1)).astype(np.int32)]
-
-
-def stretch(a, lo=1, hi=99, mask=None):
-    v = a[mask] if mask is not None else a[np.isfinite(a)]
-    if v.size == 0:
+# --------------------------------------------------------------------------- image helpers
+def percentile_stretch(a, lo=1, hi=99, mask=None):
+    """Scale `a` so the lo..hi percentiles of its valid pixels span 0..1 (clipped). Returns (scaled, low, high)."""
+    valid = a[mask] if mask is not None else a[np.isfinite(a)]
+    if valid.size == 0:
         return np.zeros_like(a), 0.0, 1.0
-    p0, p1 = np.percentile(v, [lo, hi])
-    return np.clip((a - p0) / max(p1 - p0, 1e-6), 0, 1), float(p0), float(p1)
+    low, high = np.percentile(valid, [lo, hi])
+    scaled = np.clip((a - low) / max(high - low, 1e-6), 0, 1)
+    return scaled, float(low), float(high)
 
 
-def fill_nodata(a, mask):
-    if not mask.any():
+def fill_from_nearest(a, holes):
+    """Give every hole the value of the nearest valid cell (Euclidean distance transform)."""
+    if not holes.any():
         return a
-    idx = ndimage.distance_transform_edt(mask, return_distances=False, return_indices=True)
-    return a[tuple(idx)]
+    _, nearest = ndimage.distance_transform_edt(holes, return_indices=True)
+    return a[tuple(nearest)]
 
 
 # --------------------------------------------------------------------------- grid
@@ -212,7 +193,7 @@ def export(cfg, raw, out_dir):
         sys.exit("DEM read returned no data for this region")
     if bad.any():
         log(f"filling {bad.mean() * 100:.2f} % no-data DEM cells")
-        fine = fill_nodata(np.where(bad, 0, fine), bad)
+        fine = fill_from_nearest(np.where(bad, 0, fine), bad)
     elev = fine.reshape(H, o, W, o).mean(axis=(1, 3))
     elev_i16 = np.clip(np.round(elev), -32768, 32767).astype("<i2")
     elev_i16.tofile(os.path.join(out_dir, "elev.i16"))
@@ -228,22 +209,22 @@ def export(cfg, raw, out_dir):
     hmask = np.all(np.isfinite(vis), axis=0) & (np.nan_to_num(vis).max(axis=0) > 0)
     rgb = np.zeros(vis.shape[1:] + (3,), np.float32)
     for b in range(3):
-        sv, _, _ = stretch(np.nan_to_num(vik[b]), 0.5, 99.5, np.isfinite(vik[b]))
+        sv, _, _ = percentile_stretch(np.nan_to_num(vik[b]), 0.5, 99.5, np.isfinite(vik[b]))
         rgb[..., b] = sv
         if hmask.any():
-            sh, _, _ = stretch(np.nan_to_num(vis[b]), 0.5, 99.5, hmask)
+            sh, _, _ = percentile_stretch(np.nan_to_num(vis[b]), 0.5, 99.5, hmask)
             rgb[..., b] = np.where(hmask, sh, rgb[..., b])
     hirise_pct = float(hmask.mean() * 100)
     Image.fromarray((rgb * 255 + 0.5).astype(np.uint8)).save(
         os.path.join(out_dir, "visible.jpg"), quality=85, optimize=True, progressive=True)
 
-    # thermal: local stretch (THEMIS mosaics are normalised image by image)
+    # thermal: greyscale, stretched locally (THEMIS mosaics are normalised image by image).
+    # The web app false-colours it (web/lib/trek.ts), so only the grey level matters. No data = black.
     th = raw["thermal"]
     ok = np.isfinite(th) & (th > 0)
-    s, _, _ = stretch(np.nan_to_num(th), 1, 99.5, ok)
-    t_rgb = apply_lut(s, THERMAL)
-    t_rgb[~ok] = 0.03
-    Image.fromarray((t_rgb * 255 + 0.5).astype(np.uint8)).save(
+    grey, _, _ = percentile_stretch(np.nan_to_num(th), 1, 99.5, ok)
+    grey[~ok] = 0
+    Image.fromarray((grey * 255 + 0.5).astype(np.uint8), "L").save(
         os.path.join(out_dir, "thermal.jpg"), quality=85, optimize=True, progressive=True)
 
     # POIs
@@ -286,7 +267,7 @@ def export(cfg, raw, out_dir):
         "base": cfg.get("base"),
         "synthetic": dem_key == "synthetic",
         "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-        "credits": "Pipeline adapted from Sol Atlas by The SOL Explorers. Data: NASA / JPL / USGS / ESA.",
+        "credits": "Data: NASA / JPL / USGS / ESA.",
         "sources": sources,
     }
     with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as f:

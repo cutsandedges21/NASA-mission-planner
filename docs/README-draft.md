@@ -59,7 +59,6 @@ Challenge checklist (O1–O8, C1–C6): see [docs/CHALLENGE.md](docs/CHALLENGE.m
 
 ## Credits
 
-- **Routing and EVA oxygen model** adapted from **Sol Atlas** by The SOL Explorers. Every adapted file says what changed.
 - Data: NASA, JPL-Caltech, USGS Astrogeology, ESA/DLR/FU Berlin (HRSC), University of Arizona (HiRISE), Arizona State University (THEMIS).
 - Basemap: OpenPlanetaryMap.
 

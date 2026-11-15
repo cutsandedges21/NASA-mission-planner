@@ -38,7 +38,7 @@
   },
   "synthetic": false,
   "generated": "2026-11-14T00:44:29+00:00",
-  "credits": "Pipeline adapted from Sol Atlas by The SOL Explorers. Data: NASA / JPL / USGS / ESA.",
+  "credits": "Data: NASA / JPL / USGS / ESA.",
   "sources": [
     {
       "layer": "elev",

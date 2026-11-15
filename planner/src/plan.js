@@ -1,6 +1,5 @@
 // planMission(): the one call the web app makes. Returns SAFE / FAST / SCIENCE routes, each
 // scored with the EVA model (time, O2, slope) and a GO / CAUTION / NO-GO verdict.
-// Routing and EVA oxygen model adapted from Sol Atlas by The SOL Explorers.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { CostGrid } from './route.js';
 import { smoothLine } from './smooth.js';

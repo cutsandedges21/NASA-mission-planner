@@ -111,6 +111,12 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'Models & methods',
+    name: 'Keplerian elements for approximate planet positions: E. M. Standish (NASA JPL)',
+    what: 'Earth–Mars distance, so the one-way signal delay to Mission Control',
+    url: 'https://ssd.jpl.nasa.gov/planets/approx_pos.html',
+  },
+  {
+    group: 'Models & methods',
     name: 'Apollo lunar EVA metabolic rates (NASA TN D-7883)',
     what: 'Reference range the EVA model is checked against in docs/VALIDATION.md',
     url: 'https://www.nasa.gov/wp-content/uploads/static/history/alsj/tnD7883Metabolic.pdf',

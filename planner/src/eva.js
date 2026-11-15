@@ -1,15 +1,17 @@
-// Adapted from Sol Atlas by The SOL Explorers.
-// Changes: added EVA_DEFAULTS.roverMaxSlope (20°, rover assist mode, T-23). Model otherwise unchanged.
+// EVA model for a suited astronaut on foot (or riding a rover) on Mars: walking speed, metabolic
+// power, O₂ use per route, and the GO / CAUTION / NO-GO verdict.
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
-
-// Marswalk EVA budget: the "Watney math".
 //
-// Metabolic rate: Pandolf et al. (1977) load-carriage equation
-//   M = 1.5 W + 2.0 (W + L)(L / W)^2 + η (W + L)(1.5 V^2 + 0.35 V G)
-// scaled for Mars gravity (0.378 g) on the load/locomotion terms, with a
-// pressure-suit penalty on locomotion. Walking speed vs grade: Tobler-style.
-// O2 use: 1 L O2 ≈ 20.1 kJ of metabolic energy; 1 L O2 = 1.429 g.
-// All assumptions are editable in the planner and listed in the README.
+// Sources
+// - Walking speed vs slope: Tobler's hiking function (Tobler 1993), v ∝ e^(−3.5·|s + 0.05|) with s = rise/run,
+//   normalised so flat ground gives `vFlat`.
+// - Metabolic power: Pandolf, Givoni & Goldman (1977), J. Appl. Physiol. 43: 577–581,
+//     M = 1.5·W + 2.0·(W + L)·(L/W)² + η·(W + L)·(1.5·V² + 0.35·V·G)
+//   W = body mass, L = carried load, η = terrain factor, V = speed (m/s), G = grade (%).
+//   The load and locomotion terms scale with Mars gravity and a pressure-suit factor. Downhill steps
+//   cost a fraction of the equivalent uphill grade (braking), not zero.
+// - O₂: about 20.1 kJ of metabolic energy per litre of O₂, and 1 L of O₂ weighs 1.429 g.
+// Every number below is an editable assumption, surfaced in the planner UI and the README.
 
 export const EVA_DEFAULTS = {
   crewKg: 75,          // astronaut body mass
@@ -31,78 +33,125 @@ export const EVA_DEFAULTS = {
   roverMaxSlope: 20,   // deg: hard limit for driving the unpressurised rover (rover assist mode)
 };
 
-const DEG = Math.PI / 180;
+const DEG_TO_RAD = Math.PI / 180;
 
+// Tobler's hiking function
+const TOBLER_DECAY = 3.5;
+const TOBLER_PEAK_SLOPE = 0.05;        // speed peaks on a gentle 5 % downhill
+const TOBLER_FLAT = Math.exp(-TOBLER_DECAY * TOBLER_PEAK_SLOPE);
+const SLOWEST_WALK_MS = 0.12;          // floor, so a very steep step still has a finite time
+
+// Pandolf
+const DOWNHILL_GRADE_FACTOR = 0.3;     // a downhill grade costs 30 % of the same uphill grade (braking)
+
+// Oxygen
+const JOULES_PER_LITRE_O2 = 20100;
+const KG_PER_LITRE_O2 = 1.429e-3;
+
+/** Walking speed (m/s) on ground inclined at `gradeRad` (positive = uphill). */
 export function walkSpeed(gradeRad, p = EVA_DEFAULTS) {
-  const v = p.vFlat * Math.exp(-3.5 * Math.abs(Math.tan(gradeRad) + 0.05)) / Math.exp(-3.5 * 0.05);
-  return Math.max(0.12, v);
+  const rise = Math.tan(gradeRad);
+  const speed = p.vFlat * Math.exp(-TOBLER_DECAY * Math.abs(rise + TOBLER_PEAK_SLOPE)) / TOBLER_FLAT;
+  return speed < SLOWEST_WALK_MS ? SLOWEST_WALK_MS : speed;
 }
 
+/** Metabolic power (W) walking at `v` m/s on a `gradePct` % grade. */
 export function metabolicW(v, gradePct, p = EVA_DEFAULTS) {
-  const W = p.crewKg, L = p.suitKg + (p.kitKg || 0), eta = p.terrain;
-  const rest = 1.5 * W;
-  const load = 2.0 * (W + L) * (L / W) ** 2;
-  const up = Math.max(gradePct, 0);
-  const brake = Math.max(-gradePct, 0) * 0.3; // simplified downhill braking cost
-  const loco = eta * (W + L) * (1.5 * v * v + 0.35 * v * (up + brake));
-  return rest + (load + loco) * p.gRatio * p.suitPenalty;
+  const body = p.crewKg;
+  const load = p.suitKg + (p.kitKg || 0);
+  const mass = body + load;
+  const effGrade = gradePct >= 0 ? gradePct : -gradePct * DOWNHILL_GRADE_FACTOR;
+  const standing = 1.5 * body;
+  const carrying = 2.0 * mass * (load / body) ** 2;
+  const moving = p.terrain * mass * (1.5 * v * v + 0.35 * v * effGrade);
+  return standing + (carrying + moving) * p.gRatio * p.suitPenalty;
 }
 
-export const o2KgPerSec = (watts) => (watts / 20100) * 1.429e-3; // J/s ÷ J/L × kg/L
+/** O₂ consumed (kg/s) at a metabolic power of `watts`. */
+export const o2KgPerSec = (watts) => (watts / JOULES_PER_LITRE_O2) * KG_PER_LITRE_O2;
 
-/** Energy-weighted cost of one step (used by A* so the route minimises O2). */
+/** Metabolic energy (J) to walk one step of `distM` horizontal metres and `dhM` climb. A* minimises this to save O₂. */
 export function stepCost(distM, dhM, p = EVA_DEFAULTS) {
-  const g = Math.atan2(dhM, distM);
-  const v = walkSpeed(g, p);
-  const t = distM / v;
-  return metabolicW(v, (dhM / distM) * 100, p) * t; // joules
+  const v = walkSpeed(Math.atan2(dhM, distM), p);
+  return metabolicW(v, (dhM / distM) * 100, p) * (distM / v);
+}
+
+/** Speed (m/s) and metabolic power (W) for one leg, on foot or seated on the rover. */
+function legRates(dist, dh, p) {
+  if (p.rover) return { v: p.roverMs, watts: p.rideW };
+  const v = walkSpeed(Math.atan2(dh, dist), p);
+  return { v, watts: metabolicW(v, (dh / dist) * 100, p) };
 }
 
 /**
- * Budget a route.
- * @param {Array<{d:number, e:number}>} samples  cumulative distance (m) + elevation (m), dense
- * @param {number[]} stopAt  cumulative distances where science stops happen
+ * Time, O₂ and terrain totals for a route.
+ * @param {Array<{d:number, e:number}>} samples  dense profile: cumulative distance (m) and elevation (m)
+ * @param {number[]} stopAt  cumulative distances of the science stops
  */
 export function budget(samples, stopAt, p = EVA_DEFAULTS) {
-  let t = 0, o2 = 0, gain = 0, loss = 0, maxSlope = 0;
+  let time = 0, o2 = 0, gain = 0, loss = 0, steepestDeg = 0;
   const timeline = [{ d: 0, t: 0, o2: 0 }];
   for (let i = 1; i < samples.length; i++) {
-    const a = samples[i - 1], b = samples[i];
-    const dd = b.d - a.d;
-    if (dd <= 0) continue;
-    const dh = b.e - a.e;
-    const g = Math.atan2(dh, dd);
-    const v = p.rover ? p.roverMs : walkSpeed(g, p);
-    const dt = dd / v;
-    t += dt;
-    o2 += o2KgPerSec(p.rover ? p.rideW : metabolicW(v, (dh / dd) * 100, p)) * dt;
+    const from = samples[i - 1], to = samples[i];
+    const dist = to.d - from.d;
+    if (dist <= 0) continue; // duplicate point
+    const dh = to.e - from.e;
+    const { v, watts } = legRates(dist, dh, p);
+    const dt = dist / v;
+    time += dt;
+    o2 += o2KgPerSec(watts) * dt;
     if (dh > 0) gain += dh; else loss -= dh;
-    maxSlope = Math.max(maxSlope, Math.abs(g) / DEG);
-    timeline.push({ d: b.d, t, o2 });
+    const deg = Math.abs(Math.atan2(dh, dist)) / DEG_TO_RAD;
+    if (deg > steepestDeg) steepestDeg = deg;
+    timeline.push({ d: to.d, t: time, o2 });
   }
-  const walkT = t;
+  const walkT = time;
   const stopT = stopAt.length * p.stopMin * 60;
-  const stopO2 = stopAt.length * o2KgPerSec(p.stopW) * p.stopMin * 60;
-  t += stopT;
-  o2 += stopO2;
-  const reserveKg = p.o2CapKg * p.reservePct / 100;
+  time += stopT;
+  o2 += stopAt.length * o2KgPerSec(p.stopW) * p.stopMin * 60;
+  const reserveKg = (p.o2CapKg * p.reservePct) / 100;
   const remaining = p.o2CapKg - o2;
-  const marginPct = (remaining / p.o2CapKg) * 100;
   return {
-    distance: samples.at(-1)?.d || 0, walkT, stopT, totalT: t, o2, remaining, marginPct, reserveKg,
-    gain, loss, maxSlope, timeline, avgW: o2 / t / o2KgPerSec(1),
+    distance: samples.at(-1)?.d || 0,
+    walkT,
+    stopT,
+    totalT: time,
+    o2,
+    remaining,
+    marginPct: (remaining / p.o2CapKg) * 100,
+    reserveKg,
+    gain,
+    loss,
+    maxSlope: steepestDeg,
+    timeline,
+    avgW: o2 / time / o2KgPerSec(1),
   };
 }
 
+/**
+ * Safety verdict for a budgeted route. `sun.endMarginH` = hours of daylight left when the EVA ends.
+ * Slope messages keep the "(limit N°)" wording: plan.js rewrites it to "(rover limit N°)" in rover mode.
+ */
 export function verdict(b, sun, p = EVA_DEFAULTS) {
   const issues = [];
-  if (b.remaining < b.reserveKg) issues.push({ lvl: 'nogo', msg: `O₂ reserve breached: ${Math.max(0, b.remaining).toFixed(3)} kg left at the airlock, ${b.reserveKg.toFixed(3)} kg required` });
-  else if (b.marginPct < p.reservePct + 15) issues.push({ lvl: 'caution', msg: `Thin O₂ margin: ${b.marginPct.toFixed(0)} % left at return` });
-  if (b.totalT / 3600 > p.evaMaxH) issues.push({ lvl: 'nogo', msg: `EVA ${(b.totalT / 3600).toFixed(1)} h exceeds the ${p.evaMaxH} h suit rating` });
-  if (b.maxSlope > p.maxSlope) issues.push({ lvl: 'nogo', msg: `Route crosses ${b.maxSlope.toFixed(0)}° ground (limit ${p.maxSlope}°)` });
-  else if (b.maxSlope > p.maxSlope * 0.75) issues.push({ lvl: 'caution', msg: `Steep sections up to ${b.maxSlope.toFixed(0)}°` });
-  if (sun && sun.endMarginH < 0) issues.push({ lvl: 'nogo', msg: 'EVA ends after sunset' });
-  else if (sun && sun.endMarginH < 0.75) issues.push({ lvl: 'caution', msg: 'Less than 45 min of daylight margin' });
+  const nogo = (msg) => issues.push({ lvl: 'nogo', msg });
+  const caution = (msg) => issues.push({ lvl: 'caution', msg });
+
+  if (b.remaining < b.reserveKg) {
+    nogo(`Not enough O₂: back at the airlock with ${Math.max(0, b.remaining).toFixed(3)} kg, but the reserve is ${b.reserveKg.toFixed(3)} kg`);
+  } else if (b.marginPct < p.reservePct + 15) {
+    caution(`Low O₂ margin: ${b.marginPct.toFixed(0)} % left on return`);
+  }
+
+  const hours = b.totalT / 3600;
+  if (hours > p.evaMaxH) nogo(`${hours.toFixed(1)} h outside is longer than the ${p.evaMaxH} h suit limit`);
+
+  if (b.maxSlope > p.maxSlope) nogo(`Crosses ${b.maxSlope.toFixed(0)}° slopes (limit ${p.maxSlope}°)`);
+  else if (b.maxSlope > p.maxSlope * 0.75) caution(`Steep stretches up to ${b.maxSlope.toFixed(0)}°`);
+
+  if (sun && sun.endMarginH < 0) nogo('Gets back after sunset');
+  else if (sun && sun.endMarginH < 0.75) caution('Under 45 min of daylight to spare');
+
   const lvl = issues.some((i) => i.lvl === 'nogo') ? 'nogo' : issues.length ? 'caution' : 'go';
   return { lvl, issues };
 }
