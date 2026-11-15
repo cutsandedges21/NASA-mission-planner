@@ -130,10 +130,6 @@ This is acknowledged in the repository README ("AI use"), in `docs/AI-USE.md`, i
 - Tobler's hiking function: walking speed against slope.
 - Parker & Calef (2016), MSL Gale Merged Orthophoto Mosaic and DEM, USGS Astrogeology.
 
-**Code we reused**
-
-- Sol Atlas by The SOL Explorers: our routing, EVA oxygen model, Mars-time code and data pipeline were adapted from it. https://github.com/saracen66/the-sol-explorers. Every adapted file lists its changes.
-
 **Software**
 
 - Next.js (MIT), React (MIT), Tailwind CSS (MIT), MapLibre GL JS (BSD-3-Clause), three.js (MIT), rasterio, NumPy, SciPy, Pillow, Blender (GPL, one illustration), Playwright (Apache 2.0, testing), python-pptx (MIT, the slide deck), Vercel (hosting).
