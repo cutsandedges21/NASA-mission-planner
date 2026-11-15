@@ -68,15 +68,14 @@ export function startLoop(walking: boolean, stepMs: () => number) {
   stopLoop();
   if (isMuted()) return;
   const c = ac();
-  let timer = 0;
   if (walking) {
-    const step = () => {
-      burst('bandpass', 1100 + Math.random() * 500, 0.25, 0.09); // gravel crunch
-      burst('lowpass', 180, 0.3, 0.1); // boot thump
-      timer = window.setTimeout(step, stepMs());
-    };
-    step();
-    loop = { stop: () => clearTimeout(timer) };
+    // the recorded walk on rocks, looped; a bit quicker at higher playback speeds
+    const w = new Audio('/sounds/walking.mp3');
+    w.loop = true;
+    w.volume = 0.3;
+    w.playbackRate = Math.min(1.5, Math.max(0.8, 650 / stepMs()));
+    void w.play().catch(() => {});
+    loop = { stop: () => w.pause() };
     return;
   }
   const g = c.createGain();
