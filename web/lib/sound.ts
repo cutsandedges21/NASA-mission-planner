@@ -1,13 +1,13 @@
 /**
  * Suit sounds for Simulate, synthesised with Web Audio (no audio files, nothing to credit).
- * Muted by default; the choice is remembered in localStorage.
+ * On by default; the choice is remembered in localStorage.
  */
 let ctx: AudioContext | null = null;
 let noise: AudioBuffer | null = null;
 let loop: { stop: () => void } | null = null;
 const KEY = 'eva-sound';
 
-export const isMuted = () => typeof localStorage === 'undefined' || localStorage.getItem(KEY) !== 'on';
+export const isMuted = () => typeof localStorage === 'undefined' || localStorage.getItem(KEY) === 'off';
 
 function ac() {
   if (!ctx) {
@@ -40,14 +40,14 @@ function burst(type: BiquadFilterType, freq: number, peak: number, dur: number, 
 /** Airlock hiss at the start and end of the walk. */
 export function hiss() {
   if (isMuted()) return;
-  burst('highpass', 3000, 0.25, 1.4);
+  burst('highpass', 3000, 0.12, 1.4);
 }
 
 /** O₂ warning: soft double beep for low, sharper triple for the reserve. */
 export function beep(kind: 'low' | 'alarm') {
   if (isMuted()) return;
   const c = ac();
-  const [freq, n, vol] = kind === 'low' ? [880, 2, 0.08] : [1320, 3, 0.12];
+  const [freq, n, vol] = kind === 'low' ? [880, 2, 0.04] : [1320, 3, 0.06];
   for (let i = 0; i < n; i++) {
     const t = c.currentTime + i * 0.22;
     const o = c.createOscillator();
@@ -71,8 +71,8 @@ export function startLoop(walking: boolean, stepMs: () => number) {
   let timer = 0;
   if (walking) {
     const step = () => {
-      burst('bandpass', 1100 + Math.random() * 500, 0.5, 0.09); // gravel crunch
-      burst('lowpass', 180, 0.6, 0.1); // boot thump
+      burst('bandpass', 1100 + Math.random() * 500, 0.25, 0.09); // gravel crunch
+      burst('lowpass', 180, 0.3, 0.1); // boot thump
       timer = window.setTimeout(step, stepMs());
     };
     step();
@@ -81,7 +81,7 @@ export function startLoop(walking: boolean, stepMs: () => number) {
   }
   const g = c.createGain();
   g.gain.setValueAtTime(0.0001, c.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.05, c.currentTime + 0.6);
+  g.gain.exponentialRampToValueAtTime(0.03, c.currentTime + 0.6);
   const f = c.createBiquadFilter();
   f.type = 'lowpass';
   f.frequency.value = 380;
@@ -110,4 +110,13 @@ export function stopLoop() {
 export function setMuted(m: boolean) {
   localStorage.setItem(KEY, m ? 'off' : 'on');
   if (m) stopLoop();
+}
+
+/** Spaceship landing for the intro flight, sped up to fit it. */
+export function playIntro() {
+  if (isMuted()) return;
+  const a = new Audio('/sounds/landing.mp3');
+  a.playbackRate = 1.6;
+  a.volume = 0.35;
+  void a.play().catch(() => {});
 }

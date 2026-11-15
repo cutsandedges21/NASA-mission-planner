@@ -1,4 +1,5 @@
 'use client';
+import { playIntro } from '@/lib/sound';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
@@ -796,8 +797,12 @@ export default function MissionPlanner() {
       {hero && (
         <Hero
           region={region}
-          onSkip={() => setHero(false)}
+          onSkip={() => {
+            playIntro();
+            setHero(false);
+          }}
           onPick={(t) => {
+            playIntro();
             setHero(false);
             setTimeout(() => pickTarget(t), 50);
           }}
