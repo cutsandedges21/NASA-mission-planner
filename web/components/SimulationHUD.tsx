@@ -116,7 +116,7 @@ export default function SimulationHUD({
   const stop = frame.stopId ? pois.find((p) => p.id === frame.stopId) : undefined;
   const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? (frame.stopId?.startsWith('pitstop') ? 'At the pit stop' : `Working at ${stop?.name ?? 'the destination'}`) : frame.phase === 'returning' ? 'Returning to base' : route.budget?.mode === 'rover' ? 'Driving out' : 'Walking out';
 
-  // Suit sounds (muted by default): breathing + footsteps while walking, hiss at the airlock, O₂ beeps.
+  // Suit sounds (muted by default): footsteps while walking, engine rumble while driving, hiss at the airlock, O₂ beeps.
   const [muted, setMutedState] = useState(sound.isMuted);
   const walking = playing && !done && u >= 0 && frame.phase !== 'working';
   const speedRef = useRef(speed);

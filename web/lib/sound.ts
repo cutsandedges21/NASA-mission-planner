@@ -63,40 +63,41 @@ export function beep(kind: 'low' | 'alarm') {
   }
 }
 
-/** Breathing loop, plus footsteps when walking (faster on steep ground: stepMs shrinks). */
+/** While moving: crunchy footsteps when walking (faster at higher playback speed), a low engine rumble when driving. */
 export function startLoop(walking: boolean, stepMs: () => number) {
   stopLoop();
   if (isMuted()) return;
   const c = ac();
-  const src = c.createBufferSource();
-  src.buffer = noise;
-  src.loop = true;
-  const f = c.createBiquadFilter();
-  f.type = 'bandpass';
-  f.frequency.value = 500;
-  f.Q.value = 0.8;
-  const g = c.createGain();
-  g.gain.value = 0.05;
-  const lfo = c.createOscillator();
-  lfo.frequency.value = 0.28; // one breath every ~3.5 s
-  const depth = c.createGain();
-  depth.gain.value = 0.045;
-  lfo.connect(depth).connect(g.gain);
-  src.connect(f).connect(g).connect(c.destination);
-  src.start();
-  lfo.start();
   let timer = 0;
-  const step = () => {
-    burst('lowpass', 260, 0.35, 0.12);
-    timer = window.setTimeout(step, stepMs());
-  };
-  if (walking) step();
+  if (walking) {
+    const step = () => {
+      burst('bandpass', 1100 + Math.random() * 500, 0.5, 0.09); // gravel crunch
+      burst('lowpass', 180, 0.6, 0.1); // boot thump
+      timer = window.setTimeout(step, stepMs());
+    };
+    step();
+    loop = { stop: () => clearTimeout(timer) };
+    return;
+  }
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.05, c.currentTime + 0.6);
+  const f = c.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = 380;
+  const oscs = [68, 71.5].map((hz) => {
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.value = hz;
+    o.connect(f);
+    o.start();
+    return o;
+  });
+  f.connect(g).connect(c.destination);
   loop = {
     stop: () => {
-      clearTimeout(timer);
-      g.gain.setTargetAtTime(0, c.currentTime, 0.1);
-      src.stop(c.currentTime + 0.5);
-      lfo.stop(c.currentTime + 0.5);
+      g.gain.setTargetAtTime(0, c.currentTime, 0.15);
+      oscs.forEach((o) => o.stop(c.currentTime + 0.8));
     },
   };
 }
