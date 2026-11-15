@@ -30,6 +30,7 @@ On top of those: the surface radiation Curiosity's RAD measured here, NASA's Mar
 - **Switch the map.** 2D or 3D relief, and three layers: **Thermal** (THEMIS), **Elevation** (colour-coded 1 m terrain) and **Radiation** (dose rate). **Slope** is one click in the dock. The **Globe** button shows all of Mars from NASA Mars Trek. Hover the map for coordinates, elevation and a modelled ground temperature.
 - **Run the mission simulator.** Five seeded simulations walk from Point 1 to Point 2, each with its own appetite for risk, hidden ground and weather, labelled **FASTEST**, **SAFEST** and **BALANCED** (plus two more). Each has a plain-language account, a step-by-step list of legs, and the assumptions behind it. **What if a dust storm hits?** forces a storm into every run. **+ Pit stop** adds a stop that every route passes through.
 - **Go by rover.** *Rover assist* plans the same trip with an unpressurised rover. Glen Torridon is NO-GO on foot and GO by rover.
+- **Carry science gear.** *Science gear carried* (None / 10 kg / 20 kg) re-prices every route and simulation: the extra load costs oxygen on every step.
 - **Ride it.** *Simulate* plays the whole EVA on the map with a live oxygen gauge, or in **first person** over the real terrain. In first person the mission card starts as a small pill and opens when you click it.
 - **Check the sources.** *Data & credits* lists every dataset, model and library with its link.
 
@@ -50,7 +51,7 @@ Round trips from Bradbury Landing, Curiosity's touchdown site. Reproduce with `n
 | Glen Torridon (clays + organics) | 9.4 km | 6 h 12 min | 6 % | **NO-GO on foot** |
 | Glen Torridon, **rover assist** | 9.4 km | 3 h 44 min | 76 % | **GO** (setup panel → Mode → Rover assist) |
 
-Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (32 % O₂). A NASA solar-storm forecast for Mars turns every route to CAUTION. Both are planner results; the app has no control for carried gear yet.
+Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (32 % O₂): setup panel → Mode → **Science gear carried**. A NASA solar-storm forecast for Mars turns every route to CAUTION.
 
 ## How it works
 

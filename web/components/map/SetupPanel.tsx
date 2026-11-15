@@ -16,6 +16,8 @@ import AddBookmark from './AddBookmark';
 // Quick targets = the user's bookmarks (web/lib/bookmarks.ts), with "+" to add one.
 
 const pct = (h: number) => `${Math.min(100, Math.max(0, (h / 24) * 100))}%`;
+/** Carried science gear the planner can price (params.kitKg); docs/VALIDATION.md has the sensitivity. */
+const KIT_KG = [0, 10, 20];
 
 export default function SetupPanel({
   meta,
@@ -41,11 +43,16 @@ export default function SetupPanel({
   hasTraverse = false,
   rover = false,
   onRover,
+  kit = 0,
+  onKit,
 }: {
   hasTraverse?: boolean;
   /** Rover assist: plan and time the mission with an unpressurised rover. */
   rover?: boolean;
   onRover?: (v: boolean) => void;
+  /** Science gear carried on top of the suit, kg (planner params.kitKg). */
+  kit?: number;
+  onKit?: (kg: number) => void;
   meta: RegionMeta | null;
   destName: string | null;
   /** Plan to a bookmark (inside the region) or fly to it (elsewhere on Mars). */
@@ -197,6 +204,23 @@ export default function SetupPanel({
                     ? 'Unpressurised rover at 1.4 m/s with a 20° slope limit; the crew works on foot at the target. Press Simulate to ride it in first person.'
                     : 'The crew walks the whole way. Switch to a rover to reach the far sites.'}
                 </p>
+                {onKit && (
+                  <>
+                    <Sub>Science gear carried</Sub>
+                    <div className="grid grid-cols-3 gap-1.5" data-testid="kit">
+                      {KIT_KG.map((kg) => (
+                        <button key={kg} onClick={() => onKit(kg)} className={`sp-tile ${kit === kg ? 'sp-on' : ''}`} data-testid={`kit-${kg}`}>
+                          {kg ? `${kg} kg` : 'None'}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                      {kit
+                        ? `${kit} kg on top of the suit (drill, sample bags, cameras). Every step costs more effort, so the suit uses more oxygen${rover ? ' when the crew walks' : ''}.`
+                        : 'Add a drill, sample bags or cameras to see what the extra weight costs in oxygen.'}
+                    </p>
+                  </>
+                )}
               </Section>
             )}
 

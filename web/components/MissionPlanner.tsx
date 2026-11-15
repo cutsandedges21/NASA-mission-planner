@@ -73,6 +73,7 @@ export default function MissionPlanner() {
   const [mapInst, setMapInst] = useState<MLMap | null>(null); // for children that listen to the map (HoverReadout)
   const [geology] = useState(false); // T-34: approximate rock units after NASA/JPL PIA26042
   const [rover, setRover] = useState(false); // rover assist: plan with an unpressurised rover (planner params.rover)
+  const [kitKg, setKitKg] = useState(0); // science gear carried on top of the suit (planner params.kitKg), challenge objective O7
   const [navTab, setNavTab] = useState<NavTab>('plan');
   const [frameTick, setFrameTick] = useState(0);
   const [hero, setHero] = useState(() => !new URLSearchParams(window.location.search).has('nointro'));
@@ -330,14 +331,16 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag for async planning
     setBusy(true);
     setError(null);
-    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, via, pois, spaceWeather: weather, params: rover ? { rover: true } : undefined })
+    // the Mission simulator reuses these args (the worker keeps the last plan), so it prices the gear too
+    const params = rover || kitKg ? { ...(rover ? { rover: true } : {}), ...(kitKg ? { kitKg } : {}) } : undefined;
+    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, via, pois, spaceWeather: weather, params })
       .then((r) => !cancelled && setRoutes(r))
       .catch((e) => !cancelled && setError(`Route planning failed: ${e.message}`))
       .finally(() => !cancelled && setBusy(false));
     return () => {
       cancelled = true;
     };
-  }, [region, base, dest, weather, rover, pitStop]);
+  }, [region, base, dest, weather, rover, kitKg, pitStop]);
 
   // 6b. draw the simulation picked in the Mission simulator panel (T-35)
   const previewSim = useCallback(
@@ -627,6 +630,8 @@ export default function MissionPlanner() {
         base={base}
         rover={rover}
         onRover={setRover}
+        kit={kitKg}
+        onKit={setKitKg}
         hasTraverse={!!region?.traverse}
       />
 
