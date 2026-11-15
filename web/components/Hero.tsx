@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { Region } from '@/lib/region';
+import { REGIONS, type Region } from '@/lib/region';
 import { MARS_HOUR_S, hm, marsClock, type MarsClock } from '@/lib/mars-context';
 import { useBookmarks, removeBookmark, fmtCoord } from '@/lib/bookmarks';
 import AddBookmark from './map/AddBookmark';
@@ -92,6 +92,13 @@ export default function Hero({ region, onPick, onSkip }: { region: Region | null
   };
 
   const baseName = base?.name ?? 'Bradbury Landing';
+  const place = m?.about?.short ?? 'Gale Crater';
+  const switchTo = (id: string) => {
+    if (id === m?.id) return setActive(-1);
+    const q = new URLSearchParams(window.location.search);
+    q.set('region', id);
+    window.location.assign(`${window.location.pathname}?${q.toString()}`);
+  };
   const near = site ? inRegion(site) : false;
   const d = site ? distKm([lon, lat], [site.lon, site.lat]) : 0;
   const calls: string[] = site
@@ -114,15 +121,24 @@ export default function Hero({ region, onPick, onSkip }: { region: Region | null
         </div>
         <div className="hidden text-[11px] tracking-[0.14em] text-white/60 md:block">NASA SPACE APPS 2026 · INTERPLANETARY SURVIVAL GUIDE</div>
         <div className="text-right">
-          <div className="hero-clock">SOL {c ? c.sol.toLocaleString('en-US') : '----'} · {c ? hm(c.ltst) : '--:--'}</div>
-          <div className="hero-clock-sub">{c ? `${c.season} at Gale` : '…'}</div>
+          <div className="hero-clock">{m && m.id !== 'gale' ? 'LOCAL' : `SOL ${c ? c.sol.toLocaleString('en-US') : '----'}`} · {c ? hm(c.ltst) : '--:--'}</div>
+          <div className="hero-clock-sub">{c ? `${c.season} at ${place}` : '…'}</div>
         </div>
       </div>
 
       {/* left: Gale Crater + bookmarks + "+" */}
       <div className="hero-rail" role="listbox" aria-label="Choose a target">
         <div className="hero-rail-k">CHOOSE A TARGET</div>
-        <RailItem on={active === -1} label="Gale Crater" sub="landing site" onClick={() => setActive(-1)} style={{ backgroundImage: 'url(/img/mars-globe.jpg)', backgroundSize: 'cover' }} />
+        {REGIONS.map((r) => (
+          <RailItem
+            key={r.id}
+            on={active === -1 && m?.id === r.id}
+            label={r.name}
+            sub={m?.id === r.id ? `${r.sub} · open` : r.sub}
+            onClick={() => switchTo(r.id)}
+            style={{ backgroundImage: `url(/data/${r.id}/visible.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+          />
+        ))}
         {marks.map((b, i) => (
           <RailItem
             key={b.id}
@@ -166,20 +182,20 @@ export default function Hero({ region, onPick, onSkip }: { region: Region | null
         <p className="hero-p">
           {site
             ? near
-              ? 'Inside the Gale planning area, so we can plan spacesuit walks to it from NASA terrain data: a safe route and a fast route, with oxygen, slope and daylight checked.'
+              ? `Inside the ${place} planning area, so we can plan spacesuit walks to it from NASA terrain data: a safe route and a fast route, with oxygen, slope and daylight checked.`
               : 'Outside the 1 m NASA terrain we plan walks on. It opens on the map so you can explore it with NASA Trek’s global layers.'
-            : 'Gale Crater is where Curiosity has driven since 2012: an ancient lake bed under a 5 km mountain. Open the map to plan a spacesuit walk, or add a bookmark with + to save a place for later.'}
+            : `${m?.about?.blurb ?? 'Gale Crater is where Curiosity has driven since 2012: an ancient lake bed under a 5 km mountain.'} Open the map to plan a spacesuit walk, or pick another region on the left.`}
         </p>
         <div className="mt-7 flex items-center gap-5">
           <button className="hero-btn" onClick={plan}>
-            {site ? (near ? 'PLAN THIS EVA →' : 'OPEN ON THE MAP →') : 'OPEN GALE CRATER →'}
+            {site ? (near ? 'PLAN THIS EVA →' : 'OPEN ON THE MAP →') : `OPEN ${place.toUpperCase()} →`}
           </button>
         </div>
 
         <div className="hero-count">
           <div className="hero-count-k">
             <i />
-            {daytime ? 'SUNSET AT GALE IN' : 'NEXT SUNRISE AT GALE IN'}
+            {daytime ? `SUNSET AT ${place.toUpperCase()} IN` : `NEXT SUNRISE AT ${place.toUpperCase()} IN`}
           </div>
           <div className="mt-2 flex gap-3">
             {(() => {

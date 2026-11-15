@@ -1,0 +1,120 @@
+{
+  "id": "hadriacus",
+  "name": "Hadriacus Palus: human Exploration Zone",
+  "lon": [
+    78.16,
+    78.37
+  ],
+  "lat": [
+    -27.5,
+    -27.25
+  ],
+  "width": 442,
+  "height": 593,
+  "cellM": [
+    25.008,
+    24.989
+  ],
+  "elevRange": [
+    -2834,
+    -1428
+  ],
+  "slopeScale": 4,
+  "slopeNote": "slope.png = max slope (deg x 4) inside each cell; pass it to planMission as fineSlope",
+  "visibleSize": [
+    1527,
+    2048
+  ],
+  "thermalSize": [
+    763,
+    1024
+  ],
+  "base": {
+    "id": "palus-landing",
+    "name": "Palus landing zone",
+    "lon": 78.3384,
+    "lat": -27.26581,
+    "why": "A flat stretch of the palus plain, picked by us on the 1 m DEM. Skinner et al. 2015 (Exploration Zone workshop, #1052) proposed this plain for a human landing"
+  },
+  "about": {
+    "short": "Hadriacus Palus",
+    "sub": "never visited",
+    "blurb": "Hadriacus Palus was proposed in 2015 as a place for the first human crew: a flat, safe plain next to the Hadriacus Cavi, depressions more than 800 m deep that expose layered rock no rover has visited.",
+    "rover": null,
+    "travName": null
+  },
+  "demFillPct": 7.71,
+  "seamsLevelled": [
+    {
+      "c0": 365,
+      "k": 0.12000000000000002,
+      "meanJumpM": 15.5,
+      "medianStepM": 37.0
+    },
+    {
+      "c0": 54,
+      "k": 0.12000000000000002,
+      "meanJumpM": 3.7,
+      "medianStepM": 5.4
+    }
+  ],
+  "synthetic": false,
+  "generated": "2026-11-15T17:20:58+00:00",
+  "credits": "Pipeline adapted from Sol Atlas by The SOL Explorers. Data: NASA / JPL / USGS / ESA.",
+  "sources": [
+    {
+      "layer": "elev",
+      "dataset": "MRO HiRISE Hadriacus Palus DEM 1 m mosaic (Skinner et al., USGS)",
+      "mission": "MRO HiRISE",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mro_hirise_hadriacus_palus_dem_1m_and_orthophoto_50cm_mosaics",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/HadriacusPalus/HadriacusPalus_DEM_mosaic_1m_Equi0_16bit.tif",
+      "note": "resampled to 25.0 x 25.0 m cells"
+    },
+    {
+      "layer": "slope",
+      "dataset": "MRO HiRISE Hadriacus Palus DEM 1 m mosaic (Skinner et al., USGS)",
+      "mission": "MRO HiRISE",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mro_hirise_hadriacus_palus_dem_1m_and_orthophoto_50cm_mosaics",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/HadriacusPalus/HadriacusPalus_DEM_mosaic_1m_Equi0_16bit.tif",
+      "note": "max slope inside each cell, from the DEM at 12.5 m"
+    },
+    {
+      "layer": "elev",
+      "dataset": "Mars HRSC + MOLA Blended DEM Global v2 (USGS)",
+      "mission": "Mars Express HRSC + MGS MOLA",
+      "resolution": "200 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/HRSC_MOLA_Blend/Mars_HRSC_MOLA_BlendDEM_Global_200mp_v2.tif",
+      "note": "fills the 7.7 % of the region between the 1 m strips (smoother there: no 1 m detail)"
+    },
+    {
+      "layer": "visible",
+      "dataset": "CTX image mosaic for Mars Human Exploration Zones: Hadriacus (USGS 2016)",
+      "mission": "MRO CTX",
+      "resolution": "5 m/px (source)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/CTX_EZs/Hadriacus_CTX_BlockAdj_dd.tif",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/CTX_EZs/Hadriacus_CTX_BlockAdj_dd.tif",
+      "note": "covers 100 % of the region; greyscale, tinted with the Viking colour mosaic"
+    },
+    {
+      "layer": "visible",
+      "dataset": "Viking MDIM 2.1 colour mosaic (NASA Ames recolour)",
+      "mission": "Viking Orbiter",
+      "resolution": "~232 m/px",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "note": "colour tint and fills gaps outside coverage"
+    },
+    {
+      "layer": "thermal",
+      "dataset": "THEMIS Night IR controlled mosaic v2 (USGS)",
+      "mission": "Mars Odyssey THEMIS",
+      "resolution": "100 m/px",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "file": "https://asc-pds-services.s3.us-west-2.amazonaws.com/wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "note": "local percentile stretch; brighter = warmer at night (rockier)"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "wildcat-ridge",
+    "name": "Wildcat Ridge (delta front)",
+    "lon": 77.40592,
+    "lat": 18.45865,
+    "why": "Mudstone at the foot of the river delta, laid down as the lake dried. Its samples (sealed sols 509 and 516) hold organic molecules detected by the rover's SHERLOC instrument",
+    "source": "NASA/JPL M20 waypoint feed: rover stop at sol 502, the nearest to sol 509 (Hazeltop sample sealed, Wildcat Ridge)",
+    "approx": false
+  },
+  {
+    "id": "three-forks",
+    "name": "Three Forks Sample Depot",
+    "lon": 77.40771,
+    "lat": 18.45255,
+    "why": "The first sample depot on another planet: ten sealed tubes left on the ground (first dropped sol 653, Dec 2022) as a backup for Mars Sample Return. A crew could collect them on foot",
+    "source": "NASA/JPL M20 waypoint feed: rover stop at sol 652, the nearest to sol 653 (first tube dropped at the depot)",
+    "approx": false
+  },
+  {
+    "id": "cheyava-falls",
+    "name": "Cheyava Falls (Neretva Vallis)",
+    "lon": 77.3037,
+    "lat": 18.49599,
+    "why": "The 'leopard spot' rock NASA calls a potential biosignature: the Sapphire Canyon sample, sealed sol 1215, is the strongest candidate for ancient microbial life found so far",
+    "source": "NASA/JPL M20 waypoint feed: rover stop at sol 1219, the nearest to sol 1215 (Sapphire Canyon sample sealed)",
+    "approx": false
+  },
+  {
+    "id": "silver-mountain",
+    "name": "Silver Mountain (crater rim)",
+    "lon": 77.26475,
+    "lat": 18.46055,
+    "why": "Perseverance's first sample from Jezero's rim (sealed sol 1401): ancient crust lifted up by the impact that made the crater, possibly among the oldest rock sampled on Mars",
+    "source": "NASA/JPL M20 waypoint feed: rover stop at sol 1400, the nearest to sol 1401 (Silver Mountain sample sealed, Shallow Bay)",
+    "approx": false
+  }
+]

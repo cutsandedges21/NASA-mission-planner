@@ -12,6 +12,8 @@ export type RegionMeta = {
   cellM: [number, number];
   elevRange: [number, number];
   base?: { id: string; name: string; lon: number; lat: number };
+  /** Landing-page text for the region (data/regions/<id>.json → about). */
+  about?: { short: string; sub: string; blurb: string; rover: { name: string; landedUTC: string } | null; travName: string | null };
   sources: { layer: string; dataset: string; mission: string; url: string }[];
 };
 export type Region = {
@@ -24,6 +26,13 @@ export type Region = {
   traverse: GeoJSON.GeoJSON | null;
   url: (file: string) => string;
 };
+
+/** The baked regions (web/public/data/<id>/), in landing-page order. Switching reloads the page with ?region=<id>. */
+export const REGIONS = [
+  { id: 'gale', name: 'Gale Crater', sub: 'Curiosity, since 2012' },
+  { id: 'jezero', name: 'Jezero Crater', sub: 'Perseverance, since 2021' },
+  { id: 'hadriacus', name: 'Hadriacus Palus', sub: 'human Exploration Zone' },
+] as const;
 
 /** Real NASA data by default. `?region=demo` (synthetic terrain) is kept for testing; NEXT_PUBLIC_REGION overrides the build default. */
 export const REGION_ID = process.env.NEXT_PUBLIC_REGION ?? 'gale';

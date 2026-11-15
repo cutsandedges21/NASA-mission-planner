@@ -12,6 +12,16 @@
   "cellTargetM": 25,
   "imageMaxPx": 2048,
   "thermalMaxPx": 1024,
+  "about": {
+    "short": "Gale Crater",
+    "sub": "Curiosity, since 2012",
+    "blurb": "Gale Crater is where Curiosity has driven since 2012: an ancient lake bed under a 5 km mountain. It was proposed in 2015 as a human Exploration Zone.",
+    "rover": {
+      "name": "Curiosity",
+      "landedUTC": "2012-08-06T05:17:57Z"
+    },
+    "travName": "Curiosity's real drive"
+  },
   "base": {
     "id": "bradbury",
     "name": "Bradbury Landing",

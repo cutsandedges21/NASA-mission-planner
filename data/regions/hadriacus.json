@@ -1,0 +1,73 @@
+{
+  "id": "hadriacus",
+  "name": "Hadriacus Palus: human Exploration Zone",
+  "lon": [
+    78.16,
+    78.37
+  ],
+  "lat": [
+    -27.5,
+    -27.25
+  ],
+  "cellTargetM": 25,
+  "imageMaxPx": 2048,
+  "thermalMaxPx": 1024,
+  "dem": "dem_hirise",
+  "demFill": "dem_hrsc",
+  "fixSeams": true,
+  "visible": "ctx_ez",
+  "about": {
+    "short": "Hadriacus Palus",
+    "sub": "never visited",
+    "blurb": "Hadriacus Palus was proposed in 2015 as a place for the first human crew: a flat, safe plain next to the Hadriacus Cavi, depressions more than 800 m deep that expose layered rock no rover has visited.",
+    "rover": null,
+    "travName": null
+  },
+  "base": {
+    "id": "palus-landing",
+    "name": "Palus landing zone",
+    "lon": 78.3384,
+    "lat": -27.26581,
+    "why": "A flat stretch of the palus plain, picked by us on the 1 m DEM. Skinner et al. 2015 (Exploration Zone workshop, #1052) proposed this plain for a human landing"
+  },
+  "datasets": {
+    "dem_hirise": {
+      "key": "mosaic/Mars/HadriacusPalus/HadriacusPalus_DEM_mosaic_1m_Equi0_16bit.tif",
+      "local": "hadriacus_dem_1m.tif",
+      "dataset": "MRO HiRISE Hadriacus Palus DEM 1 m mosaic (Skinner et al., USGS)",
+      "mission": "MRO HiRISE",
+      "resolution": "1 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mro_hirise_hadriacus_palus_dem_1m_and_orthophoto_50cm_mosaics"
+    },
+    "dem_hrsc": {
+      "key": "mosaic/Mars/HRSC_MOLA_Blend/Mars_HRSC_MOLA_BlendDEM_Global_200mp_v2.tif",
+      "dataset": "Mars HRSC + MOLA Blended DEM Global v2 (USGS)",
+      "mission": "Mars Express HRSC + MGS MOLA",
+      "resolution": "200 m/px",
+      "url": "https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m"
+    },
+    "ctx_ez": {
+      "key": "mosaic/Mars/CTX_EZs/Hadriacus_CTX_BlockAdj_dd.tif",
+      "bands": [
+        1
+      ],
+      "dataset": "CTX image mosaic for Mars Human Exploration Zones: Hadriacus (USGS 2016)",
+      "mission": "MRO CTX",
+      "resolution": "5 m/px (source)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/CTX_EZs/Hadriacus_CTX_BlockAdj_dd.tif"
+    },
+    "viking_color": {
+      "key": "wms_basemaps/Mars/MDIM21_AMESColor/MDIM21_AMES_recolor_dd360_jpeg_cog.tif",
+      "dataset": "Viking MDIM 2.1 colour mosaic (NASA Ames recolour)",
+      "mission": "Viking Orbiter",
+      "resolution": "~232 m/px"
+    },
+    "themis_night": {
+      "key": "wms_basemaps/Mars/THEMIS_USGS/THEMIS_NightIR_ControlledMosaics_100m_v2_oct2018_cog.tif",
+      "dataset": "THEMIS Night IR controlled mosaic v2 (USGS)",
+      "mission": "Mars Odyssey THEMIS",
+      "resolution": "100 m/px"
+    }
+  },
+  "pois": []
+}

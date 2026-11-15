@@ -9,10 +9,21 @@ the export without network, --check validates the output.
 
 Usage (from the repo root, on a machine that can reach the USGS bucket):
     pip install rasterio numpy pillow scipy
-    python data/build_region.py gale               # 1 m MSL DEM (best)
+    python data/build_region.py gale               # the region's own 1 m DEM (best)
+    python data/build_region.py jezero             # any region in data/regions/ (gale, jezero, hadriacus)
     python data/build_region.py gale --dem hrsc    # 200 m HRSC+MOLA fallback (faster)
     python data/build_region.py gale --check       # validate web/public/data/gale/
     python data/build_region.py gale --synthetic   # no network: fake terrain, tests the export only
+
+Each region config names its sources (Sun 15 Nov, multi-region):
+    "dem":     dataset key of the elevation model (default "dem_msl")
+    "visible": dataset key of the map image (default "hirise_color"); a dataset with "bands": [1] is
+               greyscale (CTX) and gets tinted with the Viking colour mosaic underneath
+    "demFill": optional dataset key used to fill DEM gaps (e.g. "dem_hrsc" between HiRISE strips)
+               instead of smearing the nearest valid cell; the filled share is written to meta.json
+A dataset with "local": "<file>" is read from $NASA_RAW_DIR/<file> or data-cache/raw/<file> when that
+file exists (download it once with curl: 1 m DEMs without overviews are much faster to read locally).
+Keep NASA_RAW_DIR outside OneDrive (e.g. C:/tmp/nasa-raw): the Jezero DEM is 1.8 GB.
 
 Raw reads are cached in data-cache/ (git-ignored), so re-runs only redo the export.
 """
@@ -93,7 +104,17 @@ def image_size(W, H, max_px):
 
 
 # --------------------------------------------------------------------------- reading (needs rasterio + network)
-def read_to_grid(key, cfg, out_w, out_h, bands=(1,), cache_tag=None):
+def source_path(d):
+    """A dataset entry → local copy in data-cache/raw/ if present, else the USGS bucket over HTTP."""
+    if d.get("local"):
+        for folder in (os.environ.get("NASA_RAW_DIR"), os.path.join(CACHE, "raw")):
+            lp = os.path.join(folder, d["local"]) if folder else None
+            if lp and os.path.exists(lp):
+                return lp
+    return VSI + d["key"]
+
+
+def read_to_grid(key, cfg, out_w, out_h, bands=(1,), cache_tag=None, path=None):
     """Read `key` from the USGS bucket and resample it onto the region's lon/lat grid
     (out_h x out_w, row 0 = north). Only the window around the region is fetched; with
     overviews (COGs) GDAL reads a matching overview level. Returns float32 (bands, h, w), NaN = no data."""
@@ -115,7 +136,7 @@ def read_to_grid(key, cfg, out_w, out_h, bands=(1,), cache_tag=None):
     lat0, lat1 = cfg["lat"]
     dst_tr = from_bounds(lon0, lat0, lon1, lat1, out_w, out_h)
     t0 = time.time()
-    with rasterio.open(VSI + key) as src:
+    with rasterio.open(path or VSI + key) as src:
         log(f"open {key}: {src.width}x{src.height}, crs={src.crs.to_string()[:60]}…, "
             f"blocks={src.block_shapes[0]}, overviews={src.overviews(1)}")
         pad = 0.03 * max(lon1 - lon0, lat1 - lat0)
@@ -151,14 +172,20 @@ def read_to_grid(key, cfg, out_w, out_h, bands=(1,), cache_tag=None):
 def fetch_real(cfg, dem_choice):
     W, H, _, _ = region_grid(cfg)
     ds = cfg["datasets"]
-    dem_key = "dem_msl" if dem_choice == "msl" else "dem_hrsc"
-    dem = read_to_grid(ds[dem_key]["key"], cfg, W * OVERSAMPLE, H * OVERSAMPLE, cache_tag=dem_key)[0]
+    dem_key = cfg.get("dem", "dem_msl") if dem_choice == "msl" else "dem_hrsc"
+    get = lambda k, w, h, bands=(1,), tag=None: read_to_grid(ds[k]["key"], cfg, w, h, bands=bands, cache_tag=tag or k, path=source_path(ds[k]))
+    dem = get(dem_key, W * OVERSAMPLE, H * OVERSAMPLE)[0]
+    dem_fill_key = cfg.get("demFill")
+    dem_fill = get(dem_fill_key, W * OVERSAMPLE, H * OVERSAMPLE)[0] if dem_fill_key and dem_fill_key != dem_key else None
     iw, ih = image_size(W, H, cfg["imageMaxPx"])
-    vis = read_to_grid(ds["hirise_color"]["key"], cfg, iw, ih, bands=(1, 2, 3), cache_tag="hirise")
-    vik = read_to_grid(ds["viking_color"]["key"], cfg, iw, ih, bands=(1, 2, 3), cache_tag="viking")
+    vis_key = cfg.get("visible", "hirise_color")
+    vis_bands = tuple(ds[vis_key].get("bands", [1, 2, 3]))
+    vis = get(vis_key, iw, ih, bands=vis_bands, tag="hirise" if vis_key == "hirise_color" else vis_key)  # "hirise": Gale's old cache name
+    vik = get("viking_color", iw, ih, bands=(1, 2, 3), tag="viking")
     tw, th = image_size(W, H, cfg["thermalMaxPx"])
-    thermal = read_to_grid(ds["themis_night"]["key"], cfg, tw, th, cache_tag="themis")[0]
-    return dict(dem=dem, dem_key=dem_key, visible=vis, viking=vik, thermal=thermal)
+    thermal = get("themis_night", tw, th, tag="themis")[0]
+    return dict(dem=dem, dem_key=dem_key, dem_fill=dem_fill, dem_fill_key=dem_fill_key if dem_fill is not None else None,
+                visible=vis, visible_key=vis_key, viking=vik, thermal=thermal)
 
 
 def fetch_synthetic(cfg):
@@ -177,7 +204,67 @@ def fetch_synthetic(cfg):
     vik = rng.uniform(80, 160, (3, ih, iw)).astype(np.float32)
     tw, th = image_size(W, H, cfg["thermalMaxPx"])
     thermal = ndimage.gaussian_filter(rng.uniform(0, 255, (th, tw)), 4).astype(np.float32)
-    return dict(dem=dem.astype(np.float32), dem_key="synthetic", visible=vis, viking=vik, thermal=thermal)
+    return dict(dem=dem.astype(np.float32), dem_key="synthetic", dem_fill=None, dem_fill_key=None,
+                visible=vis, visible_key=cfg.get("visible", "hirise_color"), viking=vik, thermal=thermal)
+
+
+# --------------------------------------------------------------------------- strip seams
+def fix_seams(fine, max_seams=4, min_step_m=2.0):
+    """Level height steps where HiRISE strips meet in a mosaic (Hadriacus: 10–50 m steps along straight,
+    slightly tilted lines that would read as a cliff across the whole region). Finds the straight line
+    (col = c0 + k*row) with the largest mean "excess jump" (a step bigger than the slope on either side),
+    measures the step row by row, smooths it, and shifts everything east of the line by minus the step.
+    Real cliffs are not straight for 15 km, so they don't win. Returns (fixed DEM, list of seams)."""
+    H, W = fine.shape
+    out = fine.copy()
+    seams = []
+    rows = np.arange(H)
+    for _ in range(max_seams):
+        dx = np.diff(out, axis=1)  # (H, W-1)
+        J = np.zeros_like(dx)
+        J[:, 1:-1] = dx[:, 1:-1] - 0.5 * (dx[:, :-2] + dx[:, 2:])
+        A = np.clip(np.nan_to_num(np.abs(J)), 0, 40)
+        best = (0.0, None, None)
+        for k in np.linspace(-0.15, 0.15, 61):
+            cols = np.round(np.arange(W - 1)[None, :] + k * rows[:, None]).astype(int)  # (H, W-1): line for each c0
+            ok = (cols >= 1) & (cols < W - 2)
+            vals = np.where(ok, A[rows[:, None], np.clip(cols, 0, W - 2)], 0)
+            # also take the neighbouring column: a seam rounds to one of two columns
+            vals2 = np.where(ok, A[rows[:, None], np.clip(cols + 1, 0, W - 2)], 0)
+            score = np.maximum(vals, vals2).sum(axis=0) / np.maximum(ok.sum(axis=0), 1)
+            score[ok.sum(axis=0) < 0.8 * H] = 0
+            i = int(np.argmax(score))
+            if score[i] > best[0]:
+                best = (float(score[i]), i, float(k))
+        sc, c0, k = best
+        if c0 is None or sc < min_step_m or any(abs(c0 - s["c0"]) < 6 and abs(k - s["k"]) < 0.02 for s in seams):
+            break
+        cols = np.clip(np.round(c0 + k * rows).astype(int), 8, W - 9)
+        # the step is spread over 2–3 cells by resampling: compare 4 cells on each side, minus the local slope
+        Lw = np.stack([out[rows, cols + d] for d in (-6, -5, -4, -3)], axis=1)
+        Rw = np.stack([out[rows, cols + d] for d in (3, 4, 5, 6)], axis=1)
+        g = 0.5 * (np.nanmean(np.diff(Lw, axis=1), axis=1) + np.nanmean(np.diff(Rw, axis=1), axis=1))
+        step = np.nanmean(Rw, axis=1) - np.nanmean(Lw, axis=1) - 9.0 * np.nan_to_num(g)
+        # a strip-to-strip offset is a smooth tilt along the seam: robust quadratic fit (rough ground → outliers)
+        good = np.isfinite(step)
+        x = rows / max(H - 1, 1)
+        for _ in range(4):
+            coef = np.polyfit(x[good], step[good], 2)
+            res = step - np.polyval(coef, x)
+            mad = np.nanmedian(np.abs(res[good])) * 1.4826 + 0.5
+            good = good & (np.abs(res) < 2.5 * mad)
+        step = np.polyval(coef, x)
+        # ramp the correction across the seam (cols c-2 … c+3) so no new edge appears
+        ramp = np.clip((np.arange(W)[None, :] - (cols[:, None] - 2)) / 5.0, 0, 1)
+        out = out - step[:, None] * ramp
+        # strip edges are noisy too: re-draw cols c-3 … c+3 as a straight line between the clean cells either side
+        a, b = out[rows, cols - 4], out[rows, cols + 4]
+        for d in range(-3, 4):
+            t = (d + 4) / 8.0
+            out[rows, cols + d] = np.where(np.isfinite(a) & np.isfinite(b), a + (b - a) * t, out[rows, cols + d])
+        seams.append({"c0": c0, "k": k, "meanJumpM": round(sc, 1), "medianStepM": round(float(np.median(np.abs(step))), 1)})
+        log(f"seam {len(seams)}: col {c0} + {k:+.3f}·row, mean jump {sc:.1f} m, median step {np.median(np.abs(step)):.1f} m (levelled)")
+    return out, seams
 
 
 # --------------------------------------------------------------------------- export (numpy only)
@@ -191,6 +278,31 @@ def export(cfg, raw, out_dir):
     bad = ~np.isfinite(fine)
     if bad.all():
         sys.exit("DEM read returned no data for this region")
+    fill_pct = 0.0
+    seams = []
+    if cfg.get("fixSeams"):
+        fine, seams = fix_seams(fine)
+    if bad.any() and raw.get("dem_fill") is not None:
+        # gaps between HiRISE strips: use the coarser global DEM there, shifted to meet the 1 m DEM at the seams
+        fb = raw["dem_fill"].astype(np.float32)
+        ok = np.isfinite(fb)
+        # strip edges of HiRISE DEMs are noisy: drop a 3-cell rim, then fill with the coarse DEM shifted by the
+        # *local* offset (normalised Gaussian of fine - coarse), and feather the seam over ~8 cells
+        bad = ndimage.binary_dilation(bad, iterations=3) & ok | bad
+        good = ~bad & ok
+        diff = np.where(good, np.nan_to_num(fine) - np.nan_to_num(fb), 0.0)
+        sig = 25
+        num = ndimage.gaussian_filter(diff, sig)
+        den = ndimage.gaussian_filter(good.astype(np.float32), sig)
+        off = np.where(den > 1e-3, num / np.maximum(den, 1e-3), float(np.median(diff[good])) if good.any() else 0.0)
+        filled = fb + off
+        dist = ndimage.distance_transform_edt(~bad)  # cells from the gap
+        w = np.clip(dist / 8.0, 0, 1)
+        fine = np.where(bad & ok, filled, np.where(np.isfinite(fine), w * np.nan_to_num(fine) + (1 - w) * filled, filled))
+        use = bad & ok
+        fill_pct = float(use.mean() * 100)
+        log(f"filled {fill_pct:.2f} % DEM cells from {raw['dem_fill_key']} (local offset median {float(np.median(off)):+.0f} m)")
+        bad = ~np.isfinite(fine)
     if bad.any():
         log(f"filling {bad.mean() * 100:.2f} % no-data DEM cells")
         fine = fill_from_nearest(np.where(bad, 0, fine), bad)
@@ -204,14 +316,26 @@ def export(cfg, raw, out_dir):
     Image.fromarray(np.clip(np.round(sl * 4), 0, 255).astype(np.uint8), "L").save(
         os.path.join(out_dir, "slope.png"), optimize=True)
 
-    # visible: HiRISE colour where it exists, Viking colour underneath
+    # visible: HiRISE colour (or greyscale CTX tinted with Viking colour) where it exists, Viking colour underneath
     vis, vik = raw["visible"], raw["viking"]
     hmask = np.all(np.isfinite(vis), axis=0) & (np.nan_to_num(vis).max(axis=0) > 0)
     rgb = np.zeros(vis.shape[1:] + (3,), np.float32)
     for b in range(3):
         sv, _, _ = percentile_stretch(np.nan_to_num(vik[b]), 0.5, 99.5, np.isfinite(vik[b]))
         rgb[..., b] = sv
-        if hmask.any():
+    if vis.shape[0] == 1 and hmask.any():
+        # greyscale: CTX brightness carries the detail, the 232 m Viking mosaic only the hue
+        grey, _, _ = percentile_stretch(np.nan_to_num(vis[0]), 0.5, 99.5, hmask)
+        # one tint for the whole region (median Viking colour): local Viking pixels are 232 m and too noisy
+        raw_vik = np.stack([np.nan_to_num(vik[b]) for b in range(3)], axis=-1)
+        med = np.median(raw_vik[np.all(np.isfinite(vik), axis=0)], axis=0) if np.isfinite(vik).any() else np.array([180, 120, 90.0])
+        tint = (med / max(float(med.mean()), 1e-3)).astype(np.float32)
+        tint = 0.3 * (1 + np.clip(tint - 1, -0.35, 0.35)) + 0.7 * np.array([1.28, 0.96, 0.74], np.float32)  # gentle Mars tan
+        g = grey[..., None]
+        tinted = np.clip(g * tint * 0.92 + 0.04, 0, 1)
+        rgb = np.where(hmask[..., None], tinted, rgb)
+    elif hmask.any():
+        for b in range(3):
             sh, _, _ = percentile_stretch(np.nan_to_num(vis[b]), 0.5, 99.5, hmask)
             rgb[..., b] = np.where(hmask, sh, rgb[..., b])
     hirise_pct = float(hmask.mean() * 100)
@@ -250,8 +374,12 @@ def export(cfg, raw, out_dir):
     else:
         sources.append(src("elev", dem_key, f"resampled to {cx:.1f} x {cy:.1f} m cells"))
         sources.append(src("slope", dem_key, f"max slope inside each cell, from the DEM at {cx / o:.1f} m"))
-    sources.append(src("visible", "hirise_color", f"covers {hirise_pct:.0f} % of the region"))
-    sources.append(src("visible", "viking_color", "fills gaps outside HiRISE coverage"))
+        if raw.get("dem_fill_key") and fill_pct > 0:
+            sources.append(src("elev", raw["dem_fill_key"], f"fills the {fill_pct:.1f} % of the region between the 1 m strips (smoother there: no 1 m detail)"))
+    vis_key = raw.get("visible_key", "hirise_color")
+    grey = ds[vis_key].get("bands") == [1]
+    sources.append(src("visible", vis_key, f"covers {hirise_pct:.0f} % of the region" + ("; greyscale, tinted with the Viking colour mosaic" if grey else "")))
+    sources.append(src("visible", "viking_color", "colour tint and fills gaps outside coverage" if grey else "fills gaps outside HiRISE coverage"))
     sources.append(src("thermal", "themis_night", "local percentile stretch; brighter = warmer at night (rockier)"))
 
     meta = {
@@ -265,6 +393,9 @@ def export(cfg, raw, out_dir):
         "visibleSize": list(image_size(W, H, cfg["imageMaxPx"])),
         "thermalSize": list(image_size(W, H, cfg["thermalMaxPx"])),
         "base": cfg.get("base"),
+        "about": cfg.get("about"),
+        "demFillPct": round(fill_pct, 2),
+        "seamsLevelled": seams,
         "synthetic": dem_key == "synthetic",
         "generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         "credits": "Data: NASA / JPL / USGS / ESA.",

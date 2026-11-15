@@ -8,6 +8,10 @@
 
 ![Five NASA data layers of the same patch of Gale Crater, stacked: mission plan, optical, thermal, slope hazard, topography](docs/graphics/layered-data.png)
 
+## Three regions
+
+Pick one on the landing page: **Gale Crater** (Curiosity), **Jezero Crater** (Perseverance: landing → Three Forks sample depot is GO on foot; Cheyava Falls, the possible biosignature, is NO-GO on foot and GO by rover) and **Hadriacus Palus** (a 2015 human Exploration Zone no rover has visited). Each is baked from a 1 m NASA/USGS elevation model by `python data/build_region.py <id>` (configs in `data/regions/`; Jezero's rover line: `node data/rover_traverse.mjs jezero M20`).
+
 ## Five NASA layers, one plan
 
 The same 11.8 × 14.8 km patch of Gale Crater, seen by different instruments and registered to one map:
