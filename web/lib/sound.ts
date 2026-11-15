@@ -67,7 +67,6 @@ export function beep(kind: 'low' | 'alarm') {
 export function startLoop(walking: boolean, stepMs: () => number) {
   stopLoop();
   if (isMuted()) return;
-  const c = ac();
   if (walking) {
     // the recorded walk on rocks, looped; a bit quicker at higher playback speeds
     const w = new Audio('/sounds/walking.mp3');
@@ -78,27 +77,18 @@ export function startLoop(walking: boolean, stepMs: () => number) {
     loop = { stop: () => w.pause() };
     return;
   }
-  const g = c.createGain();
-  g.gain.setValueAtTime(0.0001, c.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.03, c.currentTime + 0.6);
-  const f = c.createBiquadFilter();
-  f.type = 'lowpass';
-  f.frequency.value = 380;
-  const oscs = [68, 71.5].map((hz) => {
-    const o = c.createOscillator();
-    o.type = 'sawtooth';
-    o.frequency.value = hz;
-    o.connect(f);
-    o.start();
-    return o;
+  // driving: the recorded engine and wind, looped
+  const tracks = [
+    ['/sounds/engine.mp3', 0.25],
+    ['/sounds/wind.mp3', 0.15],
+  ].map(([src, vol]) => {
+    const t = new Audio(src as string);
+    t.loop = true;
+    t.volume = vol as number;
+    void t.play().catch(() => {});
+    return t;
   });
-  f.connect(g).connect(c.destination);
-  loop = {
-    stop: () => {
-      g.gain.setTargetAtTime(0, c.currentTime, 0.15);
-      oscs.forEach((o) => o.stop(c.currentTime + 0.8));
-    },
-  };
+  loop = { stop: () => tracks.forEach((t) => t.pause()) };
 }
 
 export function stopLoop() {
