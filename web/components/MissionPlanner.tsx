@@ -261,6 +261,54 @@ export default function MissionPlanner() {
     return () => ms.forEach((m) => m.remove());
   }, [mapReady, bookmarks]);
 
+  // 3c. labels of sites + bookmarks never cover each other (Vera Rubin Ridge, Glen Torridon and Woodland Bay are a few
+  // hundred metres apart, so at the whole-crater zoom their names piled up). Top to bottom, each label goes right of
+  // its dot; if that covers a label already placed, another dot or a pin it tries the left, else it hides (hover shows it).
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp) return;
+    const near = (a: DOMRect, b: DOMRect) => a.left < b.right + 3 && b.left < a.right + 3 && a.top < b.bottom + 1 && b.top < a.bottom + 1;
+    const place = () => {
+      const els = [...mp.getContainer().querySelectorAll<HTMLElement>('.poi-marker')];
+      const dots = els.map((el) => el.getBoundingClientRect());
+      // the BASE / TARGET / PIT STOP pins are obstacles too, except the pin standing on this label's own site
+      const pins = [...mp.getContainer().querySelectorAll<HTMLElement>('.pin')].map((el) => el.getBoundingClientRect());
+      const placed: DOMRect[] = [];
+      const covers = (r: DOMRect, self: number) => {
+        const cx = (dots[self].left + dots[self].right) / 2;
+        const cy = (dots[self].top + dots[self].bottom) / 2;
+        const own = (p: DOMRect) => Math.abs((p.left + p.right) / 2 - cx) < 4 && Math.abs(p.bottom - cy) < 8;
+        return placed.some((p) => near(r, p)) || dots.some((d, k) => k !== self && near(r, d)) || pins.some((p) => !own(p) && near(r, p));
+      };
+      els
+        .map((el, i) => ({ el, i }))
+        .sort((a, b) => dots[a.i].top - dots[b.i].top)
+        .forEach(({ el, i }) => {
+          const label = el.querySelector<HTMLElement>('.poi-label');
+          if (!label) return;
+          label.classList.remove('poi-label-left', 'poi-label-off');
+          let r = label.getBoundingClientRect();
+          if (covers(r, i)) {
+            label.classList.add('poi-label-left');
+            r = label.getBoundingClientRect();
+            if (covers(r, i)) {
+              label.classList.replace('poi-label-left', 'poi-label-off');
+              return;
+            }
+          }
+          placed.push(r);
+        });
+    };
+    const raf = requestAnimationFrame(place);
+    mp.on('moveend', place);
+    mp.on('resize', place);
+    return () => {
+      cancelAnimationFrame(raf);
+      mp.off('moveend', place);
+      mp.off('resize', place);
+    };
+  }, [mapReady, region, bookmarks, base, dest, pitStop]);
+
   // 4. click to place base / destination
   useEffect(() => {
     const mp = map.current;

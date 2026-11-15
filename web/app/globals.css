@@ -19,9 +19,15 @@ html, body { background: #07080a; color: #f4f4f5; font-family: var(--font-geist-
 }
 
 /* map markers */
-.poi-marker { display: flex; align-items: center; gap: 6px; background: none; border: 0; cursor: pointer; padding: 0; }
-.poi-dot { width: 12px; height: 12px; border-radius: 9999px; background: #a78bfa; border: 2px solid #f5f3ff; box-shadow: 0 0 0 4px rgb(167 139 250 / 0.25); }
-.poi-label { font: 600 11px var(--font-geist-sans), sans-serif; color: #fff; text-shadow: 0 1px 3px #000, 0 0 8px #000; white-space: nowrap; }
+/* The marker's box is the dot alone, so MapLibre centres the DOT on the site (the label used to be part of the box,
+   which put every dot half a label-width west of its real position). The label hangs beside it; MissionPlanner's
+   effect 3c moves it to the left or hides it when it would cover another label or dot. */
+.poi-marker { position: relative; display: block; width: 12px; height: 12px; background: none; border: 0; cursor: pointer; padding: 0; }
+.poi-dot { display: block; width: 12px; height: 12px; border-radius: 9999px; background: #a78bfa; border: 2px solid #f5f3ff; box-shadow: 0 0 0 4px rgb(167 139 250 / 0.25); }
+.poi-label { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font: 600 11px var(--font-geist-sans), sans-serif; color: #fff; text-shadow: 0 1px 3px #000, 0 0 8px #000; white-space: nowrap; }
+.poi-label-left { left: auto; right: 18px; }
+.poi-label-off { visibility: hidden; }
+.poi-marker:hover .poi-label-off { visibility: visible; z-index: 1; }
 .poi-marker:hover .poi-dot { transform: scale(1.25); }
 
 .pin { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
