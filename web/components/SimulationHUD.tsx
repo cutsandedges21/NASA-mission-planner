@@ -11,6 +11,7 @@ import { IPlay } from './map/icons';
 import Segmented from './ui/Segmented';
 import PillCard from './ui/PillCard';
 import type { Missions, SimView } from './Simulation';
+import * as sound from '@/lib/sound';
 
 /** Map view plays fast (the walk in ~22 s); the first-person ride is slower so the ground doesn't blur past. */
 const SPEEDS: Record<SimView, number[]> = { map: [1, 2, 4], rover: [0.5, 1, 2] };
@@ -105,6 +106,7 @@ export default function SimulationHUD({
   }, [frame, u]);
 
   const done = u >= mission.duration;
+  const roverModeS = route.budget?.mode === 'rover';
   const cap = EVA_DEFAULTS.o2CapKg as number;
   const reserve = EVA_DEFAULTS.reservePct as number;
   const o2Left = Math.max(0, ((cap - frame.o2) / cap) * 100);
@@ -113,6 +115,32 @@ export default function SimulationHUD({
   const nearSunset = sunsetH - localH < 0.75;
   const stop = frame.stopId ? pois.find((p) => p.id === frame.stopId) : undefined;
   const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? (frame.stopId?.startsWith('pitstop') ? 'At the pit stop' : `Working at ${stop?.name ?? 'the destination'}`) : frame.phase === 'returning' ? 'Returning to base' : route.budget?.mode === 'rover' ? 'Driving out' : 'Walking out';
+
+  // Suit sounds (muted by default): breathing + footsteps while walking, hiss at the airlock, O₂ beeps.
+  const [muted, setMutedState] = useState(sound.isMuted);
+  const walking = playing && !done && u >= 0 && frame.phase !== 'working';
+  const speedRef = useRef(speed);
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+  useEffect(() => {
+    if (muted || !walking) return sound.stopLoop();
+    sound.startLoop(!roverModeS, () => 650 / speedRef.current);
+    return () => sound.stopLoop();
+  }, [muted, walking, roverModeS]);
+  const started = u >= 0;
+  useEffect(() => {
+    if (!muted && (started || done)) sound.hiss();
+  }, [started, done, muted]);
+  const atReserve = o2Left < reserve;
+  useEffect(() => {
+    if (!muted && atReserve) sound.beep('alarm');
+    else if (!muted && lowO2) sound.beep('low');
+  }, [lowO2, atReserve, muted]);
+  const toggleMute = () => {
+    sound.setMuted(!muted);
+    setMutedState(!muted);
+  };
 
   const seek = (v: number) => {
     uRef.current = v;
@@ -126,7 +154,7 @@ export default function SimulationHUD({
     setU(nu);
     onView(next); // the new view resets the speed (and folds the rover card into its pill), see seenView
   };
-  const roverMode = route.budget?.mode === 'rover';
+  const roverMode = roverModeS;
   const toggle = () => {
     if (done) {
       seek(-START_DELAY);
@@ -215,6 +243,9 @@ export default function SimulationHUD({
           </span>
           <button onClick={() => setExpanded(false)} aria-label="Fold into a pill" title="Fold into a pill" aria-expanded className="sim-x sim-fold" data-testid="sim-fold">
             {chevron(true)}
+          </button>
+          <button onClick={toggleMute} aria-label={muted ? 'Turn suit sounds on' : 'Mute suit sounds'} title={muted ? 'Suit sounds: off' : 'Suit sounds: on'} className="sim-x">
+            {muted ? '🔇' : '🔊'}
           </button>
           <button onClick={onClose} aria-label="Close simulation" className="sim-x">
             ✕
