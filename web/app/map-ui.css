@@ -97,7 +97,21 @@
 .ui-round-on { color: #f5c84b; border-color: #f5c84b; }
 
 /* simulation HUD (Flight-to-Mars countdown + dashboard dot gauge) */
-.sim { border-radius: 22px; background: rgb(14 14 16 / 0.94); border: 1px solid rgb(255 255 255 / 0.09); padding: 16px 20px 16px; color: #fff; backdrop-filter: blur(14px); box-shadow: 0 30px 80px -20px #000; }
+/* The card's glass is one shape (PillCard) that is the pill's box when folded and the card's when open. */
+.sim { border-radius: 22px; border: 1px solid transparent; padding: 16px 20px 16px; color: #fff; }
+.sim-shape { position: absolute; pointer-events: none; background: rgb(14 14 16 / 0.94); border: 1px solid rgb(255 255 255 / 0.09); backdrop-filter: blur(14px); box-shadow: 0 30px 80px -20px #000; }
+.sim-fold { background: transparent; color: #e4e4e7; border: 1px solid rgb(255 255 255 / 0.15); }
+.sim-fold:hover { color: #fff; border-color: rgb(255 255 255 / 0.35); }
+.sim-pill { display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 7px; white-space: nowrap; color: #fff; cursor: pointer; }
+.sim-pill-play { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 9999px; background: #fff; color: #000; font-size: 13px; font-weight: 700; }
+.sim-pill-play .sim-pause { width: 9px; height: 10px; border-left-width: 3px; border-right-width: 3px; }
+.sim-pill-k { display: flex; align-items: center; gap: 8px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; }
+.sim-pill-k i { width: 18px; height: 2px; }
+.sim-pill-sep { width: 1px; height: 16px; background: #fff2; }
+.sim-pill-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sim-pill-v small { margin-left: 3px; font-size: 10px; font-weight: 400; color: #fff8; }
+.sim-pill-open { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 9999px; border: 1px solid rgb(255 255 255 / 0.15); color: #e4e4e7; }
+.sim-pill:hover .sim-pill-open { color: #fff; border-color: rgb(255 255 255 / 0.35); }
 .sim-k { display: flex; align-items: center; gap: 10px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; }
 .sim-k i { width: 34px; height: 2px; }
 .sim-phase { border-radius: 9999px; border: 1px solid rgb(255 255 255 / 0.15); padding: 4px 11px; font-size: 11px; color: #e4e4e7; white-space: nowrap; }

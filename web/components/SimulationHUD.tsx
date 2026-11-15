@@ -9,10 +9,13 @@ import type { Poi } from '@/lib/region';
 import DotNum from './ui/DotNum';
 import { IPlay } from './map/icons';
 import Segmented from './ui/Segmented';
+import PillCard from './ui/PillCard';
 import type { Missions, SimView } from './Simulation';
 
 /** Map view plays fast (the walk in ~22 s); the first-person ride is slower so the ground doesn't blur past. */
 const SPEEDS: Record<SimView, number[]> = { map: [1, 2, 4], rover: [0.5, 1, 2] };
+/** Speed each view starts at (Moss, Sat 14 Nov: the rover ride starts at 0.5×). */
+const DEFAULT_SPEED: Record<SimView, number> = { map: 1, rover: 0.5 };
 const START_DELAY = 0.9; // seconds: lets the camera settle on the base before the walk begins
 
 const two = (n: number) => String(Math.max(0, Math.floor(n))).padStart(2, '0');
@@ -54,7 +57,17 @@ export default function SimulationHUD({
 }) {
   const [u, setU] = useState(-START_DELAY);
   const [playing, setPlaying] = useState(true);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(DEFAULT_SPEED[view]);
+  // Rover view: the card starts as a pill (Moss, Sat 14 Nov), the way Island's cards grow out of its pill.
+  const [expanded, setExpanded] = useState(false);
+  // A new view (from the toggle, a rover route starting, or Esc in the rover view): its own start speed,
+  // and the rover card folded back into its pill. Adjusted during render, not in an effect.
+  const [seenView, setSeenView] = useState(view);
+  if (view !== seenView) {
+    setSeenView(view);
+    setSpeed(DEFAULT_SPEED[view]);
+    if (view === 'rover') setExpanded(false);
+  }
   const mission = missions[view];
   const raf = useRef(0);
   const last = useRef(0);
@@ -110,8 +123,7 @@ export default function SimulationHUD({
     const nu = u < 0 ? -START_DELAY : missions[next].uAtTau(missions[view].at(Math.min(u, missions[view].duration)).tau);
     uRef.current = nu;
     setU(nu);
-    setSpeed(1);
-    onView(next);
+    onView(next); // the new view resets the speed (and folds the rover card into its pill), see seenView
   };
   const roverMode = route.budget?.mode === 'rover';
   const timelapse = Math.max(1, Math.round(mission.totalT / mission.duration));
@@ -127,7 +139,60 @@ export default function SimulationHUD({
   const resDot = Math.round((reserve / 100) * DOTS);
   const lh = ((localH % 24) + 24) % 24;
 
+  // Rover view: a pill with the live numbers that grows into the full card (and folds back) like Island's.
+  const open = view === 'map' || expanded;
+  const chevron = (up: boolean) => (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+      <path d={up ? 'M2.5 7.5 6 4l3.5 3.5' : 'M2.5 4.5 6 8l3.5-3.5'} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  const pill = (
+    <div className="sim-pill" onClick={() => setExpanded(true)} data-testid="sim-pill">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggle();
+        }}
+        className="sim-pill-play"
+        aria-label={done ? 'Replay' : playing ? 'Pause' : 'Play'}
+        title={done ? 'Replay' : playing ? 'Pause' : 'Play'}
+      >
+        {playing && !done ? <span className="sim-pause" /> : done ? '↺' : <IPlay size={12} />}
+      </button>
+      <span className="sim-pill-k">
+        <i style={{ background: color }} />
+        {label.toUpperCase()}
+        {roverMode ? ' · ROVER' : ''}
+      </span>
+      <span className="sim-pill-sep" />
+      <span className="sim-pill-v" title="Mission time">
+        T+{two(frame.tau / 3600)}:{two((frame.tau % 3600) / 60)}
+      </span>
+      <span className="sim-pill-v" title={roverMode ? 'Kilometres driven' : 'Kilometres walked'}>
+        {fmtKm(frame.d)}
+        <small>/ {fmtKm(mission.total)} km</small>
+      </span>
+      <span className="sim-pill-v" style={lowO2 ? { color: '#fbbf24' } : undefined} title="Oxygen left in the suit">
+        O₂ {o2Left.toFixed(0)}%
+      </span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded(true);
+        }}
+        className="sim-pill-open"
+        aria-label="Open the mission card"
+        aria-expanded={false}
+        title="Open the mission card"
+        data-testid="sim-pill-open"
+      >
+        {chevron(false)}
+      </button>
+    </div>
+  );
+
   return (
+    <PillCard open={open} pill={pill}>
     <div className="sim">
       {/* header: red rule + label, phase chip, close */}
       <div className="flex items-center justify-between gap-3">
@@ -136,7 +201,7 @@ export default function SimulationHUD({
           MISSION SIMULATION · {label.toUpperCase()}
           {roverMode ? ' · ROVER' : ''}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
           <Segmented<SimView>
             value={view}
             onChange={switchView}
@@ -145,7 +210,14 @@ export default function SimulationHUD({
               { value: 'rover', label: roverMode ? 'Rover view' : 'First person' },
             ]}
           />
-          <span className="sim-phase">{phase}</span>
+          <span className="sim-phase max-w-[11rem] truncate" title={phase}>
+            {phase}
+          </span>
+          {view === 'rover' && (
+            <button onClick={() => setExpanded(false)} aria-label="Fold into a pill" title="Fold into a pill" aria-expanded className="sim-x sim-fold" data-testid="sim-fold">
+              {chevron(true)}
+            </button>
+          )}
           <button onClick={onClose} aria-label="Close simulation" className="sim-x">
             ✕
           </button>
@@ -219,6 +291,7 @@ export default function SimulationHUD({
         </div>
       </div>
     </div>
+    </PillCard>
   );
 }
 
