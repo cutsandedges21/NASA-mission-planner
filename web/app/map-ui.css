@@ -58,11 +58,13 @@
 .rc-open .rc-main { opacity: 1; transition: opacity 0.3s 0.12s; }
 .grow-arrow svg { transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
 .grow-arrow[data-open='true'] svg { transform: rotate(180deg); }
-.rc-head-chip { flex: none; }
+.rc-side { flex: none; display: flex; }
+.rc-side .rc-chip { padding: 2px 8px; font-size: 9.5px; }
 .rc:hover { filter: brightness(1.12); }
 .rc-on { border-color: rgb(255 255 255 / 0.25); box-shadow: 0 30px 80px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 60px rgb(255 255 255 / 0.06); }
 .rc-on:hover { filter: none; }
 .rc-empty { color: #d4d4d8; }
+.rc-body > * { flex-shrink: 0; } /* the card body scrolls as one; its parts never squash */
 .rc-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.28) transparent; }
 .rc-btn { display: grid; place-items: center; width: 34px; height: 34px; flex: none; cursor: pointer; border-radius: 9999px; background: #fff; color: #07080a; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
 .rc-dots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px 0; justify-items: center; margin: 14px 4px 0; }

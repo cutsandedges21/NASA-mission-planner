@@ -46,12 +46,12 @@ Round trips from Bradbury Landing, Curiosity's touchdown site. Reproduce with `n
 
 | Target | One way | Best route | O₂ left at the airlock | Verdict |
 |---|---|---|---|---|
-| Yellowknife Bay | 0.4 km | 16 min | 96 % | GO |
-| **Pahrump Hills** (foot of Mount Sharp) | 5.9 km | 3 h 41 min | 49 % | **GO** |
-| Glen Torridon (clays + organics) | 9.4 km | 6 h 12 min | 6 % | **NO-GO on foot** |
-| Glen Torridon, **rover assist** | 9.4 km | 3 h 44 min | 76 % | **GO** (setup panel → Mode → Rover assist) |
+| Yellowknife Bay | 0.4 km | 36 min | 93 % | GO |
+| **Pahrump Hills** (foot of Mount Sharp) | 5.9 km | 4 h 01 min | 46 % | **GO** |
+| Glen Torridon (clays + organics) | 9.4 km | 6 h 32 min | 4 % | **NO-GO on foot** |
+| Glen Torridon, **rover assist** | 9.4 km | 4 h 04 min | 73 % | **GO** (setup panel → Mode → Rover assist) |
 
-Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (32 % O₂): setup panel → Mode → **Science gear carried**. A NASA solar-storm forecast for Mars turns every route to CAUTION.
+Carrying 20 kg of science gear turns the Pahrump walk from GO to CAUTION (29 % O₂): setup panel → Mode → **Science gear carried**. Every time above includes 20 min of work at the destination before heading back.
 
 ## How it works
 
@@ -66,7 +66,8 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 2. **Planner** (`planner/`, plain JavaScript in a Web Worker) runs A* on that grid, scored as an out-and-back walk:
    - **SAFE** minimises oxygen use, penalises every degree above 10° (between cells and inside them, limit 15°).
    - **FAST** minimises walking time (limit 20°).
-   - **SCIENCE** adds 20 min of work at the sites that cost the smallest detour. The planner computes and tests it (Pahrump Hills: 4 h 01 min, 46 % O₂), but the app shows SAFE and FAST only; a stop on the way is added with **+ Pit stop**.
+   - **SCIENCE** also stops at the science sites on the way that cost the smallest detour. The planner computes and tests it, but the app shows SAFE and FAST only; stops on the way are added with **+ Add pit stop** in Quick targets.
+   - Every route works 20 min at the destination (and at each pit stop) before heading back.
    - **Rover assist** (`params: { rover: true }`) plans for an unpressurised rover: 1.4 m/s, 20° limit, seated O₂ use.
    - Routes are drawn as a smoothed line that is never steeper than the computed path and stays within 62 m of it; the numbers stay on the computed path.
 3. **Suit model:** walking speed vs slope (Tobler-style), metabolic power from the Pandolf load-carriage equation scaled to Mars gravity with a pressure-suit penalty, a 25 % O₂ reserve, an 8 h suit limit and a 20° walking limit. It comes out at 313–353 W, at the top of Apollo's measured 228–352 W range, which fits Mars gravity being ~2.3× the Moon's.

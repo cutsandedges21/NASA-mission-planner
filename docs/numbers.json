@@ -1,20 +1,117 @@
 {
-  "_comment": "Numbers quoted in the submission docs, each verified against `node planner/scripts/demo-numbers.mjs` output on 2026-11-14. Checked by tools/check-submission.mjs: the value must still appear in the demo-numbers output AND in every listed doc. If the planner changes a number, update the docs and this file together.",
-  "pahrump_one_way": { "value": "5.9 km", "docs": ["README.md", "docs/SUBMISSION.md"] },
-  "pahrump_round_trip": { "value": "11.8 km", "docs": ["docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "pahrump_time": { "value": "3 h 41 min", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "pahrump_o2": { "value": "49 %", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "pahrump_science_time": { "value": "4 h 01 min", "docs": ["docs/DEMO-SCRIPT.md"] },
-  "pahrump_science_o2": { "value": "46 %", "docs": ["docs/DEMO-SCRIPT.md"] },
-  "pahrump_20kg_o2": { "value": "32 %", "docs": ["README.md"] },
-  "glen_one_way": { "value": "9.4 km", "docs": ["README.md"] },
-  "glen_fast_time": { "value": "6 h 12 min", "docs": ["README.md"] },
-  "glen_rover_time": { "value": "3 h 44 min", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "glen_rover_o2": { "value": "76 %", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "val_yellowknife_100m": { "value": "96.2 %", "docs": ["README.md"] },
-  "val_yellowknife_max_off": { "value": "113 m", "docs": ["README.md"] },
-  "val_pahrump_fast_100m": { "value": "62.1 %", "docs": ["README.md"] },
-  "val_pahrump_fast_max_off": { "value": "204 m", "docs": ["README.md"] },
-  "val_pahrump_safe_250m": { "value": "93.5 %", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "val_pahrump_safe_max_off": { "value": "311 m", "docs": ["README.md"] }
+  "_comment": "Numbers quoted in the submission docs, each verified against `node planner/scripts/demo-numbers.mjs` output on 2026-11-15 (every route now works 20 min at the destination). Checked by tools/check-submission.mjs: the value must still appear in the demo-numbers output AND in every listed doc. If the planner changes a number, update the docs and this file together.",
+  "pahrump_one_way": {
+    "value": "5.9 km",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md"
+    ]
+  },
+  "pahrump_round_trip": {
+    "value": "11.8 km",
+    "docs": [
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "pahrump_time": {
+    "value": "4 h 01 min",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "pahrump_o2": {
+    "value": "46 %",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "pahrump_science_time": {
+    "value": "4 h 01 min",
+    "docs": [
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "pahrump_science_o2": {
+    "value": "46 %",
+    "docs": [
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "pahrump_20kg_o2": {
+    "value": "29 %",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "glen_one_way": {
+    "value": "9.4 km",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "glen_fast_time": {
+    "value": "6 h 32 min",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "glen_rover_time": {
+    "value": "4 h 04 min",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "glen_rover_o2": {
+    "value": "73 %",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "val_yellowknife_100m": {
+    "value": "96.2 %",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "val_yellowknife_max_off": {
+    "value": "113 m",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "val_pahrump_fast_100m": {
+    "value": "62.1 %",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "val_pahrump_fast_max_off": {
+    "value": "204 m",
+    "docs": [
+      "README.md"
+    ]
+  },
+  "val_pahrump_safe_250m": {
+    "value": "93.5 %",
+    "docs": [
+      "README.md",
+      "docs/SUBMISSION.md",
+      "docs/DEMO-SCRIPT.md"
+    ]
+  },
+  "val_pahrump_safe_max_off": {
+    "value": "311 m",
+    "docs": [
+      "README.md"
+    ]
+  }
 }

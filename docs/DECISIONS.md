@@ -104,3 +104,6 @@ What: removed every sign of radiation (route dose, Radiation map layer, hover do
 
 **2026-11-15: Cards start small and grow; unlimited pit stops** (Justin)
 What: Safe route, Fast route and Mission simulator (seeds) cards sit in the right column and grow on hover or with their arrow, like the rover-view mission card (`web/components/map/Rail.tsx`). The EVA Planner folds into a vertical strip the same way (starts open). The mission card folds into its pill in the map view too. Pit stops: as many as you like, from Quick targets, visited in the order added (planner `vias`). Conditions are shown as stats, not sliders; science gear is a 0–20 kg slider; the map scale bar is gone.
+
+**2026-11-15: Every route stops at the destination for 20 min before heading back** (Justin)
+What: SAFE, FAST, SCIENCE and the five seeded simulations all work `stopMin` (20 min) at the destination, counted in time and oxygen like a pit stop (a science site keeps its own id; any other point is `destination`). The simulation pauses there before "Returning to base". Why: Justin wanted the same stop at the target as at a pit stop; asked whether it should be a real stop or only an animation pause, he chose the real stop. The route card already said "including work at the target". Numbers changed: Pahrump Hills 4 h 01 min / 46 % O₂ (was 3 h 41 / 49 %).

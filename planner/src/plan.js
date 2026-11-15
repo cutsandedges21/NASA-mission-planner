@@ -48,11 +48,14 @@ export function planMission(a) {
   const fast = timed(() => legs(ctx, through(viaStops), 'FAST'));
   const safe = timed(() => legs(ctx, through(viaStops), 'SAFE'));
   const { stops: chosen0, target } = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
+  // Every route works at the destination for params.stopMin before heading back, like at a pit stop
+  // (Justin, Sun 15 Nov). Its stop id is the science site there, or DESTINATION_ID for any other point.
+  const atEnd = target || { id: DESTINATION_ID, x: end[0], y: end[1] };
   const chosen = chosen0.filter((p) => vias.every((v) => Math.max(Math.abs(p.x - v.x), Math.abs(p.y - v.y)) > POI_SNAP_CELLS));
   let science;
   if (!chosen.length && !target) {
     // No science site worth the walk: reuse the SAFE path rather than force a big detour.
-    science = score(ctx, 'SCIENCE', safe.value, viaStops, null, safe.ms);
+    science = score(ctx, 'SCIENCE', safe.value, viaStops, atEnd, safe.ms);
     science.note = 'No science site within reach of this route';
   } else {
     // Try the chosen stops; if they make the EVA worse than going without them (e.g. NO-GO on O₂),
@@ -67,29 +70,29 @@ export function planMission(a) {
       const sci = timed(() => legs(ctx, through(withVia(stops)), 'ENERGY'));
       ms += sci.ms;
       path = sci.value;
-      science = score(walkCtx, 'SCIENCE', path, withVia(stops), target, ms);
+      science = score(walkCtx, 'SCIENCE', path, withVia(stops), atEnd, ms);
       if (!stops.length || RANK[science.verdict.lvl] === 0) break;
       const worst = stops.reduce((a, b) => (detourOf(a, start, end, cellX, cellY) >= detourOf(b, start, end, cellX, cellY) ? a : b));
       const fewer = stops.filter((p) => p !== worst);
       if (!fewer.length && !target) {
         // without any site the route is just SAFE: keep the stop if SAFE is no better
-        const safeScore = score(walkCtx, 'SAFE', safe.value, viaStops, null, 0);
+        const safeScore = score(walkCtx, 'SAFE', safe.value, viaStops, atEnd, 0);
         if (RANK[safeScore.verdict.lvl] >= RANK[science.verdict.lvl]) break;
         fellBackToSafe = true;
         break;
       }
       const trial = timed(() => legs(ctx, through(withVia(fewer)), 'ENERGY'));
       ms += trial.ms;
-      const t = score(walkCtx, 'SCIENCE', trial.value, withVia(fewer), target, ms);
+      const t = score(walkCtx, 'SCIENCE', trial.value, withVia(fewer), atEnd, ms);
       const better = RANK[t.verdict.lvl] < RANK[science.verdict.lvl] ||
         (science.verdict.lvl === 'nogo' && t.verdict.lvl === 'nogo' && t.budget.marginPct > science.budget.marginPct);
       if (better) { stops = fewer; path = trial.value; science = t; continue; }
       break;
     }
     if (fellBackToSafe) {
-      science = { ...score(ctx, 'SAFE', safe.value, viaStops, null, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
+      science = { ...score(ctx, 'SAFE', safe.value, viaStops, atEnd, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
     } else {
-      science = score(ctx, 'SCIENCE', path, withVia(stops), target, ms); // final score
+      science = score(ctx, 'SCIENCE', path, withVia(stops), atEnd, ms); // final score
     }
     if (stops.length < chosen.length && !science.note) {
       const n = chosen.length - stops.length;
@@ -99,14 +102,16 @@ export function planMission(a) {
     }
   }
   return [
-    score(ctx, 'SAFE', safe.value, viaStops, null, safe.ms),
-    score(ctx, 'FAST', fast.value, viaStops, null, fast.ms),
+    score(ctx, 'SAFE', safe.value, viaStops, atEnd, safe.ms),
+    score(ctx, 'FAST', fast.value, viaStops, atEnd, fast.ms),
     science,
   ];
 }
 
 /** Stop id used for the user's (first) pit stop (`a.via` / `a.vias[0]`) in `route.stops` / `poisVisited`. */
 export const PIT_STOP_ID = 'pitstop';
+/** Stop id of the stop at the destination when it isn't a science site. */
+export const DESTINATION_ID = 'destination';
 /** Stop id of pit stop number i (0-based): 'pitstop', 'pitstop2', 'pitstop3', … */
 export const pitStopId = (i) => (i ? `${PIT_STOP_ID}${i + 1}` : PIT_STOP_ID);
 /** Pit stop number (1-based) for a stop id, or 0 if it isn't a pit stop. */
@@ -223,7 +228,7 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
     while (k < path.length && !(path[k][0] === p.x && path[k][1] === p.y)) k++;
     if (k < path.length) { stops.push({ id: p.id, d: out[k].d }); stopIdx.push(k); }
   }
-  if (target) stops.push({ id: target.id, d: out.at(-1).d }); // work at the destination site
+  if (target) stops.push({ id: target.id, d: out.at(-1).d }); // work at the destination before heading back
   const b = budget(samples, stops.map((s) => s.d), params);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;
@@ -243,7 +248,7 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   // Display line: straight runs + rounded bends, never on steeper ground than the cell path (smooth.js).
   // The budget above stays computed on the cell path.
   const line = smoothLine(path, ctx, stopIdx);
-  return { strategy, path, line, budget: b, verdict: v, poisVisited: stops.map((s) => s.id), stops, ms };
+  return { strategy, path, line, budget: b, verdict: v, poisVisited: stops.map((s) => s.id).filter((id) => id !== DESTINATION_ID), stops, ms };
 }
 
 function steepShare(path, out, fineSlope, w) {

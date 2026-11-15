@@ -32,7 +32,7 @@ The first people on Mars will explore on foot, and every walk outside is a budge
 
 EVA Mission Planner is that tool for Gale Crater, a site proposed for human explorers at NASA's 2015 Exploration Zone workshop and explored by the Curiosity rover since 2012. You pick a target and the app computes a SAFE and a FAST route on NASA's 1-metre elevation model, then scores each one with a spacesuit model: time outside, oxygen left at the airlock, steepest slope and return time before sunset, with a GO, CAUTION or NO-GO verdict. A mission simulator then runs five seeded walks with different risk appetites, hidden ground and weather, using NASA-orbiter dust-storm records for the season.
 
-It matters because the plan is checked against reality: on the 5.9 km walk to the foot of Mount Sharp, our FAST route stays within 250 m of the path NASA's Curiosity drivers chose for 100 % of its length, and the SAFE route for 93.5 %. Example plan: Bradbury Landing to Pahrump Hills, 11.8 km there and back, 3 h 41 min, 49 % oxygen left: GO.
+It matters because the plan is checked against reality: on the 5.9 km walk to the foot of Mount Sharp, our FAST route stays within 250 m of the path NASA's Curiosity drivers chose for 100 % of its length, and the SAFE route for 93.5 %. Example plan: Bradbury Landing to Pahrump Hills, 11.8 km there and back with 20 min of work at the site, 4 h 01 min, 46 % oxygen left: GO.
 
 *(206 words)*
 
@@ -54,11 +54,11 @@ https://nasa-eva-planner.vercel.app
 
 - Shows Gale Crater in 2D or 3D on NASA imagery, with Curiosity's real drive path and five science sites the rover studied.
 - Plans a walk from the base (Bradbury Landing, movable) to any site, bookmark or clicked point: a SAFE route (least oxygen, avoids steep ground) and a FAST route (least time).
-- Scores each route: time outside, oxygen left at the airlock, distance, steepest slope, return time against sunset. Verdict GO / CAUTION / NO-GO with the reason. Example: Pahrump Hills, 11.8 km round trip, 3 h 41 min, 49 % oxygen left, GO.
+- Scores each route: time outside, oxygen left at the airlock, distance, steepest slope, return time against sunset. Verdict GO / CAUTION / NO-GO with the reason. Every route includes 20 min of work at the destination. Example: Pahrump Hills, 11.8 km round trip, 4 h 01 min, 46 % oxygen left, GO.
 - Explains the recommended route in a short plain-language briefing built from those numbers.
 - Map layers: Thermal (Mars Odyssey THEMIS), Elevation (1 m terrain, colour-coded), Slope, and a whole-Mars Globe from NASA Mars Trek. Hovering shows coordinates, elevation and a modelled ground temperature.
 - Mission simulator: five seeded simulations, each with its own risk appetite, hidden ground and weather, labelled FASTEST, SAFEST and BALANCED (plus two more), with what happened, a step-by-step route and the assumptions used. A switch forces a dust storm into every run, and a pit stop can be added between the two points.
-- Rover assist: plans the same trip with an unpressurised rover. Glen Torridon is NO-GO on foot and GO by rover (3 h 44 min, 76 % oxygen left).
+- Rover assist: plans the same trip with an unpressurised rover. Glen Torridon is NO-GO on foot and GO by rover (4 h 04 min, 73 % oxygen left).
 - Simulate: plays the walk on the map with a live oxygen gauge, or as a first-person ride over the real terrain.
 
 **How it works**

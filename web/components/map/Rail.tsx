@@ -119,7 +119,7 @@ export function RailCard({
   sub?: ReactNode;
   /** Line under the title when the card is small (defaults to `sub`). */
   summary?: ReactNode;
-  /** Shown next to the arrow when the card is small. */
+  /** Shown next to the title when the card is small (e.g. the verdict chip). */
   side?: ReactNode;
   /** Clicking the card (anywhere but the arrow) calls this and keeps the card open. */
   onSelect?: () => void;
@@ -156,10 +156,12 @@ export function RailCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[15px] font-semibold">{title}</div>
+          <div className="flex items-center gap-2">
+            <div className="truncate text-[15px] font-semibold">{title}</div>
+            {!open && side && <span className="rc-side">{side}</span>}
+          </div>
           <div className="mt-0.5 truncate text-[11.5px] text-white/65">{open ? sub : summary ?? sub}</div>
         </div>
-        {!open && side}
         <GrowArrow open={open} onClick={() => grow.toggle(id)} label={typeof title === 'string' ? title : 'card'} />
       </div>
       <div className="rc-main" inert={!open} aria-hidden={!open}>

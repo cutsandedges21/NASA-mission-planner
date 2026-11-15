@@ -10,7 +10,7 @@
 // Physics = the planner's EVA model. Event chances: MDAD dust data + labelled assumptions (simulate.js).
 // Pure ES module, no Node-only imports: runs in the browser Web Worker.
 import { stepCost, walkSpeed, metabolicW, budget, verdict, EVA_DEFAULTS } from './eva.js';
-import { toSamples, STEEP_DEG, pitStopId, viaCells } from './plan.js';
+import { toSamples, STEEP_DEG, pitStopId, viaCells, pickScienceStops, DESTINATION_ID } from './plan.js';
 import { smoothLine } from './smooth.js';
 import { rng, drawConditions, runOnce, dustRate, SIM_DEFAULTS, SIM_ASSUMPTIONS } from './simulate.js';
 
@@ -148,6 +148,9 @@ function scoreCandidate(a, p, path, viaPois) {
     const k = path.findIndex(([x, y], j) => j >= from && x === v.x && y === v.y);
     if (k >= 0) { stops.push({ id: pitStopId(i), d: out[k].d }); stopIdx.push(k); from = k; }
   });
+  // work at the destination before heading back, like plan.js (the science site there, or DESTINATION_ID)
+  const site = pickScienceStops(a.start, a.end, a.pois || [], a.cellX, a.cellY, 0).target;
+  stops.push({ id: site ? site.id : DESTINATION_ID, d: out.at(-1).d });
   const b = budget(samples, stops.map((s) => s.d), p);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;
@@ -161,7 +164,7 @@ function scoreCandidate(a, p, path, viaPois) {
   const vp = p.rover ? { ...p, maxSlope: p.roverMaxSlope ?? 20 } : p;
   const v = verdict(b, a.sun || null, vp);
   const line = smoothLine(path, { elev, w, cellX, cellY, fineSlope }, stopIdx);
-  return { path, line, budget: b, verdict: v, stops, poisVisited: stops.map((s) => s.id), steep };
+  return { path, line, budget: b, verdict: v, stops, poisVisited: stops.map((s) => s.id).filter((id) => id !== DESTINATION_ID), steep };
 }
 
 /** Safety problems met on the way, each with a weight (NO-GO issues count double). */

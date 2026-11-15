@@ -572,6 +572,7 @@ export default function MissionPlanner() {
     (id: string) => {
       const n = /^pitstop(\d*)$/.exec(id);
       if (n) return pitStops.length > 1 ? `pit stop ${n[1] || 1}` : 'your pit stop';
+      if (id === 'destination') return 'the destination'; // the planner's stop at a clicked target
       return region?.pois.find((p) => p.id === id)?.name ?? id;
     },
     [region, pitStops.length],

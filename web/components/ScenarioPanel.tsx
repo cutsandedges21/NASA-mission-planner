@@ -214,13 +214,28 @@ export default function ScenarioPanel({
               )}
 
               {tab === 'steps' && (
-                <ol className="mt-2 max-h-72 space-y-1.5 overflow-y-auto pr-1 text-[12px]" data-testid="scenario-steps">
-                  {cur.steps.map((l) => (
-                    <li key={l.n} className="flex gap-2">
-                      <span className={`mt-0.5 w-5 shrink-0 text-right font-mono text-[10px] ${l.steep ? 'text-amber-300' : 'text-zinc-500'}`}>{l.n}</span>
-                      <span className="leading-snug">{l.text}</span>
-                    </li>
-                  ))}
+                <ol className="mt-2 space-y-1.5" data-testid="scenario-steps">
+                  {cur.steps.map((l) => {
+                    // one leg = a headline ("Head NE for 1.20 km (~15 min, 120 g O₂).") + one short line per detail
+                    const [head, ...rest] = l.text.split(/(?<=\.)\s+(?=[A-Z])/);
+                    return (
+                      <li key={l.n} className="rounded-lg bg-white/[0.035] px-2.5 py-2">
+                        <div className="flex items-start gap-2">
+                          <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full font-mono text-[10px] font-semibold ${l.steep ? 'bg-amber-300/20 text-amber-200' : 'bg-white/10 text-zinc-300'}`}>{l.n}</span>
+                          <span className="text-[12px] font-medium leading-snug text-zinc-100">{head}</span>
+                        </div>
+                        {rest.length > 0 && (
+                          <ul className="mt-1 space-y-0.5 pl-7 text-[11px] leading-snug text-zinc-400">
+                            {rest.map((t, k) => (
+                              <li key={k} className={/^(Stop|Arrive)/.test(t) ? 'text-orange-200' : /steep/i.test(t) && l.steep ? 'text-amber-200' : ''}>
+                                {t}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
                   {!cur.steps.length && <li className="text-zinc-500">No walkable route.</li>}
                 </ol>
               )}
@@ -230,7 +245,7 @@ export default function ScenarioPanel({
                   <p className="mb-1.5 text-zinc-300">
                     Routes, walking time and O₂ come from the planner&apos;s terrain data and EVA model. These are our assumptions, not NASA measurements:
                   </p>
-                  <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                  <ul className="space-y-1">
                     <li><b className="font-mono text-zinc-200">0–1</b> · Risk appetite per seed: one simulation in each fifth, from pure speed to most cautious (slope limit 20° → 15°)</li>
                     {Object.entries(r.assumptions).map(([k, a]) => (
                       <li key={k}><b className="font-mono text-zinc-200">{a.value}</b> · {a.why}</li>

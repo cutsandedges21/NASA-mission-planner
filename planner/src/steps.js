@@ -138,8 +138,9 @@ function legText(l, names, last) {
   else parts.push(`${l.dhM > 0 ? 'Climb' : 'Descend'} ${Math.round(Math.abs(l.dhM))} m (${Math.abs(l.avgGradePct).toFixed(1)} % average grade).`);
   parts.push(`Steepest ground ${l.maxSlope.toFixed(0)}°${l.steep ? (l.steepM >= 1 ? `: steep, ${Math.round(l.steepM)} m above 15°` : ': one steep pitch') : ''}.`);
   if (l.climb) parts.push(`Goes over a ${Math.round(l.riseM)} m rise: the planner found this cheaper than going around.`);
-  if (l.stopAtEnd) parts.push(`Stop: ${names[l.stopAtEnd] || (/^pitstop\d*$/.test(l.stopAtEnd) ? 'your pit stop' : l.stopAtEnd)}.`);
+  const stopName = l.stopAtEnd && (names[l.stopAtEnd] || (/^pitstop\d*$/.test(l.stopAtEnd) ? 'your pit stop' : l.stopAtEnd === 'destination' ? 'the destination' : l.stopAtEnd));
+  if (stopName && !last) parts.push(`Stop: ${stopName}.`);
   if (!last && Math.abs(l.turn) >= 10) parts.push(`Then turn ${l.turn > 0 ? 'right' : 'left'} ${Math.abs(l.turn)}°.`);
-  if (last) parts.push('Arrive at the destination.');
+  if (last) parts.push(stopName ? `Arrive at ${stopName}: work there, then head back.` : 'Arrive at the destination.');
   return parts.join(' ');
 }

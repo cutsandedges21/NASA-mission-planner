@@ -112,7 +112,7 @@ export default function SimulationHUD({
   const localH = startH + frame.tau / MARS_HOUR_S;
   const nearSunset = sunsetH - localH < 0.75;
   const stop = frame.stopId ? pois.find((p) => p.id === frame.stopId) : undefined;
-  const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? `Working at ${stop?.name ?? 'site'}` : frame.phase === 'returning' ? 'Returning to base' : route.budget?.mode === 'rover' ? 'Driving out' : 'Walking out';
+  const phase = done ? 'EVA complete' : u < 0 ? 'Leaving the airlock' : frame.phase === 'working' ? (frame.stopId?.startsWith('pitstop') ? 'At the pit stop' : `Working at ${stop?.name ?? 'the destination'}`) : frame.phase === 'returning' ? 'Returning to base' : route.budget?.mode === 'rover' ? 'Driving out' : 'Walking out';
 
   const seek = (v: number) => {
     uRef.current = v;
@@ -127,7 +127,6 @@ export default function SimulationHUD({
     onView(next); // the new view resets the speed (and folds the rover card into its pill), see seenView
   };
   const roverMode = route.budget?.mode === 'rover';
-  const timelapse = Math.max(1, Math.round(mission.totalT / mission.duration));
   const toggle = () => {
     if (done) {
       seek(-START_DELAY);
@@ -278,9 +277,6 @@ export default function SimulationHUD({
           aria-label="Playback position"
         />
         <div className="flex items-center gap-0.5 rounded-full border border-white/10 bg-black/40 p-0.5 text-[11px]">
-          <span className="px-2 font-mono text-[10px] text-zinc-500" title="Mission seconds per second of playback">
-            ×{timelapse}
-          </span>
           {SPEEDS[view].map((s) => (
             <button key={s} onClick={() => setSpeed(s)} className={`rounded-full px-2.5 py-1 transition ${speed === s ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
               {s}×
