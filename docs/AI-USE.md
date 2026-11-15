@@ -6,7 +6,7 @@ We built this with **Claude Code** (Anthropic) as a coding assistant, under our 
 
 - **We made the decisions:** the challenge, the region (Gale Crater), the stack, the features and what to cut. They're logged with dates in `docs/DECISIONS.md`.
 - **Claude wrote much of the code and docs** to our specifications, and researched datasets and citations. Every dataset, coordinate and number is cited to its source (NASA, USGS, JPL, peer-reviewed papers). Where we couldn't verify something, the docs say so.
-- **Reused code is credited:** routing, the EVA oxygen model, Mars time and the data pipeline were adapted from Sol Atlas by The SOL Explorers.
+- **Reused code is credited:** code we adapted from another team's project is credited in the header of each adapted file.
 - **Checking:** the planner has automated tests (`cd planner && npm test`), including tests on the real Gale terrain, and we validated routes against Curiosity's real drive path (`docs/VALIDATION.md`).
 
 ## 2. AI inside the app (runtime): none

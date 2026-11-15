@@ -8,7 +8,7 @@
 | **Bounds** | lon **137.30 → 137.50 °E**, lat **−4.80 → −4.55 °** (planetocentric, −180..180 east-positive) |
 | **Size** | ≈ 11.8 km (E–W) × 14.8 km (N–S). The whole box is a 10–30 km walkable EVA zone |
 | **Target grid** | ≈ 25 m cells → **472 × 592** (keep the longest side ≤ 1024 so A* stays under ~1 s in the Worker) |
-| **Why here** | ① Gale is a **2015 NASA human Exploration Zone** proposal (workshop abstracts #1022 and #1040, "Gale Crater" in the USGS EZ compilation). It answers challenge objective O2 directly. ② It's the best-mapped ground on Mars: a 1 m merged DEM and a HiRISE colour mosaic made for Curiosity. ③ Every science POI is a place a rover has actually confirmed (habitable lake, clays, hematite), so the SCIENCE route visits real, ground-truthed targets. ④ It's not Jezero, so no overlap with Sol Atlas. |
+| **Why here** | ① Gale is a **2015 NASA human Exploration Zone** proposal (workshop abstracts #1022 and #1040, "Gale Crater" in the USGS EZ compilation). It answers challenge objective O2 directly. ② It's the best-mapped ground on Mars: a 1 m merged DEM and a HiRISE colour mosaic made for Curiosity. ③ Every science POI is a place a rover has actually confirmed (habitable lake, clays, hematite), so the SCIENCE route visits real, ground-truthed targets. |
 | **Base / landing site** | Bradbury Landing, 137.4417 °E, −4.5895 ° (Curiosity's 2012 touchdown, a proven safe landing). It sits ~2.3 km inside the north edge of the box. |
 
 ## Datasets (all public, all in the USGS bucket the pipeline already uses)

@@ -17,3 +17,7 @@ run_pipeline.log
 
 # Blender intermediates (regenerate with tools/blender/*)
 tools/blender/build/
+
+# slide previews (rebuilt by tools/slides/to_pdf.ps1) and raw screenshots
+docs/slides/build/
+tools/slides/build/

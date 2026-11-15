@@ -142,14 +142,11 @@ export const CREDITS: Credit[] = [
   },
 
   // ---- Software
-  {
-    group: 'Software',
-    name: 'Sol Atlas by The SOL Explorers',
-    what: 'Our routing (A* on the elevation grid), EVA oxygen model, Mars-time code and data pipeline were adapted from it. Every adapted file lists its changes',
-    url: 'https://github.com/saracen66/the-sol-explorers',
-  },
   { group: 'Software', name: 'MapLibre GL JS', what: 'Map rendering, layers, 3D terrain', url: 'https://maplibre.org/', license: 'BSD-3-Clause' },
   { group: 'Software', name: 'Next.js', what: 'Web app framework (and the space-weather server route)', url: 'https://nextjs.org/', license: 'MIT' },
+  { group: 'Software', name: 'three.js', what: 'The first-person rover and walking view (terrain mesh, sky, route on the ground)', url: 'https://threejs.org/', license: 'MIT' },
+  { group: 'Software', name: 'React and Tailwind CSS', what: 'User interface', url: 'https://react.dev/', license: 'MIT' },
+  { group: 'Software', name: 'Blender', what: 'Rendered the "Five NASA layers, one plan" picture from the same data files the app uses (not part of the running app)', url: 'https://www.blender.org/', license: 'GPL' },
   { group: 'Software', name: 'Rasterio, NumPy, SciPy, Pillow', what: 'Python data pipeline (data/build_region.py)', url: 'https://rasterio.readthedocs.io/' },
   {
     group: 'Software',
