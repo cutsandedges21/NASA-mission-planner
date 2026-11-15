@@ -44,6 +44,7 @@
 .rc-on { flex-grow: 1.55; border-color: rgb(255 255 255 / 0.25); box-shadow: 0 30px 80px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 60px rgb(255 255 255 / 0.06); }
 .rc-on:hover { filter: none; }
 .rc-empty { color: #d4d4d8; }
+.rc-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.28) transparent; }
 .rc-btn { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9999px; background: #fff; color: #07080a; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
 .rc-dots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px 0; justify-items: center; margin: 14px 4px 0; }
 .rc-dots i { width: 8px; height: 8px; border-radius: 9999px; border: 1.3px solid rgb(255 255 255 / 0.55); }

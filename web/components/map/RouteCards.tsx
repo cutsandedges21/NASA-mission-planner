@@ -88,6 +88,8 @@ function Card({ r, active, onSelect, busy }: { r: ScoredRoute; active: boolean; 
         </span>
       </div>
 
+      {/* stats scroll inside the card when the window is short, so the verdict row below always shows */}
+      <div className="rc-body">
       <div className="rc-grid">
         <Stat
           k="Time outside"
@@ -116,9 +118,10 @@ function Card({ r, active, onSelect, busy }: { r: ScoredRoute; active: boolean; 
         <Stat k="Distance" v={(b.distance / 1000).toFixed(1)} unit="km" d={active ? `Out and back, ${rover ? 'driving and walking' : 'on foot'}.` : undefined} />
         <Stat k="Steepest slope" v={b.maxSlope.toFixed(0)} unit="°" d={active ? `Steepest ground on the way. ${rover ? 'Rover limit 20°.' : 'Suit limit 20°; Safe stays under 15°.'}` : undefined} />
         {b.doseMSv !== undefined && (
-          <Stat k="Radiation" v={b.doseMSv.toFixed(2)} unit="mSv" d={active ? 'Dose for this EVA: Curiosity measured 0.64 mSv a day in Gale; higher ground gets more (NASA radiation map, +5 % per km), added up along the route.' : undefined} />
+          <Stat k="Radiation" v={b.doseMSv.toFixed(2)} unit="mSv" d={active ? 'Dose for this EVA, from the 0.64 mSv a day Curiosity measured in Gale; higher ground gets more (NASA radiation map).' : undefined} />
         )}
         {r.daylight && <Stat k="Back at" v={hm(r.daylight.endH)} unit="solar" d={active ? 'Local solar time you are back. It must be before sunset.' : undefined} />}
+      </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
