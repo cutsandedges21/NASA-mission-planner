@@ -11,7 +11,7 @@
 //               #-only links skipped; code spans/blocks ignored). Images must also be tracked by git.
 //  (b) live:    against the deployed site (default https://nasa-eva-planner.vercel.app):
 //               / is 200; /data/gale/meta.json is 200 and parses; /data/gale/units.json is 200;
-//               /api/space-weather returns JSON with ok: true; POST /api/explain is 404 (removed).
+//               POST /api/explain is 404 (removed).
 //               10 s timeout each. If the site can't be reached at all, these are SKIPped.
 //  (c) numbers: each entry in docs/numbers.json ({ id: { value, docs[] } }) must still be printed
 //               by `node planner/scripts/demo-numbers.mjs` AND appear in every listed doc.
@@ -88,7 +88,7 @@ async function liveChecks() {
     home = await get('/');
   } catch (e) {
     const why = e?.cause?.code || e?.name || String(e);
-    for (const n of ['/', '/data/gale/meta.json', '/data/gale/units.json', '/api/space-weather', 'POST /api/explain'])
+    for (const n of ['/', '/data/gale/meta.json', '/data/gale/units.json', 'POST /api/explain'])
       out('SKIP', `live ${n}`, `${BASE} unreachable (${why})`);
     return;
   }
@@ -100,10 +100,6 @@ async function liveChecks() {
       try { JSON.parse(await r.text()); return [true, 'HTTP 200, valid JSON']; } catch { return [false, 'HTTP 200 but not valid JSON']; }
     }],
     ['/data/gale/units.json', {}, async (r) => [r.status === 200, `HTTP ${r.status}`]],
-    ['/api/space-weather', {}, async (r) => {
-      let j; try { j = JSON.parse(await r.text()); } catch { return [false, `HTTP ${r.status}, not JSON`]; }
-      return [j?.ok === true, `HTTP ${r.status}, ok: ${JSON.stringify(j?.ok)}`];
-    }],
     ['/api/explain', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }, async (r) =>
       [r.status === 404, r.status === 404 ? 'HTTP 404 (route removed)' : `HTTP ${r.status}, expected 404: the old AI route is still deployed`]],
   ];

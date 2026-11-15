@@ -77,9 +77,3 @@ test('real terrain: SAFE is never steeper than FAST to Pahrump Hills (cell grade
   assert.equal(rs.SAFE.verdict.lvl, 'go');
 });
 
-test('a space-weather warning does not change which science stops are chosen', { skip }, () => {
-  const calm = planMission(R.args('pahrump')).find((r) => r.strategy === 'SCIENCE');
-  const storm = planMission(R.args('pahrump', { spaceWeather: { lvl: 'warn', short: 'CME forecast' } })).find((r) => r.strategy === 'SCIENCE');
-  assert.deepEqual(storm.poisVisited, calm.poisVisited);
-  assert.equal(storm.verdict.lvl, 'caution');
-});

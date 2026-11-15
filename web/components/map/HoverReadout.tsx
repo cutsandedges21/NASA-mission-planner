@@ -8,7 +8,6 @@ import type { Region } from '@/lib/region';
 import { probe, loadThermal, TEMP_MODEL_ERR_C, MOLA8_ERR_M, type Probe } from '@/lib/probe';
 import { THERMAL_GRADIENT, HEIGHT_GRADIENT, GALE_HEIGHT_GRADIENT, TREK_LAYERS, type MapType } from '@/lib/trek';
 import { hm } from '@/lib/mars-context';
-import { RAD_GRADIENT, radRate } from '@/lib/radiation-layer';
 
 export default function HoverReadout({
   map,
@@ -28,14 +27,13 @@ export default function HoverReadout({
   const [p, setP] = useState<Probe | null>(null);
   // the base's own elevation (from the region's 1 m DEM; the base is always inside the region)
   const baseElev = useMemo(() => (base && region ? probe(region, base[0], base[1]).now.elevM : null), [base, region]);
-  // the region's height range (Elevation legend) and dose-rate range (Radiation legend)
+  // the region's height range (Elevation legend)
   const zRange = useMemo(() => {
     if (!region) return null;
     let lo = Infinity, hi = -Infinity;
     for (const z of region.elev) { if (z < lo) lo = z; if (z > hi) hi = z; }
     return [lo, hi] as const;
   }, [region]);
-  const radRange = zRange ? ([radRate(zRange[0]), radRate(zRange[1])] as const) : null;
   const pending = useRef<{ lng: number; lat: number } | null>(null);
   const seq = useRef(0);
 
@@ -95,12 +93,6 @@ export default function HoverReadout({
             hi: zRange ? `${fmtRel(zRange[1] - (baseElev ?? 0))} vs base` : 'high',
             src: '1 m DEM. Each colour covers about the same area of Gale, so small rises show up',
           } :
-    mapType === 'radiation' ? {
-      g: RAD_GRADIENT,
-      lo: radRange ? `Gale ${radRange[0].toFixed(2)}` : 'low',
-      hi: radRange ? `${radRange[1].toFixed(2)} mSv/day` : 'high',
-      src: 'Planet: 10–20 rem/yr, NASA PIA03480 (MARIE + MOLA). Gale colours stretched to its own range.',
-    } :
     null;
 
   return (
@@ -123,18 +115,10 @@ export default function HoverReadout({
               ≈ {Math.round(p.tempC)} °C <span className="text-zinc-500">model</span>
             </span>
           </div>
-          {mapType === 'radiation' && p.elevM != null && (
-            <div className="flex justify-between">
-              <span className="text-zinc-500">Dose rate</span>
-              <span title="Galactic cosmic rays at the surface: Curiosity RAD's 0.64 mSv/day at Bradbury Landing, scaled by elevation with NASA's PIA03480 map (+5.1 % per km higher). Model, not a measurement at this spot.">
-                ≈ {radRate(p.elevM).toFixed(3)} <span className="text-zinc-500">mSv/day</span>
-              </span>
-            </div>
-          )}
           <div className="mt-0.5 text-[10px] text-zinc-500">{hm(p.ltst)} local solar · {p.elevSrc === 'dem' ? '1 m DEM' : 'MOLA'}</div>
         </>
       ) : (
-        <div className="text-zinc-500">Hover the map for coordinates, elevation and temperature{mapType === 'radiation' ? ' and dose rate' : ''}</div>
+        <div className="text-zinc-500">Hover the map for coordinates, elevation and temperature</div>
       )}
       {legend && (
         <div className="mt-2 border-t border-white/[0.07] pt-2">

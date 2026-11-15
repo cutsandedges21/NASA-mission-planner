@@ -55,14 +55,7 @@ export function routeDaylight(r: PlannedRoute, startH: number, sunsetH: number):
 /** Re-run the planner's own verdict() with this route's daylight margin (each route ends at a different time). */
 export function verdictWithDaylight(r: PlannedRoute, d: Daylight | null): Verdict {
   if (!r.budget || !d) return r.verdict;
-  const v = evaVerdict(r.budget, { endMarginH: d.endMarginH }, EVA_DEFAULTS) as Verdict;
-  // planMission() adds the space-weather caution after verdict(), so carry it over from its own result.
-  const sw = r.verdict.issues.find((i) => i.msg.startsWith('Space weather:'));
-  if (sw) {
-    v.issues.push(sw);
-    if (v.lvl === 'go') v.lvl = 'caution';
-  }
-  return v;
+  return evaVerdict(r.budget, { endMarginH: d.endMarginH }, EVA_DEFAULTS) as Verdict;
 }
 
 export function fmtMargin(h: number): string {

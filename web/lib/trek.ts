@@ -9,7 +9,7 @@ const TREK = 'https://trek.nasa.gov/tiles/Mars/EQ';
 const SIZE = 256;
 const STRIPS = 16;
 
-export type MapType = 'colour' | 'height' | 'thermal' | 'slope' | 'radiation';
+export type MapType = 'colour' | 'height' | 'thermal' | 'slope';
 
 export type TrekLayer = { layer: string; ext: 'jpg' | 'png'; maxL: number; name: string; credit: string; palette?: boolean };
 

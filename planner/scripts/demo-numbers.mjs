@@ -10,7 +10,7 @@ if (!R) { console.error('web/public/data/gale/ not found'); process.exit(1); }
 const hm = (s) => `${Math.floor(s / 3600)} h ${String(Math.round((s % 3600) / 60)).padStart(2, '0')} min`;
 const row = (r) => {
   const b = r.budget;
-  return `${r.strategy.padEnd(7)} ${b.mode.padEnd(5)} ${(b.oneWay / 1000).toFixed(1)} km one way · ${(b.distance / 1000).toFixed(1)} km round trip · ${hm(b.totalT)} · O₂ left ${b.marginPct.toFixed(0)} % · max slope ${b.maxSlope.toFixed(1)}° · steep ${b.steepPct.toFixed(0)} % · dose ${b.doseMSv.toFixed(2)} mSv · ${r.verdict.lvl.toUpperCase()}${r.poisVisited.length ? ' · stops: ' + r.poisVisited.join(', ') : ''}${r.note ? ' · note: ' + r.note : ''}`;
+  return `${r.strategy.padEnd(7)} ${b.mode.padEnd(5)} ${(b.oneWay / 1000).toFixed(1)} km one way · ${(b.distance / 1000).toFixed(1)} km round trip · ${hm(b.totalT)} · O₂ left ${b.marginPct.toFixed(0)} % · max slope ${b.maxSlope.toFixed(1)}° · steep ${b.steepPct.toFixed(0)} % · ${r.verdict.lvl.toUpperCase()}${r.poisVisited.length ? ' · stops: ' + r.poisVisited.join(', ') : ''}${r.note ? ' · note: ' + r.note : ''}`;
 };
 const show = (title, rs) => { console.log(`\n${title}`); rs.forEach((r) => console.log('  ' + row(r))); };
 
@@ -18,7 +18,6 @@ console.log(`Region: ${R.meta.name}, ${R.meta.width}×${R.meta.height} cells of 
 console.log(`Base: ${R.meta.base.name} (${R.meta.base.lon} °E, ${R.meta.base.lat}°)`);
 console.log(`Science sites: ${R.pois.length}, Curiosity stops on the map: ${R.traverse?.length ?? 0}`);
 for (const p of R.pois) show(`Bradbury Landing → ${p.name} (on foot)`, planMission(R.args(p.id)));
-show('Bradbury Landing → Pahrump Hills, with a solar-storm (CME) warning', planMission(R.args('pahrump', { spaceWeather: { lvl: 'warn', short: 'CME forecast at Mars' } })));
 show('Bradbury Landing → Glen Torridon, ROVER ASSIST', planMission(R.args('glen-torridon', { params: { rover: true } })));
 show('Bradbury Landing → Pahrump Hills carrying 20 kg of kit', planMission(R.args('pahrump', { params: { kitKg: 20 } })));
 

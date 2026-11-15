@@ -14,8 +14,7 @@ export type BriefingRoute = {
   verdict: Lvl | { lvl: Lvl; issues?: { lvl: Lvl; msg: string }[] };
   poisVisited?: string[];
   note?: string;
-  /** Optional: budget.doseMSv (whole EVA, mSv) and budget.steepPct (% of route steeper than 15°). */
-  doseMSv?: number;
+  /** Optional: budget.steepPct (% of route steeper than 15°). */
   steepPct?: number;
 };
 
@@ -23,7 +22,6 @@ export type BriefingRequest = {
   region?: string;
   routes: BriefingRoute[];
   daylight?: { endMarginH?: number; sunsetLocal?: string } | null;
-  spaceWeather?: { lvl?: string; short?: string } | null;
 };
 const RANK: Record<Lvl, number> = { go: 0, caution: 1, nogo: 2 };
 const TIEBREAK: Strategy[] = ['SCIENCE', 'SAFE', 'FAST'];
@@ -80,7 +78,6 @@ export function briefingText(req: BriefingRequest, recommended = pickRecommended
   const others = req.routes.filter((r) => r.strategy !== recommended).sort((a, b) => a.durationMin - b.durationMin);
   const alt = others[0];
   if (alt) s += compareSentence(rec, alt);
-  if (req.spaceWeather?.lvl === 'warn' && req.spaceWeather.short) s += ` Space weather: ${req.spaceWeather.short}.`;
   return s;
 }
 

@@ -48,12 +48,6 @@ export function metabolicW(v, gradePct, p = EVA_DEFAULTS) {
   return rest + (load + loco) * p.gRatio * p.suitPenalty;
 }
 
-// Surface radiation dose equivalent measured by Curiosity's RAD in Gale crater:
-// 0.64 ± 0.12 mSv per (Earth) day (Hassler et al. 2014, Science). A suit adds little
-// shielding against galactic cosmic rays, so the EVA dose is this rate × EVA time.
-export const RAD_MSV_PER_DAY = 0.64;
-export const evaDoseMSv = (seconds) => (seconds / 86400) * RAD_MSV_PER_DAY;
-
 export const o2KgPerSec = (watts) => (watts / 20100) * 1.429e-3; // J/s ÷ J/L × kg/L
 
 /** Energy-weighted cost of one step (used by A* so the route minimises O2). */

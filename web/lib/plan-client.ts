@@ -22,8 +22,6 @@ export type Budget = {
   timeline: { d: number; t: number; o2: number }[];
   /** 'rover' when planned with params.rover (rover assist), else 'foot'. */
   mode?: 'foot' | 'rover';
-  /** Radiation dose for the whole EVA (mSv), from Curiosity RAD's measured Gale surface rate. */
-  doseMSv?: number;
   /** % of the outbound distance on ground steeper than 15° (from slope.png). Terrain risk for the card. */
   steepPct?: number;
 };
@@ -52,19 +50,19 @@ export type PlanArgs = {
   end: [number, number];
   pois: { x: number; y: number; id: string }[];
   sun?: { endMarginH: number } | null;
-  /** Pass `status` from /api/space-weather: 'warn' adds a CAUTION to every route. */
-  spaceWeather?: { lvl: string; short?: string } | null;
   /** EVA_DEFAULTS overrides, e.g. { rover: true } for rover assist, { kitKg: 10 } for carried gear. */
   params?: Record<string, unknown>;
   roundTrip?: boolean;
   maxStops?: number;
   /** Pit stop ("point 1.5", T-35): grid cell every route passes through on the way out. Its stop id is 'pitstop'. */
   via?: [number, number] | null;
+  /** Any number of pit stops, visited in this order on the way out. Stop ids: 'pitstop', 'pitstop2', 'pitstop3', … */
+  vias?: [number, number][];
 };
 
 // ---- Mission Simulator (T-35, planner/src/simulate.js + steps.js) ----
 export type SimEvent = {
-  type: 'dust' | 'spe';
+  type: 'dust';
   atS: number;
   atM: number;
   outbound: boolean;
@@ -90,7 +88,6 @@ export type SimRun = {
   totalT: number;
   o2: number;
   marginPct: number;
-  doseMSv: number;
   endMarginH: number | null;
   /** Plain-language summary, compared with the typical run (written in the worker from the numbers). */
   text: string;
@@ -102,13 +99,11 @@ export type SimSummary = {
   unsafe: number;
   nogo: number;
   dustRuns: number;
-  speRuns: number;
   medianTotalT: number;
   p10TotalT: number;
   p90TotalT: number;
   medianMarginPct: number;
   worstMarginPct: number;
-  medianDoseMSv: number;
   typical: number;
   best: number;
   worst: number;
@@ -145,7 +140,6 @@ export type SimOpts = {
   Ls?: number;
   runs?: number;
   seed?: number;
-  spaceWeatherLvl?: string;
   names?: Record<string, string>;
   /** dust.json contents (MDAD rates by season); without it the labelled fallback chance is used. */
   dust?: unknown;

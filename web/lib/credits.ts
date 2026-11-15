@@ -48,31 +48,6 @@ export const CREDITS: Credit[] = [
   },
   {
     group: 'NASA data',
-    name: 'DONKI WSA-ENLIL CME forecasts (NASA CCMC, Goddard)',
-    what: 'Live check for solar storms (coronal mass ejections) forecast to reach Mars, via api.nasa.gov',
-    url: 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/',
-  },
-  {
-    group: 'NASA data',
-    name: 'Curiosity RAD surface radiation dose (Hassler et al. 2014, Science 343)',
-    what: 'The 0.64 mSv/day dose rate measured at Gale, used for each route\'s EVA dose',
-    url: 'https://doi.org/10.1126/science.1244797',
-  },
-  {
-    group: 'NASA data',
-    name: 'Estimated Radiation Dosage on Mars, PIA03480 (NASA/JPL/JSC, Mars Odyssey MARIE + MGS MOLA)',
-    what: 'The Radiation map type (reprojected worldwide), and the +5.1 % dose rate per km of altitude we read off it to scale Curiosity\'s 0.64 mSv/day across Gale (data/radiation_map.py)',
-    url: 'https://photojournal.jpl.nasa.gov/catalog/PIA03480',
-    license: 'Public domain (NASA)',
-  },
-  {
-    group: 'NASA data',
-    name: 'MGS MOLA Mission Experiment Gridded Data Record, 4 px/deg (NASA PDS Geosciences)',
-    what: 'Global elevations paired with the PIA03480 colours to fit dose vs altitude',
-    url: 'https://pds-geosciences.wustl.edu/missions/mgs/megdr.html',
-  },
-  {
-    group: 'NASA data',
     name: 'Viking global mosaic of Mars, PIA00407 (NASA/JPL/USGS)',
     what: 'The Mars globe on the landing screen',
     url: 'https://photojournal.jpl.nasa.gov/catalog/PIA00407',
@@ -143,7 +118,7 @@ export const CREDITS: Credit[] = [
 
   // ---- Software
   { group: 'Software', name: 'MapLibre GL JS', what: 'Map rendering, layers, 3D terrain', url: 'https://maplibre.org/', license: 'BSD-3-Clause' },
-  { group: 'Software', name: 'Next.js', what: 'Web app framework (and the space-weather server route)', url: 'https://nextjs.org/', license: 'MIT' },
+  { group: 'Software', name: 'Next.js', what: 'Web app framework', url: 'https://nextjs.org/', license: 'MIT' },
   { group: 'Software', name: 'three.js', what: 'The first-person rover and walking view (terrain mesh, sky, route on the ground)', url: 'https://threejs.org/', license: 'MIT' },
   { group: 'Software', name: 'React and Tailwind CSS', what: 'User interface', url: 'https://react.dev/', license: 'MIT' },
   { group: 'Software', name: 'Blender', what: 'Rendered the "Five NASA layers, one plan" picture from the same data files the app uses (not part of the running app)', url: 'https://www.blender.org/', license: 'GPL' },

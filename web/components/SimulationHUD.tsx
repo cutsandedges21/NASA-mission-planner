@@ -58,8 +58,9 @@ export default function SimulationHUD({
   const [u, setU] = useState(-START_DELAY);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(DEFAULT_SPEED[view]);
-  // Rover view: the card starts as a pill (Moss, Sat 14 Nov), the way Island's cards grow out of its pill.
-  const [expanded, setExpanded] = useState(false);
+  // The card folds into a pill and grows back, in both views (rover view: Moss, Sat 14 Nov; map view: Justin,
+  // Sun 15 Nov), the way Island's cards grow out of its pill. The rover view starts as the pill, the map view open.
+  const [expanded, setExpanded] = useState(view !== 'rover');
   // A new view (from the toggle, a rover route starting, or Esc in the rover view): its own start speed,
   // and the rover card folded back into its pill. Adjusted during render, not in an effect.
   const [seenView, setSeenView] = useState(view);
@@ -139,8 +140,8 @@ export default function SimulationHUD({
   const resDot = Math.round((reserve / 100) * DOTS);
   const lh = ((localH % 24) + 24) % 24;
 
-  // Rover view: a pill with the live numbers that grows into the full card (and folds back) like Island's.
-  const open = view === 'map' || expanded;
+  // A pill with the live numbers that grows into the full card (and folds back) like Island's.
+  const open = expanded;
   const chevron = (up: boolean) => (
     <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
       <path d={up ? 'M2.5 7.5 6 4l3.5 3.5' : 'M2.5 4.5 6 8l3.5-3.5'} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -213,11 +214,9 @@ export default function SimulationHUD({
           <span className="sim-phase max-w-[11rem] truncate" title={phase}>
             {phase}
           </span>
-          {view === 'rover' && (
-            <button onClick={() => setExpanded(false)} aria-label="Fold into a pill" title="Fold into a pill" aria-expanded className="sim-x sim-fold" data-testid="sim-fold">
-              {chevron(true)}
-            </button>
-          )}
+          <button onClick={() => setExpanded(false)} aria-label="Fold into a pill" title="Fold into a pill" aria-expanded className="sim-x sim-fold" data-testid="sim-fold">
+            {chevron(true)}
+          </button>
           <button onClick={onClose} aria-label="Close simulation" className="sim-x">
             ✕
           </button>
@@ -259,8 +258,7 @@ export default function SimulationHUD({
       )}
       {done && (
         <div className="sim-done">
-          Back at the airlock after {two(mission.totalT / 3600)}:{two((mission.totalT % 3600) / 60)} with {Math.max(0, route.budget.marginPct).toFixed(0)} % oxygen
-          {route.budget.doseMSv !== undefined ? ` and ${route.budget.doseMSv.toFixed(2)} mSv of radiation.` : '.'}
+          Back at the airlock after {two(mission.totalT / 3600)}:{two((mission.totalT % 3600) / 60)} with {Math.max(0, route.budget.marginPct).toFixed(0)} % oxygen.
         </div>
       )}
 

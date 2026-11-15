@@ -1,18 +1,17 @@
 // Five seeded mission simulations, Point 1 → Point 2 (T-35, Gianluca's spec, Sat 19:40).
 // Each seed draws its own (1) risk appetite (how much the route trades time for safety), (2) hidden ground
-// (soft sand vs packed soil, which a 25 m orbital map can't resolve) and (3) weather (dust storm, solar alert,
+// (soft sand vs packed soil, which a 25 m orbital map can't resolve) and (3) weather (dust storm,
 // crew pace). The router finds that seed's route, then the EVA is simulated on it. Of the five:
 //   FASTEST  = first to reach Point 2, among runs that are not NO-GO (safety isn't ignored completely:
 //              the 20° walking limit and the O₂ reserve still hold)
-//   SAFEST   = fewest safety problems on the way (steep stretches, cautions, storms, alerts, turn-backs)
+//   SAFEST   = fewest safety problems on the way (steep stretches, cautions, storms, turn-backs)
 //   BALANCED = of the rest, the best on both rankings at once ("second to both")
 //   the other runs stay available as alternatives.
 // Physics = the planner's EVA model. Event chances: MDAD dust data + labelled assumptions (simulate.js).
 // Pure ES module, no Node-only imports: runs in the browser Web Worker.
 import { stepCost, walkSpeed, metabolicW, budget, verdict, EVA_DEFAULTS } from './eva.js';
-import { toSamples, STEEP_DEG, PIT_STOP_ID } from './plan.js';
+import { toSamples, STEEP_DEG, pitStopId, viaCells } from './plan.js';
 import { smoothLine } from './smooth.js';
-import { relRate, RAD_AVOID, routeDoseMSv } from './radiation.js';
 import { rng, drawConditions, runOnce, dustRate, SIM_DEFAULTS, SIM_ASSUMPTIONS } from './simulate.js';
 
 export const CANDIDATE_DEFAULTS = { runs: 5, seed: 2026, fieldCells: 10 };
@@ -54,9 +53,8 @@ export function findBlend(g, ax, ay, bx, by, p, safety, field, roundTrip = true)
   const limit = (p.rover ? (p.roverMaxSlope ?? 20) : p.maxSlope) - 5 * safety;
   const maxTan = Math.tan(limit * DEG);
   const P0 = p.rover ? p.rideW : metabolicW(p.vFlat, 0, p); // W on flat ground: J → seconds of flat walking
-  let fMin = Infinity, zMin = Infinity;
+  let fMin = Infinity;
   for (let i = 0; i < field.length; i++) if (field[i] < fMin) fMin = field[i];
-  for (let i = 0; i < elev.length; i++) if (elev[i] < zMin) zMin = elev[i];
   const rel = (i) => field[i] / p.terrain;
   const tPerM = p.rover ? 1 / p.roverMs : roundTrip ? 2 / p.vFlat : 1 / (p.vFlat * Math.exp(0.175));
   const ePerM = (p.rover ? p.rideW / p.roverMs : stepCost(1, 0, p)) * (roundTrip ? 2 : 1);
@@ -111,9 +109,7 @@ export function findBlend(g, ax, ay, bx, by, p, safety, field, roundTrip = true)
       }
       const [t1, e1] = one(dist, dh);
       const [t2, e2] = roundTrip ? one(dist, -dh) : [0, 0];
-      // The safety side also avoids higher-dose ground, like SAFE in route.js (radiation.js: factor >= 1, LB stays valid).
-      const radPen = relRate(elev[ni], zMin) ** RAD_AVOID;
-      const step = ((1 - safety) * (t1 + t2) + safety * slopePen * radPen * rel(ni) * (e1 + e2) / P0) * pen;
+      const step = ((1 - safety) * (t1 + t2) + safety * slopePen * rel(ni) * (e1 + e2) / P0) * pen;
       const c = cost[cur] + step;
       if (c < cost[ni]) { cost[ni] = c; from[ni] = cur; push(c + heur(ni), ni); }
     }
@@ -141,16 +137,17 @@ function steepStretches(path, out, fineSlope, w) {
 }
 
 /** Budget + verdict for a path, like plan.js score() (kept separate so plan.js stays untouched). */
-function scoreCandidate(a, p, path, viaPoi) {
+function scoreCandidate(a, p, path, viaPois) {
   const { elev, w, cellX, cellY, fineSlope } = a;
   const roundTrip = a.roundTrip !== false;
   const out = toSamples(path, elev, w, cellX, cellY);
   const samples = roundTrip ? out.concat(toSamples(path.slice().reverse(), elev, w, cellX, cellY, out.at(-1).d).slice(1)) : out;
   const stops = [], stopIdx = [];
-  if (viaPoi) {
-    const k = path.findIndex(([x, y]) => x === viaPoi.x && y === viaPoi.y);
-    if (k >= 0) { stops.push({ id: PIT_STOP_ID, d: out[k].d }); stopIdx.push(k); }
-  }
+  let from = 0;
+  viaPois.forEach((v, i) => {
+    const k = path.findIndex(([x, y], j) => j >= from && x === v.x && y === v.y);
+    if (k >= 0) { stops.push({ id: pitStopId(i), d: out[k].d }); stopIdx.push(k); from = k; }
+  });
   const b = budget(samples, stops.map((s) => s.d), p);
   b.oneWay = out.at(-1).d;
   b.roundTrip = roundTrip;
@@ -158,7 +155,6 @@ function scoreCandidate(a, p, path, viaPoi) {
   b.gradeMaxSlope = b.maxSlope;
   b.fineMaxSlope = fineSlope ? Math.max(0, ...path.map(([x, y]) => fineSlope[y * w + x])) : 0;
   b.maxSlope = Math.max(b.gradeMaxSlope, b.fineMaxSlope);
-  b.doseMSv = routeDoseMSv(samples, b.timeline, stops.map((st) => samples.find((x) => x.d >= st.d)?.e ?? out.at(-1).e), p.stopMin * 60);
   const steep = steepStretches(path, out, fineSlope, w);
   b.steepPct = (steep.reduce((t, s) => t + Math.max(s.toM - s.fromM, 25), 0) / (b.oneWay || 1)) * 100;
   b.mode = p.rover ? 'rover' : 'foot';
@@ -172,7 +168,7 @@ function scoreCandidate(a, p, path, viaPoi) {
 function problemsOf(route, run) {
   const list = [];
   for (const s of route.steep) list.push({ w: 1, msg: `${Math.round(Math.max(25, s.toM - s.fromM))} m of ground steeper than ${STEEP_DEG}° (up to ${s.maxDeg.toFixed(0)}°) at ${(s.fromM / 1000).toFixed(1)} km` });
-  for (const e of run.events) list.push({ w: 1, msg: e.type === 'dust' ? `${e.kind === 'regional' ? 'Regional' : 'Local'} dust storm, τ ${e.tau.toFixed(1)}: ${e.decision}` : `Solar particle alert: ${e.decision}` });
+  for (const e of run.events) list.push({ w: 1, msg: e.type === 'dust' ? `${e.kind === 'regional' ? 'Regional' : 'Local'} dust storm, τ ${e.tau.toFixed(1)}: ${e.decision}` : e.decision });
   for (const i of run.issues) if (i.lvl !== 'go') list.push({ w: i.lvl === 'nogo' ? 2 : 1, msg: `${i.lvl === 'nogo' ? 'NO-GO' : 'Caution'}: ${i.msg}` });
   return list;
 }
@@ -180,14 +176,15 @@ function problemsOf(route, run) {
 /**
  * Run the five seeded simulations.
  * @param {object} a  planMission() args (elev, w, h, cellX, cellY, fineSlope, start, end, via, params, sun, roundTrip)
- * @param {object} [o] { runs, seed, Ls, dust, forceDust, spaceWeatherLvl, daylight: { startH, sunsetH } } + SIM_DEFAULTS overrides
+ * @param {object} [o] { runs, seed, Ls, dust, forceDust, daylight: { startH, sunsetH } } + SIM_DEFAULTS overrides
  */
 export function simulateCandidates(a, o = {}) {
   const s = { ...SIM_DEFAULTS, ...CANDIDATE_DEFAULTS, ...o };
   const p = { ...EVA_DEFAULTS, ...(a.params || {}) };
   const g = { w: a.w, h: a.h, elev: a.elev, cellX: a.cellX, cellY: a.cellY, fineSlope: a.fineSlope || null };
-  const viaPoi = a.via ? { x: a.via[0], y: a.via[1] } : null;
-  const wps = [a.start, ...(a.via ? [a.via] : []), a.end];
+  const cells = viaCells(a);
+  const viaPoi = cells.map(([x, y]) => ({ x, y }));
+  const wps = [a.start, ...cells, a.end];
   // Risk appetite: one seed in each fifth of [0, 1] (seeded order), so the five routes really differ.
   const r0 = rng(s.seed);
   const order = Array.from({ length: s.runs }, (_, i) => i).sort(() => r0() - 0.5);
@@ -209,7 +206,7 @@ export function simulateCandidates(a, o = {}) {
       ar = { ...a, sun: { endMarginH: o.daylight.sunsetH - o.daylight.startH - route.budget.totalT / 3600 } };
       route = { strategy: route.strategy, ...scoreCandidate(ar, p, path, viaPoi) };
     }
-    const c = drawConditions(seed, { ...o, evaMaxH: p.evaMaxH, spaceWeatherLvl: o.spaceWeatherLvl ?? a.spaceWeather?.lvl });
+    const c = drawConditions(seed, { ...o, evaMaxH: p.evaMaxH });
     // Cautious seeds follow the SAFE storm rule (turn back for any storm on the way out).
     const run = runOnce(route, ar, c, { ...o, field, safeRule: safety > 0.6 });
     const problems = problemsOf(route, run);
@@ -262,7 +259,7 @@ export function describeCandidate(x, ref, role) {
   const lean = x.safety < 0.34 ? 'leans toward speed' : x.safety > 0.66 ? 'leans toward safety' : 'balances speed and safety';
   parts.push(`Seed ${x.seed}: this route ${lean} (safety weight ${x.safety.toFixed(2)}).`);
   parts.push(r.arriveS != null ? `Reaches Point 2 after ${hm(r.arriveS)}; back at base after ${hm(r.totalT)} (${(r.distance / 1000).toFixed(1)} km).` : `Turned back before Point 2, ${((r.turnedBackAtM ?? 0) / 1000).toFixed(1)} km out; back at base after ${hm(r.totalT)}.`);
-  parts.push(`Steepest ground ${b.maxSlope.toFixed(0)}°, climbs ${Math.round(b.gain / (b.roundTrip ? 2 : 1))} m on the way out, O₂ left ${r.marginPct.toFixed(0)} %, dose ${r.doseMSv.toFixed(2)} mSv. Ground factor ${r.terrain.toFixed(2)} on average.`);
+  parts.push(`Steepest ground ${b.maxSlope.toFixed(0)}°, climbs ${Math.round(b.gain / (b.roundTrip ? 2 : 1))} m on the way out, O₂ left ${r.marginPct.toFixed(0)} %. Ground factor ${r.terrain.toFixed(2)} on average.`);
   parts.push(x.problems.length ? `${x.problems.length} safety problem(s): ${x.problems.map((q) => q.msg).join('; ')}.` : 'No safety problems on the way.');
   if (ref && ref !== x && ref.run && r.arriveS != null && ref.run.arriveS != null) {
     const dt = r.arriveS - ref.run.arriveS;

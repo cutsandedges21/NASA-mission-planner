@@ -21,7 +21,6 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
  DEM · HiRISE · THEMIS    (Python)         elev, slope,      A* × 3 strategies           │
                                            imagery, POIs     + EVA O₂ / time model       ▼
                                                                                   AI briefing (number-checked)
-                                                                                  + live NASA space weather
 ```
 
 1. **Data pipeline** (`data/build_region.py`) reads only the needed window from each NASA/USGS dataset and bakes a 473 × 593 grid of 25 m cells: elevation, the steepest slope inside each cell (from a 2× finer DEM), HiRISE colour imagery and THEMIS night-time thermal imagery.
@@ -34,7 +33,6 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 3. **EVA model:** walking speed vs slope (Tobler-style), metabolic power from the Pandolf load-carriage equation scaled to Mars gravity with a pressure-suit penalty, O₂ from metabolic energy, a 25 % O₂ reserve, an 8 h suit limit and a 20° walking limit.
 4. **Recommendation** is a fixed rule: best verdict wins; on a tie, SCIENCE if it reaches a site, then SAFE, then FAST.
 5. **AI briefing** (Claude) explains the recommended route in three sentences. The server checks every number in the reply against the computed data and falls back to a template if any number is new.
-6. **Space weather:** live NASA DONKI WSA-ENLIL forecasts of solar storms (CMEs) reaching Mars in the next 3 days.
 
 ![Mission briefing](TODO-screenshot-2.png)
 ![Simulate Mission](TODO-screenshot-3.png)
@@ -47,7 +45,6 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
 | Colour imagery | MSL Gale HiRISE colour mosaic (USGS) | MRO HiRISE | 25 cm/px source |
 | Colour (gap fill) | Viking MDIM 2.1 colour mosaic | Viking Orbiter | ~232 m/px |
 | Thermal (night IR) | THEMIS Night IR controlled mosaic v2 (USGS) | Mars Odyssey THEMIS | 100 m/px |
-| Space weather | DONKI WSA-ENLIL simulations | NASA CCMC / Goddard | live |
 | Basemap | OpenPlanetaryMap Mars basemap | MOLA / Viking-based | global |
 
 Confirmed (Fri 19:45): the baked region uses the **1 m MSL Gale DEM**, and HiRISE colour covers 74 % of the box (Viking fills the rest).
@@ -63,7 +60,7 @@ Challenge checklist (O1–O8, C1–C6): see [docs/CHALLENGE.md](docs/CHALLENGE.m
 ## Credits
 
 - **Routing and EVA oxygen model** adapted from **Sol Atlas** by The SOL Explorers. Every adapted file says what changed.
-- Data: NASA, JPL-Caltech, USGS Astrogeology, ESA/DLR/FU Berlin (HRSC), University of Arizona (HiRISE), Arizona State University (THEMIS), NASA CCMC (DONKI).
+- Data: NASA, JPL-Caltech, USGS Astrogeology, ESA/DLR/FU Berlin (HRSC), University of Arizona (HiRISE), Arizona State University (THEMIS).
 - Basemap: OpenPlanetaryMap.
 
 ## AI use

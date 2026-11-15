@@ -29,27 +29,46 @@
 .sp-range::-moz-range-track { height: 6px; border-radius: 9999px; background: rgb(255 255 255 / 0.05); }
 .sp-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 15px; margin-top: -4.5px; border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 14px #f5c84b88; }
 .sp-range::-moz-range-thumb { width: 30px; height: 15px; border: 0; border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 14px #f5c84b88; }
-.sp-knob { position: absolute; top: 50%; width: 20px; height: 11px; transform: translateY(-50%); border-radius: 9999px; background: #f5c84b; box-shadow: 0 0 12px #f5c84b77; }
+.sp-stat { border-radius: 9px; background: rgb(255 255 255 / 0.035); padding: 8px 11px 9px; }
+.sp-num { display: grid; place-items: center; width: 18px; height: 18px; flex: none; border-radius: 9999px; background: #fdba74; color: #1a0f05; font-size: 10px; font-weight: 700; }
+/* the panel folds into a vertical strip and grows back (Rail.tsx useGrow) */
+.sp-grow { width: 300px; transition: width 0.45s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.sp-grow:not(.sp-open) { width: 58px; }
+.sp-full { opacity: 1; transition: opacity 0.3s 0.12s; }
+.sp-grow:not(.sp-open) .sp-full { opacity: 0; transition: opacity 0.15s; }
+.sp-strip { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 0; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.sp-grow:not(.sp-open) .sp-strip { opacity: 1; pointer-events: auto; transition: opacity 0.25s 0.15s; }
+.sp-strip-title { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #e4e4e7; }
+.sp-side.grow-arrow svg { transform: rotate(-90deg); }
+.sp-side.grow-arrow[data-open='true'] svg { transform: rotate(90deg); }
 
 /* route cards (dashboard reference) */
-.rc-col { position: absolute; right: 16px; top: 80px; bottom: 16px; z-index: 10; width: 286px; display: none; flex-direction: column; gap: 12px; }
+.rc-col { position: absolute; right: 16px; top: 80px; bottom: 16px; z-index: 10; width: 286px; display: none; flex-direction: column; gap: 12px; pointer-events: none; }
+.rc-col > * { pointer-events: auto; }
 @media (min-width: 768px) { .rc-col { display: flex; } }
 .rc {
-  position: relative; flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 30px; padding: 20px 22px 18px; color: #fff;
+  position: relative; flex: 0 0 76px; min-height: 0; display: flex; flex-direction: column; overflow: hidden; border-radius: 30px; padding: 17px 16px 16px 22px; color: #fff; cursor: pointer;
   background: radial-gradient(110% 80% at 50% 40%, #2c2c31 0%, #141416 70%); border: 1px solid rgb(255 255 255 / 0.07);
   box-shadow: 0 24px 60px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.08);
-  transition: flex-grow 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.3s;
+  transition: flex-grow 0.45s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.3s;
 }
+/* small → open (Rail.tsx): the open card takes the column's free height, the others stay 76 px */
+.rc-open { flex-grow: 1; cursor: default; }
+.rc-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.2s; }
+.rc-open .rc-main { opacity: 1; transition: opacity 0.3s 0.12s; }
+.grow-arrow svg { transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.grow-arrow[data-open='true'] svg { transform: rotate(180deg); }
+.rc-head-chip { flex: none; }
 .rc:hover { filter: brightness(1.12); }
-.rc-on { flex-grow: 1.55; border-color: rgb(255 255 255 / 0.25); box-shadow: 0 30px 80px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 60px rgb(255 255 255 / 0.06); }
+.rc-on { border-color: rgb(255 255 255 / 0.25); box-shadow: 0 30px 80px -24px #000, inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 0 60px rgb(255 255 255 / 0.06); }
 .rc-on:hover { filter: none; }
 .rc-empty { color: #d4d4d8; }
 .rc-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.28) transparent; }
-.rc-btn { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9999px; background: #fff; color: #07080a; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
+.rc-btn { display: grid; place-items: center; width: 34px; height: 34px; flex: none; cursor: pointer; border-radius: 9999px; background: #fff; color: #07080a; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
 .rc-dots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px 0; justify-items: center; margin: 14px 4px 0; }
 .rc-dots i { width: 8px; height: 8px; border-radius: 9999px; border: 1.3px solid rgb(255 255 255 / 0.55); }
 .rc-dots i[data-on='true'] { background: #fff; border-color: #fff; box-shadow: 0 0 8px rgb(255 255 255 / 0.6); }
-.rc-chip { border-radius: 9999px; padding: 6px 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; background: rgb(0 0 0 / 0.4); border: 1px solid rgb(255 255 255 / 0.12); }
+.rc-chip { flex: none; align-self: center; border-radius: 9999px; padding: 6px 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; background: rgb(0 0 0 / 0.4); border: 1px solid rgb(255 255 255 / 0.12); }
 .rc-chip-go { color: #6ee7b7; }
 .rc-chip-caution { color: #fcd34d; }
 .rc-chip-nogo { color: #fca5a5; }
@@ -140,7 +159,7 @@
 /* bookmarks in Quick targets */
 .sp-add { border-style: dashed !important; color: #f5c84b; }
 .sp-x { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 9999px; font-size: 13px; line-height: 1; color: #a1a1aa; opacity: 0; transition: opacity 0.15s; }
-.group:hover .sp-x, .sp-x:focus-visible { opacity: 1; }
+.group:hover .sp-x, .sp-x:focus-visible, .sp-x-on { opacity: 1; }
 .sp-x:hover { color: #fff; background: rgb(255 255 255 / 0.1); }
 
 /* route card statistics: same font as the rest of the app, with a one-line meaning under each */

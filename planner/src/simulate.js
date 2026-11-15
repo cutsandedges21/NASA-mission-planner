@@ -1,5 +1,5 @@
 // Mission Simulator (T-35): fly each planned route N times under seeded random conditions
-// (crew pace, ground, effort, local dust storms, solar particle events) and see what happens.
+// (crew pace, ground, effort, local dust storms) and see what happens.
 // Same seed → same conditions on every route ("common random numbers"), so run 7 has the same
 // weather for SAFE, FAST and SCIENCE and the comparison is fair.
 // Pure ES module, no Node-only imports: runs in the browser Web Worker.
@@ -9,7 +9,6 @@
 // in SIM_DEFAULTS, each with a `why`, and the UI lists them next to the results.
 import { walkSpeed, metabolicW, o2KgPerSec, verdict, EVA_DEFAULTS } from './eva.js';
 import { toSamples } from './plan.js';
-import { doseRateMSvDay } from './radiation.js';
 
 /** Every knob of the simulator. `value` is used; `why` is shown in the UI. */
 export const SIM_ASSUMPTIONS = {
@@ -28,8 +27,6 @@ export const SIM_ASSUMPTIONS = {
   safePushMaxTau: { value: 0, why: 'Flight rule (ours, Gianluca) for SAFE: turn back for any dust storm on the way out' },
   dustSlow: { value: 0.8, why: 'In a storm the crew walks at 80 % pace (poor visibility, footing). Team assumption' },
   heavyDustSlow: { value: 0.6, why: 'Above τ 3 on the way home: 60 % pace. Team assumption' },
-  speChanceQuiet: { value: 0.02, why: 'Chance of a solar particle event alert during an 8 h window, quiet Sun. Team assumption' },
-  speChanceWarn: { value: 0.30, why: 'Same chance when NASA DONKI reports a solar storm toward Mars (live space weather = warn). Team assumption' },
 };
 export const SIM_DEFAULTS = Object.fromEntries(Object.entries(SIM_ASSUMPTIONS).map(([k, v]) => [k, v.value]));
 
@@ -61,7 +58,7 @@ export function dustRate(dust, Ls) {
 
 /**
  * The random conditions for one run. Drawn in a fixed order so they don't depend on the route.
- * @returns {{seed, pace, terrain, effort, dust: null|{tOnS, tau}, spe: null|{tOnS}}}
+ * @returns {{seed, pace, terrain, effort, dust: null|{tOnS, tau}}}
  */
 export function drawConditions(seed, o = {}) {
   const s = { ...SIM_DEFAULTS, ...o };
@@ -78,13 +75,10 @@ export function drawConditions(seed, o = {}) {
   const dustHit = u1 < dustP;
   const regional = u3 < regionalShare;
   const tau = regional ? s.localTauMax + (s.dustTauMax - s.localTauMax) * u2 : s.dustTauMin + (s.localTauMax - s.dustTauMin) * u2;
-  const speP = o.spaceWeatherLvl === 'warn' ? s.speChanceWarn : s.speChanceQuiet;
-  const speHit = r() < speP, speT = r() * windowS;
   return {
     seed, pace, terrain, effort,
     // Stress test: the storm arrives during this route's own EVA (runOnce scales `frac` by its time).
     dust: dustHit ? { tOnS: dustT, frac: uT, forced: !!o.forceDust, tau, kind: regional ? 'regional' : 'local' } : null,
-    spe: speHit ? { tOnS: speT } : null,
   };
 }
 
@@ -104,8 +98,6 @@ export function runOnce(route, a, c, o = {}) {
   const stops = (route.stops || []).map((x) => ({ ...x, done: false }));
   const events = [];
   let t = 0, o2 = 0, slow = 1, turnedBackAtM = null, homeBound = false, gain = 0, loss = 0, arriveS = null;
-  // Dose like the route cards (plan.js + radiation.js): each segment at the rate of its mean elevation.
-  let dose = 0;
   // Optional hidden-ground field (candidates.js): Pandolf terrain factor per cell instead of one value per run.
   const field = o.field || null;
   let terrSum = 0, terrM = 0;
@@ -119,7 +111,6 @@ export function runOnce(route, a, c, o = {}) {
     const v = (p.rover ? p.roverMs * c.pace : walkSpeed(g, p)) * factor;
     const dt = dd / v;
     t += dt;
-    dose += (doseRateMSvDay((a0.e + b0.e) / 2) * dt) / 86400;
     o2 += o2KgPerSec(p.rover ? p.rideW * c.effort : metabolicW(v, (dh / dd) * 100, p)) * dt;
     if (dh > 0) gain += dh; else loss -= dh;
   };
@@ -141,16 +132,6 @@ export function runOnce(route, a, c, o = {}) {
         ],
       });
     }
-    if (c.spe && !c.spe.seen && t >= c.spe.tOnS) {
-      c = { ...c, spe: { ...c.spe, seen: true } };
-      if (outbound) back = true;
-      events.push({
-        type: 'spe', atS: t, atM: dHere, outbound,
-        decision: outbound ? 'turn back to shelter' : 'continue to the airlock',
-        effect: 'solar particle event alert: the extra dose from the event itself is not modelled',
-        damage: ['Crew dose rises while outside: get under shielding (habitat) as fast as possible'],
-      });
-    }
     return back;
   };
 
@@ -163,7 +144,6 @@ export function runOnce(route, a, c, o = {}) {
       if (!st.done && st.d <= out[i].d + 1e-6) {
         st.done = true;
         t += p.stopMin * 60;
-        dose += (doseRateMSvDay(out[i].e) * p.stopMin * 60) / 86400;
         o2 += o2KgPerSec(p.stopW * c.effort) * p.stopMin * 60;
       }
     }
@@ -184,7 +164,7 @@ export function runOnce(route, a, c, o = {}) {
   const remaining = p0.o2CapKg - o2;
   const b = {
     distance, totalT: t, o2, remaining, reserveKg, marginPct: (remaining / p0.o2CapKg) * 100,
-    maxSlope: route.budget.maxSlope, gain, loss, doseMSv: dose,
+    maxSlope: route.budget.maxSlope, gain, loss,
   };
   const sun = a.sun ? { endMarginH: a.sun.endMarginH - (t - route.budget.totalT) / 3600 } : null;
   const vp = p0.rover ? { ...p0, maxSlope: p0.roverMaxSlope ?? 20 } : p0;
@@ -206,14 +186,14 @@ const pct = (xs, q) => { const s = xs.slice().sort((x, y) => x - y); return s.le
  * Simulate every planned route.
  * @param {object[]} routes  planMission() output
  * @param {object} a         planMission() args
- * @param {object} [o]       SIM_DEFAULTS overrides + { Ls, spaceWeatherLvl, sunByStrategy }
+ * @param {object} [o]       SIM_DEFAULTS overrides + { Ls, sunByStrategy }
  * @returns {{ routes: Array<{strategy, runs, summary}>, recommended: string|null, conditions: object[], assumptions }}
  */
 export function simulateMission(routes, a, o = {}) {
   const s = { ...SIM_DEFAULTS, ...o };
   const p0 = { ...EVA_DEFAULTS, ...(a.params || {}) };
   const conditions = Array.from({ length: s.runs }, (_, i) =>
-    drawConditions(s.seed + i, { ...o, evaMaxH: p0.evaMaxH, spaceWeatherLvl: o.spaceWeatherLvl ?? a.spaceWeather?.lvl }));
+    drawConditions(s.seed + i, { ...o, evaMaxH: p0.evaMaxH }));
   const res = routes.map((r) => {
     if (!r.path || !r.budget) return { strategy: r.strategy, runs: [], summary: null };
     // Daylight per route (the web app applies it after planning): o.sunByStrategy = { SAFE: { endMarginH } }.
@@ -249,11 +229,9 @@ export function summarise(runs) {
     unsafe: count((r) => r.outcome === 'unsafe'),
     nogo: count((r) => r.lvl === 'nogo'),
     dustRuns: count((r) => r.events.some((e) => e.type === 'dust')),
-    speRuns: count((r) => r.events.some((e) => e.type === 'spe')),
     medianTotalT: med, p10TotalT: pct(totals, 0.1), p90TotalT: pct(totals, 0.9),
     medianMarginPct: median(runs.map((r) => r.marginPct)),
     worstMarginPct: Math.min(...runs.map((r) => r.marginPct)),
-    medianDoseMSv: median(runs.map((r) => r.doseMSv)),
     typical: pick.i, best: byScore[0].i, worst: byScore.at(-1).i,
   };
 }
@@ -271,9 +249,8 @@ export function describeRun(run, typical, names = {}) {
   for (const e of run.events) {
     const where = e.outbound ? `${km(e.atM)} out` : `on the way home, ${km(e.atM)} from base`;
     if (e.type === 'dust') parts.push(`${e.kind === 'regional' ? 'Regional' : 'Local'} dust storm (τ ${e.tau.toFixed(1)}) at ${hmin(e.atS)}, ${where}: ${e.decision}, ${e.effect}.`);
-    else parts.push(`Solar particle alert at ${hmin(e.atS)}, ${where}: ${e.decision}.`);
   }
-  if (!run.events.length) parts.push('Clear sky, no space-weather alert.');
+  if (!run.events.length) parts.push('Clear sky.');
   parts.push(`Pace ${Math.round(run.pace * 100)} %, ground factor ${run.terrain.toFixed(2)}, effort ${Math.round(run.effort * 100)} %.`);
   if (run.stopsMissed.length) parts.push(`Missed: ${run.stopsMissed.map(nm).join(', ')}.`);
   if (typical && run !== typical) {
@@ -281,7 +258,7 @@ export function describeRun(run, typical, names = {}) {
     const dm = run.marginPct - typical.marginPct;
     parts.push(`${hmin(Math.abs(dt))} ${dt >= 0 ? 'longer' : 'shorter'} than the typical run; O₂ left ${run.marginPct.toFixed(0)} % (typical ${typical.marginPct.toFixed(0)} %, ${dm >= 0 ? '+' : ''}${dm.toFixed(0)} pts).`);
   } else {
-    parts.push(`${hmin(run.totalT)} outside, ${km(run.distance)}, O₂ left ${run.marginPct.toFixed(0)} %, dose ${run.doseMSv.toFixed(2)} mSv.`);
+    parts.push(`${hmin(run.totalT)} outside, ${km(run.distance)}, O₂ left ${run.marginPct.toFixed(0)} %.`);
   }
   for (const i of run.issues) if (i.lvl !== 'go') parts.push(`${i.lvl === 'nogo' ? 'NO-GO' : 'Caution'}: ${i.msg}.`);
   return parts.join(' ');
@@ -297,7 +274,7 @@ export function describeRecommendation(sim) {
   return `${rec.strategy} finished safely in ${s.completed} of ${s.n} simulated EVAs` +
     (others ? ` (${others})` : '') +
     `. Typical time ${hmin(s.medianTotalT)} (10–90 %: ${hmin(s.p10TotalT)}–${hmin(s.p90TotalT)}), median O₂ left ${s.medianMarginPct.toFixed(0)} %, worst ${s.worstMarginPct.toFixed(0)} %.` +
-    (s.turnedBack ? ` ${s.turnedBack} run(s) turned back (a dust storm or a solar alert on the way out).` : '') +
+    (s.turnedBack ? ` ${s.turnedBack} run(s) turned back (a dust storm on the way out).` : '') +
     (sim.forceDust ? ' Stress test: every run meets a dust storm.'
       : sim.dustRate ? ` At this season (Ls ${sim.dustRate.ls[0]}–${sim.dustRate.ls[1]}°) NASA orbiter maps show a dust storm over this area on ${(sim.dustRate.p * 100).toFixed(1)} % of sols (${sim.dustRate.solsWithStorm} of ${sim.dustRate.sols}, Mars Years 24–32).` : '');
 }

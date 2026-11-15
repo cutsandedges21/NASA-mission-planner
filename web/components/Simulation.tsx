@@ -138,8 +138,8 @@ export function useSimulation({
   const panel: ReactNode = active ? (
     <div
       className={`absolute left-1/2 top-[5.25rem] z-20 hidden min-w-[460px] -translate-x-1/2 md:block ${
-        // the rover view is full screen (no side panels), so its card has room for the fold button
-        view === 'rover' ? 'w-[min(720px,calc(100vw-4rem))]' : 'w-[min(640px,calc(100vw-48rem))]'
+        // the rover view is full screen (no side panels); the map view stays between the side panels
+        view === 'rover' ? 'w-[min(720px,calc(100vw-4rem))]' : 'w-[min(660px,calc(100vw-46rem))]'
       }`}
     >
       <SimulationHUD

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RegionMeta } from '@/lib/region';
 import type { Strategy } from '@/lib/plan-client';
 import { hm, marsClock, type Daylight, type MarsClock } from '@/lib/mars-context';
@@ -9,15 +9,18 @@ import { ROUTE_STYLE, fmtLL } from './format';
 import type { MapType } from '@/lib/trek';
 import { IChevDown, IChevUp, IInfo, ILayers, IPin, ISun, IGrid, IClock } from './icons';
 import AddBookmark from './AddBookmark';
+import { GrowArrow, useGrow } from './Rail';
 
 // Mission setup, 1:1 with the Spherium panel reference (cosmos_979618069): near-black column, two tabs,
 // collapsible sections with an icon + title + chevron, small grey sub-labels, tile grids where the active
 // tile gets a gold outline, sliders with a gold pill thumb and the value in gold on the right.
-// Quick targets = the user's bookmarks (web/lib/bookmarks.ts), with "+" to add one.
+// Quick targets = the user's bookmarks (web/lib/bookmarks.ts), with "+" to add one, plus the pit stops.
+// The whole panel folds into a narrow vertical strip and grows back on hover or with its arrow, the same
+// way the right-hand cards do (Rail.tsx, Justin Sun 15 Nov). It starts open.
 
 const pct = (h: number) => `${Math.min(100, Math.max(0, (h / 24) * 100))}%`;
-/** Carried science gear the planner can price (params.kitKg); docs/VALIDATION.md has the sensitivity. */
-const KIT_KG = [0, 10, 20];
+/** Most science gear the slider offers, kg (planner params.kitKg; docs/VALIDATION.md has the sensitivity). */
+const KIT_MAX = 20;
 
 export default function SetupPanel({
   meta,
@@ -45,7 +48,17 @@ export default function SetupPanel({
   onRover,
   kit = 0,
   onKit,
+  pitStops = [],
+  placingPitStop = false,
+  onAddPitStop,
+  onRemovePitStop,
 }: {
+  /** Pit stops (lng/lat) in the order the routes visit them. */
+  pitStops?: [number, number][];
+  placingPitStop?: boolean;
+  /** Start (or cancel) "click the map to place the next pit stop". */
+  onAddPitStop?: () => void;
+  onRemovePitStop?: (i: number) => void;
   hasTraverse?: boolean;
   /** Rover assist: plan and time the mission with an unpressurised rover. */
   rover?: boolean;
@@ -79,7 +92,7 @@ export default function SetupPanel({
   base: [number, number] | null;
 }) {
   const [tab, setTab] = useState<'mission' | 'conditions'>('mission');
-  const [open, setOpen] = useState({ sites: true, mode: true, route: true, env: true });
+  const [open, setOpen] = useState({ sites: true, mode: true, route: true, env: true, clock: true });
   const flip = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const marks = useBookmarks();
   const [adding, setAdding] = useState(false);
@@ -88,6 +101,24 @@ export default function SetupPanel({
     setAdding(false);
     onBookmarkDone?.();
   };
+
+  // fold into a vertical strip / grow back (starts open)
+  const grow = useGrow('panel');
+  const panelOpen = grow.openId === 'panel';
+  const asideRef = useRef<HTMLElement>(null);
+  /** Don't fold away under the pointer while something is being typed in the panel. */
+  const typing = () => {
+    const el = document.activeElement;
+    return showForm || (!!el && !!asideRef.current?.contains(el) && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && (el as HTMLInputElement).type !== 'range');
+  };
+
+  // science gear slider: the number follows the thumb at once, the routes re-plan once it rests
+  const [kitDraft, setKitDraft] = useState(kit);
+  useEffect(() => {
+    if (!onKit || kitDraft === kit) return;
+    const t = setTimeout(() => onKit(kitDraft), 300);
+    return () => clearTimeout(t);
+  }, [kitDraft, kit, onKit]);
 
   // live clock for the Conditions tab
   const [live, setLive] = useState<MarsClock | null>(clock);
@@ -103,10 +134,29 @@ export default function SetupPanel({
   const lo = clock ? Math.ceil(clock.rise * 4) / 4 : 6;
   const hi = clock ? Math.floor((clock.set - 1) * 4) / 4 : 17;
   const inRegion = (b: Bookmark) => !!meta && b.lon >= meta.lon[0] && b.lon <= meta.lon[1] && b.lat >= meta.lat[0] && b.lat <= meta.lat[1];
-  const layer = mapType === 'thermal' || mapType === 'height' || mapType === 'radiation' ? mapType : null;
+  const layer = mapType === 'thermal' || mapType === 'height' ? mapType : null;
 
   return (
-    <aside className="sp absolute bottom-4 left-4 top-20 z-10 hidden w-[300px] flex-col md:flex">
+    <aside
+      ref={asideRef}
+      className={`sp sp-grow absolute bottom-4 left-4 top-20 z-10 hidden overflow-hidden md:flex ${panelOpen ? 'sp-open' : ''}`}
+      onMouseEnter={() => grow.enter('panel')}
+      onMouseLeave={() => grow.leave(typing())}
+      data-testid="setup-panel"
+    >
+      {/* small: a vertical strip (logo, arrow, title written top to bottom) */}
+      <div className="sp-strip" onClick={() => grow.keep('panel')} inert={panelOpen} aria-hidden={panelOpen}>
+        <span className="sp-logo" aria-hidden>
+          {Array.from({ length: 16 }).map((_, i) => (
+            <i key={i} />
+          ))}
+        </span>
+        <GrowArrow open={false} onClick={() => grow.toggle('panel')} label="the EVA Planner" className="rc-btn sp-side" />
+        <span className="sp-strip-title">EVA Planner · {regionName.split(':')[0]}</span>
+      </div>
+
+      {/* open: the full panel, laid out at full width and clipped while it grows */}
+      <div className="sp-full flex w-[300px] flex-none flex-col" inert={!panelOpen} aria-hidden={!panelOpen}>
       {/* header */}
       <div className="flex items-center gap-3 px-5 pb-4 pt-5">
         <span className="sp-logo" aria-hidden>
@@ -116,6 +166,7 @@ export default function SetupPanel({
         </span>
         <span className="whitespace-nowrap text-[15px] font-semibold">EVA Planner</span>
         <span className="sp-badge" title={regionName}>{regionName.split(':')[0]}</span>
+        <GrowArrow open onClick={() => grow.toggle('panel')} label="the EVA Planner" className="rc-btn sp-side ml-auto" />
       </div>
 
       <div className="sp-scroll flex-1 overflow-y-auto px-4 pb-5">
@@ -186,6 +237,34 @@ export default function SetupPanel({
                 </span>
                 <span className="text-[10px] text-zinc-500">{placingBase ? 'cancel' : 'move'}</span>
               </button>
+              {onAddPitStop && (
+                <>
+                  <Sub>Pit stops</Sub>
+                  <div className="space-y-1.5" data-testid="pitstops">
+                    {pitStops.map((p, i) => (
+                      <div key={`${i}-${p.join()}`} className="relative">
+                        <div className="sp-tile w-full px-3 text-zinc-200" style={{ justifyContent: 'flex-start' }} title={`Pit stop ${i + 1} · ${fmtLL(p)}`} data-testid={`pitstop-${i + 1}`}>
+                          <span className="sp-num">{i + 1}</span>
+                          Pit stop {i + 1}
+                        </div>
+                        {onRemovePitStop && (
+                          <button onClick={() => onRemovePitStop(i)} className="sp-x sp-x-on" title={`Remove pit stop ${i + 1}`} aria-label={`Remove pit stop ${i + 1}`}>
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button onClick={onAddPitStop} className={`sp-tile sp-add w-full ${placingPitStop ? 'sp-on' : ''}`} data-testid="pitstop-add">
+                      {placingPitStop ? `Click the map to place pit stop ${pitStops.length + 1} (cancel)` : `+ Add pit stop${pitStops.length ? ` ${pitStops.length + 1}` : ''}`}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                    {pitStops.length
+                      ? `Every route stops at ${pitStops.length === 1 ? 'the pit stop' : `all ${pitStops.length} pit stops, in this order,`} on the way out, then goes on to the target.`
+                      : 'Add places the walk must stop at on the way to the target. Add as many as you like.'}
+                  </p>
+                </>
+              )}
             </Section>
 
             {/* mode: on foot or rover assist */}
@@ -206,18 +285,30 @@ export default function SetupPanel({
                 </p>
                 {onKit && (
                   <>
-                    <Sub>Science gear carried</Sub>
-                    <div className="grid grid-cols-3 gap-1.5" data-testid="kit">
-                      {KIT_KG.map((kg) => (
-                        <button key={kg} onClick={() => onKit(kg)} className={`sp-tile ${kit === kg ? 'sp-on' : ''}`} data-testid={`kit-${kg}`}>
-                          {kg ? `${kg} kg` : 'None'}
-                        </button>
-                      ))}
+                    <div className="mt-4 flex items-baseline justify-between">
+                      <Sub flush>Science gear carried</Sub>
+                      <span className="sp-val">{kitDraft ? `${kitDraft} kg` : 'None'}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={KIT_MAX}
+                      step={1}
+                      value={kitDraft}
+                      onChange={(e) => setKitDraft(+e.target.value)}
+                      className="sp-range"
+                      aria-label="Science gear carried, kilograms"
+                      data-testid="kit"
+                    />
+                    <div className="mt-1 flex justify-between text-[10px] text-zinc-500">
+                      <span>None</span>
+                      <span>10 kg</span>
+                      <span>{KIT_MAX} kg</span>
                     </div>
                     <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-                      {kit
-                        ? `${kit} kg on top of the suit (drill, sample bags, cameras). Every step costs more effort, so the suit uses more oxygen${rover ? ' when the crew walks' : ''}.`
-                        : 'Add a drill, sample bags or cameras to see what the extra weight costs in oxygen.'}
+                      {kitDraft
+                        ? `${kitDraft} kg on top of the suit (drill, sample bags, cameras). Every step costs more effort, so the suit uses more oxygen${rover ? ' when the crew walks' : ''}.`
+                        : 'Slide to add a drill, sample bags or cameras and see what the extra weight costs in oxygen.'}
                     </p>
                   </>
                 )}
@@ -290,9 +381,6 @@ export default function SetupPanel({
                 <button onClick={() => onMapType(layer === 'height' ? 'colour' : 'height')} className={`sp-tile ${layer === 'height' ? 'sp-on' : ''}`} title={LAYER_INFO.height}>
                   Elevation
                 </button>
-                <button onClick={() => onMapType(layer === 'radiation' ? 'colour' : 'radiation')} className={`sp-tile ${layer === 'radiation' ? 'sp-on' : ''}`} title={LAYER_INFO.radiation}>
-                  Radiation
-                </button>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{LAYER_INFO[layer ?? 'colour']}</p>
               {hasTraverse && (
@@ -313,31 +401,32 @@ export default function SetupPanel({
           </>
         ) : (
           <>
-            <Section icon={<IClock size={15} />} title="Mars clock" open onFlip={() => {}}>
-              <Meter k="Curiosity sol" v={live ? live.sol.toLocaleString('en-US') : '—'} title="Days (sols) since Curiosity landed in Gale Crater on 6 August 2012." />
-              <Meter k="Local solar time" v={live ? hm(live.ltst) : '—'} frac={live ? live.ltst / 24 : 0} title="Time of day at the base by the Sun (noon = Sun highest)." />
-              <Meter
-                k="Season"
-                v={live ? `${live.season.replace(/^(Northern|Southern) /, '')} · Ls ${live.Ls.toFixed(0)}°` : '—'}
-                frac={live ? live.Ls / 360 : 0}
-                title="Mars' position around the Sun (Ls 0° = northern spring). Dust storms are most common from Ls 180° to 330°."
-              />
-              <Meter k="Signal to Earth" v={live ? `${live.delayMin.toFixed(1)} min` : '—'} frac={live ? live.delayMin / 22.3 : 0} title="One-way light time (3–22 min). Mission Control can't help in real time." />
-              {live && <Meter k="Daylight" v={`${hm(live.rise)} – ${hm(live.set)}`} frac={(live.set - live.rise) / 24} title="Sunrise to sunset at the base today. Every EVA must be back before sunset." />}
+            <Section icon={<IClock size={15} />} title="Mars clock" open={open.clock} onFlip={() => flip('clock')}>
+              <div className="mt-2 space-y-1.5" data-testid="conditions">
+                <Stat k="Curiosity sol" v={live ? live.sol.toLocaleString('en-US') : '—'} d="Days (sols) since Curiosity landed in Gale Crater on 6 August 2012." />
+                <Stat k="Local solar time" v={live ? hm(live.ltst) : '—'} d="Time of day at the base by the Sun (noon = Sun highest)." />
+                <Stat
+                  k="Season"
+                  v={live ? `${live.season.replace(/^(Northern|Southern) /, '')} · Ls ${live.Ls.toFixed(0)}°` : '—'}
+                  d="Mars' position around the Sun (Ls 0° = northern spring). Dust storms are most common from Ls 180° to 330°."
+                />
+                <Stat k="Signal to Earth" v={live ? `${live.delayMin.toFixed(1)} min` : '—'} d="One-way light time (3–22 min). Mission Control can't help in real time." />
+                {live && <Stat k="Daylight" v={`${hm(live.rise)} – ${hm(live.set)}`} d="Sunrise to sunset at the base today. Every EVA must be back before sunset." />}
+              </div>
             </Section>
             {base && <p className="mt-4 text-[10px] text-zinc-500">Base {fmtLL(base)}</p>}
           </>
         )}
       </div>
+      </div>
     </aside>
   );
 }
 
-const LAYER_INFO: Record<'colour' | 'thermal' | 'height' | 'radiation', string> = {
+const LAYER_INFO: Record<'colour' | 'thermal' | 'height', string> = {
   colour: 'True colour: HiRISE colour over Gale (NASA MRO). The map shows only the Gale planning area; press Globe for the rest of Mars.',
   thermal: 'Thermal: THEMIS night infrared (NASA Mars Odyssey), contrast stretched to Gale. Warm colours = ground that holds heat (rock); dark = dust and sand that cool fast.',
   height: 'Elevation: the 1 m NASA terrain of Gale. Purple and blue = low, green and yellow = middle, red to white = high. Each colour covers about the same area, so small rises stand out.',
-  radiation: 'Radiation: cosmic-ray dose at the surface (NASA Mars Odyssey map PIA03480). Low ground has more air overhead, so less dose. Over Gale: the dose rate the SAFE route avoids, from the 1 m terrain.',
 };
 
 function IRover({ size = 15 }: { size?: number }) {
@@ -368,18 +457,15 @@ function Sub({ children, flush }: { children: React.ReactNode; flush?: boolean }
   return <div className={`${flush ? '' : 'mb-2 mt-3'} text-[11.5px] text-zinc-500`}>{children}</div>;
 }
 
-function Meter({ k, v, frac, title }: { k: string; v: string; frac?: number; title?: string }) {
+/** A condition: name and value on one line, what it means underneath. Display only, nothing to drag. */
+function Stat({ k, v, d }: { k: string; v: string; d: string }) {
   return (
-    <div className="mt-3" title={title}>
-      <div className="flex items-baseline justify-between">
-        <span className="text-[11.5px] text-zinc-500">{k}</span>
-        <span className="sp-val text-[11.5px]">{v}</span>
+    <div className="sp-stat">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11.5px] text-zinc-400">{k}</span>
+        <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums text-zinc-100">{v}</span>
       </div>
-      {frac !== undefined && (
-        <div className="relative mt-2 h-1.5 rounded-full bg-white/[0.04]">
-          <span className="sp-knob" style={{ left: `calc(${Math.min(1, Math.max(0, frac)) * 100}% - 20px * ${Math.min(1, Math.max(0, frac))})` }} />
-        </div>
-      )}
+      <p className="mt-0.5 text-[10.5px] leading-snug text-zinc-500">{d}</p>
     </div>
   );
 }

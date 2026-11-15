@@ -9,11 +9,10 @@ import { plan, type PlannedRoute, type Strategy } from '@/lib/plan-client';
 import { registerRegionTerrain } from '@/lib/terrain';
 import { registerTrek, trekSource, falseColourUrl, elevationColourUrl, type MapType } from '@/lib/trek';
 import HoverReadout from './map/HoverReadout';
-import { MARS_TERRAIN_FACTOR, MarsScaleControl } from '@/lib/mars-scale';
+import { MARS_TERRAIN_FACTOR } from '@/lib/mars-scale';
 import { hm, marsClock, routeDaylight, verdictWithDaylight, type Daylight } from '@/lib/mars-context';
 import type { BriefingRequest } from '@/lib/briefing';
 import { pickRecommended } from '@/lib/briefing';
-import type { SpaceWeatherStatus } from '@/lib/space-weather';
 import Hero, { type Target } from './Hero';
 import { useBookmarks } from '@/lib/bookmarks';
 import Loading from './Loading';
@@ -26,8 +25,8 @@ import { useSimulation } from './Simulation';
 import ScenarioPanel from './ScenarioPanel';
 import { ROUTE_STYLE } from './map/format';
 import { setGeologyVisible } from '@/lib/geology-layer';
-import { radiationColourUrl, RAD_GLOBAL_URL, RAD_GLOBAL_CORNERS } from '@/lib/radiation-layer';
 import { lockToRegion, regionHome } from '@/lib/region-view';
+import { bleedCorners, makeEdgeBleed, type EdgeBleed } from '@/lib/edge-bleed';
 
 
 export { ROUTE_STYLE };
@@ -46,7 +45,7 @@ const SHOWN: Strategy[] = ['SAFE', 'FAST'];
 export default function MissionPlanner() {
   const mapEl = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
-  const markers = useRef<{ base?: maplibregl.Marker; dest?: maplibregl.Marker; pitstop?: maplibregl.Marker }>({});
+  const markers = useRef<{ base?: maplibregl.Marker; dest?: maplibregl.Marker }>({});
   const [region, setRegion] = useState<Region | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [base, setBase] = useState<[number, number] | null>(null);
@@ -60,8 +59,9 @@ export default function MissionPlanner() {
   const [error, setError] = useState<string | null>(null);
   const [view3d, setView3d] = useState(false);
   const [placing, setPlacing] = useState<Placing>('dest');
-  // pit stop between Point 1 and Point 2 (T-35): lng/lat, every route passes through it
-  const [pitStop, setPitStop] = useState<[number, number] | null>(null);
+  // pit stops between Point 1 and Point 2 (T-35): lng/lat, as many as you like; every route visits them in the
+  // order they were added, on the way out (Justin, Sun 15 Nov). Added from Quick targets in the EVA Planner.
+  const [pitStops, setPitStops] = useState<[number, number][]>([]);
   // map type (T-33): colour / height / thermal / slope. Slope keeps the colour base + the slope overlay.
   const [mapType, setMapType] = useState<MapType>('colour');
   const showSlope = mapType === 'slope';
@@ -91,15 +91,6 @@ export default function MissionPlanner() {
     };
   }, [region, mountedAt]);
   const [startH, setStartH] = useState(9);
-  const [weather, setWeather] = useState<SpaceWeatherStatus | null>(null);
-
-  // 0. live space weather (NASA DONKI), once
-  useEffect(() => {
-    fetch('/api/space-weather')
-      .then((r) => r.json())
-      .then((j) => setWeather(j.status ?? null))
-      .catch(() => setWeather({ lvl: 'off', short: 'not checked', long: 'Could not reach NASA DONKI' }));
-  }, []);
 
   // 1. load region data
   useEffect(() => {
@@ -141,9 +132,6 @@ export default function MissionPlanner() {
           'region-height': { type: 'image', url: region.url('visible.jpg'), coordinates: corners(m) },
           'region-thermal': { type: 'image', url: region.url('thermal.jpg'), coordinates: corners(m) },
           slope: { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
-          // Radiation map type: the planner's dose rate over the region (built on first use). NASA PIA03480
-          // worldwide ('rad-global') is added on the Globe only, see the map-type effect.
-          'region-rad': { type: 'image', url: region.url('slope.png'), coordinates: corners(m) },
           dem: { type: 'raster-dem', tiles: ['elev://dem/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           hs: { type: 'raster-dem', tiles: ['elev://hs/{z}/{x}/{y}'], tileSize: 256, encoding: 'terrarium', maxzoom: 13 },
           traverse: { type: 'geojson', data: region.traverse ?? { type: 'FeatureCollection', features: [] } },
@@ -160,7 +148,6 @@ export default function MissionPlanner() {
           { id: 'region', type: 'raster', source: 'region', paint: { 'raster-fade-duration': 0 } },
           { id: 'region-height', type: 'raster', source: 'region-height', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
           { id: 'region-thermal', type: 'raster', source: 'region-thermal', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
-          { id: 'region-rad', type: 'raster', source: 'region-rad', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.72, 'raster-fade-duration': 0 } },
           { id: 'hillshade', type: 'hillshade', source: 'hs', paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1a0d07' } },
           {
             id: 'slope', type: 'raster', source: 'slope', layout: { visibility: 'none' },
@@ -201,7 +188,6 @@ export default function MissionPlanner() {
       },
     });
     mp.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
-    mp.addControl(new MarsScaleControl(), 'bottom-left');
     // start on the whole region, locked to it (no flight in from space: that would download the planet's tiles)
     lockToRegion(mp, m, true);
     mp.jumpTo(regionHome(m, mp));
@@ -307,7 +293,7 @@ export default function MissionPlanner() {
       mp.off('moveend', place);
       mp.off('resize', place);
     };
-  }, [mapReady, region, bookmarks, base, dest, pitStop]);
+  }, [mapReady, region, bookmarks, base, dest, pitStops]);
 
   // 4. click to place base / destination
   useEffect(() => {
@@ -326,7 +312,7 @@ export default function MissionPlanner() {
       }
       setError(null);
       if (placing === 'pitstop') {
-        setPitStop([lng, lat]);
+        setPitStops((s) => [...s, [lng, lat]]);
         setPlacing('dest');
         return;
       }
@@ -349,7 +335,7 @@ export default function MissionPlanner() {
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp) return;
-    const put = (key: 'base' | 'dest' | 'pitstop', pos: [number, number] | null, cls: string, text: string) => {
+    const put = (key: 'base' | 'dest', pos: [number, number] | null, cls: string, text: string) => {
       markers.current[key]?.remove();
       markers.current[key] = undefined;
       if (!pos) return;
@@ -360,8 +346,20 @@ export default function MissionPlanner() {
     };
     put('base', base, 'pin pin-base', 'BASE');
     put('dest', dest, 'pin pin-dest', 'TARGET');
-    put('pitstop', pitStop, 'pin pin-pitstop', 'PIT STOP');
-  }, [mapReady, base, dest, pitStop]);
+  }, [mapReady, base, dest]);
+
+  // 5b. pit stop markers, numbered in the order the route visits them
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp) return;
+    const ms = pitStops.map((pos, i) => {
+      const el = document.createElement('div');
+      el.className = 'pin pin-pitstop';
+      el.innerHTML = `<span>PIT STOP ${i + 1}</span>`;
+      return new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat(pos).addTo(mp);
+    });
+    return () => ms.forEach((m) => m.remove());
+  }, [mapReady, pitStops]);
 
   // 6. plan routes whenever base + destination are set
   useEffect(() => {
@@ -370,7 +368,7 @@ export default function MissionPlanner() {
     const start = toCell(m, base[0], base[1]);
     const end = toCell(m, dest[0], dest[1]);
     if (!start || !end) return;
-    const via = pitStop ? toCell(m, pitStop[0], pitStop[1]) : null;
+    const vias = pitStops.map((p) => toCell(m, p[0], p[1])).filter((c): c is [number, number] => !!c);
     const pois = region.pois
       .map((p) => ({ p, c: toCell(m, p.lon, p.lat) }))
       .filter((q): q is { p: Poi; c: [number, number] } => !!q.c)
@@ -381,14 +379,14 @@ export default function MissionPlanner() {
     setError(null);
     // the Mission simulator reuses these args (the worker keeps the last plan), so it prices the gear too
     const params = rover || kitKg ? { ...(rover ? { rover: true } : {}), ...(kitKg ? { kitKg } : {}) } : undefined;
-    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, via, pois, spaceWeather: weather, params })
+    plan({ elev: region.elev, w: m.width, h: m.height, cellX: m.cellM[0], cellY: m.cellM[1], fineSlope: region.fineSlope, start, end, vias, pois, params })
       .then((r) => !cancelled && setRoutes(r))
       .catch((e) => !cancelled && setError(`Route planning failed: ${e.message}`))
       .finally(() => !cancelled && setBusy(false));
     return () => {
       cancelled = true;
     };
-  }, [region, base, dest, weather, rover, kitKg, pitStop]);
+  }, [region, base, dest, rover, kitKg, pitStops]);
 
   // 6b. draw the simulation picked in the Mission simulator panel (T-35)
   const previewSim = useCallback(
@@ -458,7 +456,8 @@ export default function MissionPlanner() {
   }, [mapReady, region, geology]);
 
   // 9. map type (T-33): one global Trek layer + the matching region layer. Hidden layers load no tiles.
-  const regionImgs = useRef<{ height?: string; thermal?: string; rad?: string }>({});
+  const regionImgs = useRef<{ height?: string; thermal?: string }>({});
+  const [imgTick, setImgTick] = useState(0); // bumped when a false-colour image or an edge halo is ready
   useEffect(() => {
     const mp = map.current;
     if (!mapReady || !mp || !region) return;
@@ -472,21 +471,6 @@ export default function MissionPlanner() {
     show('region-height', base === 'height');
     show('region-thermal', base === 'thermal');
     show('slope', mapType === 'slope');
-    show('region-rad', mapType === 'radiation');
-    // NASA PIA03480 worldwide: added the first time it is needed on the Globe
-    if (globe && mapType === 'radiation' && !mp.getLayer('rad-global')) {
-      mp.addSource('rad-global', { type: 'image', url: RAD_GLOBAL_URL, coordinates: RAD_GLOBAL_CORNERS });
-      mp.addLayer({ id: 'rad-global', type: 'raster', source: 'rad-global', paint: { 'raster-opacity': 0.8, 'raster-fade-duration': 0 } }, 'region');
-    }
-    if (mp.getLayer('rad-global')) show('rad-global', globe && mapType === 'radiation');
-    if (mapType === 'radiation' && !regionImgs.current.rad) {
-      regionImgs.current.rad = 'pending';
-      const m = region.meta;
-      radiationColourUrl(region.elev, m.width, m.height).then(({ url }) => {
-        regionImgs.current.rad = url;
-        (mp.getSource('region-rad') as maplibregl.ImageSource | undefined)?.updateImage({ url, coordinates: corners(m) });
-      });
-    }
     // build the region's false-colour images once, on first use
     const src = (id: string) => mp.getSource(id) as maplibregl.ImageSource | undefined;
     if (base === 'height' && !regionImgs.current.height) {
@@ -494,6 +478,7 @@ export default function MissionPlanner() {
       const m = region.meta;
       elevationColourUrl(region.elev, m.width, m.height, m.cellM).then(({ url }) => {
         regionImgs.current.height = url;
+        setImgTick((n) => n + 1);
         src('region-height')?.updateImage({ url, coordinates: corners(m) });
       });
     }
@@ -501,10 +486,52 @@ export default function MissionPlanner() {
       regionImgs.current.thermal = 'pending';
       falseColourUrl(region.url('thermal.jpg'), 0.8).then((url) => {
         regionImgs.current.thermal = url;
+        setImgTick((n) => n + 1);
         src('region-thermal')?.updateImage({ url, coordinates: corners(region.meta) });
       });
     }
   }, [mapReady, mapType, region, globe]);
+
+  // 9b. edge bleed (Justin, Sun 15 Nov): no black around the map. A soft halo of the shown image's own edge
+  // colours fades into a matching dark Mars brown (lib/edge-bleed.ts). Hidden on the Globe (Trek shows Mars there).
+  const bleeds = useRef<Partial<Record<'colour' | 'height' | 'thermal', EdgeBleed | 'pending'>>>({});
+  useEffect(() => {
+    const mp = map.current;
+    if (!mapReady || !mp || !region) return;
+    const kind = mapType === 'height' || mapType === 'thermal' ? mapType : 'colour';
+    const url = kind === 'colour' ? region.url('visible.jpg') : regionImgs.current[kind];
+    if (!url || url === 'pending') return; // the false-colour image is still being made (imgTick re-runs this)
+    const b = bleeds.current[kind];
+    if (!b) {
+      bleeds.current[kind] = 'pending';
+      makeEdgeBleed(url)
+        .then((made) => {
+          bleeds.current[kind] = made;
+          setImgTick((n) => n + 1);
+        })
+        .catch(() => {
+          delete bleeds.current[kind];
+        });
+      return;
+    }
+    if (b === 'pending') return;
+    const corners4 = bleedCorners(region.meta);
+    const src = mp.getSource('bleed') as maplibregl.ImageSource | undefined;
+    if (!src) {
+      mp.addSource('bleed', { type: 'image', url: b.url, coordinates: corners4 });
+      mp.addLayer({ id: 'bleed', type: 'raster', source: 'bleed', paint: { 'raster-fade-duration': 0 } }, 'trek-colour');
+      // the rim sits on the image (under the hillshade, slope and routes) and softens its border
+      mp.addSource('bleed-rim', { type: 'image', url: b.rim, coordinates: corners(region.meta) });
+      mp.addLayer({ id: 'bleed-rim', type: 'raster', source: 'bleed-rim', paint: { 'raster-fade-duration': 0 } }, 'hillshade');
+    } else {
+      src.updateImage({ url: b.url, coordinates: corners4 });
+      (mp.getSource('bleed-rim') as maplibregl.ImageSource | undefined)?.updateImage({ url: b.rim, coordinates: corners(region.meta) });
+    }
+    mp.setLayoutProperty('bleed', 'visibility', globe ? 'none' : 'visible');
+    mp.setLayoutProperty('bleed-rim', 'visibility', globe ? 'none' : 'visible');
+    mp.setPaintProperty('bg', 'background-color', globe ? '#120a07' : b.background);
+    mapEl.current?.style.setProperty('background', globe ? '' : b.background);
+  }, [mapReady, region, mapType, globe, imgTick]);
 
   // 10. globe view (MapLibre's own globe projection: no extra library). Leaving the globe flies back to the
   // region and locks the view to it again.
@@ -540,7 +567,15 @@ export default function MissionPlanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the globe toggle only
   }, [mapReady, globe]);
 
-  const poiName = useCallback((id: string) => (id === 'pitstop' ? 'your pit stop' : region?.pois.find((p) => p.id === id)?.name ?? id), [region]);
+  // pit stop ids from the planner: 'pitstop' (1st), 'pitstop2', 'pitstop3', …
+  const poiName = useCallback(
+    (id: string) => {
+      const n = /^pitstop(\d*)$/.exec(id);
+      if (n) return pitStops.length > 1 ? `pit stop ${n[1] || 1}` : 'your pit stop';
+      return region?.pois.find((p) => p.id === id)?.name ?? id;
+    },
+    [region, pitStops.length],
+  );
 
   // daylight at the base: sunrise/sunset for today's solar declination
   const clock = useMemo(() => (base ? marsClock(base[0], base[1]) : null), [base]);
@@ -566,10 +601,9 @@ export default function MissionPlanner() {
       durationMin: Math.round(r.budget.totalT / 60),
       o2MarginPct: Math.round(Math.max(0, r.budget.marginPct)),
       maxSlopeDeg: +r.budget.maxSlope.toFixed(1),
-      doseMSv: r.budget.doseMSv,
       steepPct: r.budget.steepPct,
       verdict: r.verdict,
-      poisVisited: r.poisVisited.filter((id) => id !== 'pitstop').map(poiName), // the pit stop isn't a science site
+      poisVisited: r.poisVisited.filter((id) => !/^pitstop\d*$/.test(id)).map(poiName), // pit stops aren't science sites
       note: r.note ?? (rover ? 'Rover assist: the crew drives an unpressurised rover between sites and works on foot at each site' : undefined),
     }));
     const rec = scored.find((r) => r.strategy === pickRecommended(routesIn));
@@ -577,9 +611,8 @@ export default function MissionPlanner() {
       region: region.meta.name,
       routes: routesIn,
       daylight: clock && rec?.daylight ? { endMarginH: +rec.daylight.endMarginH.toFixed(1), sunsetLocal: hm(clock.set) } : null,
-      spaceWeather: weather ? { lvl: weather.lvl, short: weather.short } : null,
     };
-  }, [scored, region, clock, weather, poiName, rover]);
+  }, [scored, region, clock, poiName, rover]);
 
 
   const baseName = region?.meta.base && base && base[0] === region.meta.base.lon ? region.meta.base.name : base ? fmtLL(base) : '—';
@@ -637,7 +670,6 @@ export default function MissionPlanner() {
           else setNavTab(t);
         }}
         regionName={region?.meta.name.replace(/\s*\(.*\)/, '') ?? 'Loading Mars…'}
-        weather={weather}
         view3d={view3d}
         onToggle3d={() => {
           setGlobe(false);
@@ -680,27 +712,26 @@ export default function MissionPlanner() {
         onRover={setRover}
         kit={kitKg}
         onKit={setKitKg}
+        pitStops={pitStops}
+        placingPitStop={placing === 'pitstop'}
+        onAddPitStop={() => setPlacing(placing === 'pitstop' ? 'dest' : 'pitstop')}
+        onRemovePitStop={(i) => setPitStops((s) => s.filter((_, k) => k !== i))}
         hasTraverse={!!region?.traverse}
       />
 
-      <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName} />
-
-      {scored.length > 0 && !simulation.running && (
-        <ScenarioPanel
-          routes={scored}
-          poiName={poiName}
-          Ls={clock?.Ls}
-          spaceWeatherLvl={weather?.lvl}
-          daylight={clock ? { startH: startClamped, sunsetH: clock.set } : null}
-          pitStop={pitStop}
-          placingPitStop={placing === 'pitstop'}
-          onTogglePitStop={() => setPlacing(placing === 'pitstop' ? 'dest' : 'pitstop')}
-          onClearPitStop={() => setPitStop(null)}
-          onPreview={mapReady ? previewSim : undefined}
-          regionId={region?.meta.id ?? 'gale'}
-          className="absolute left-1/2 top-20 z-10 hidden max-h-[calc(100vh-345px)] w-[400px] -translate-x-1/2 overflow-y-auto md:block"
-        />
-      )}
+      {/* right-hand column: Safe route, Fast route, Mission simulator (seeds); each starts small, grows on hover */}
+      <RouteCards routes={scored} selected={selected} onSelect={setSelected} busy={busy} poiName={poiName}>
+        {!simulation.running && (
+          <ScenarioPanel
+            routes={scored}
+            poiName={poiName}
+            Ls={clock?.Ls}
+            daylight={clock ? { startH: startClamped, sunsetH: clock.set } : null}
+            onPreview={mapReady ? previewSim : undefined}
+            regionId={region?.meta.id ?? 'gale'}
+          />
+        )}
+      </RouteCards>
 
       <DockCard
         base={base}
@@ -751,6 +782,9 @@ export default function MissionPlanner() {
 
       {placing === 'base' && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the base</div>
+      )}
+      {placing === 'pitstop' && (
+        <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#fdba74] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place pit stop {pitStops.length + 1}</div>
       )}
       {placing === 'bookmark' && (
         <div className="absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-full bg-[#f5c84b] px-4 py-2 text-xs font-semibold text-black shadow-lg">Click the map to place the bookmark</div>

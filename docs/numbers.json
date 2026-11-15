@@ -4,7 +4,6 @@
   "pahrump_round_trip": { "value": "11.8 km", "docs": ["docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
   "pahrump_time": { "value": "3 h 41 min", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
   "pahrump_o2": { "value": "49 %", "docs": ["README.md", "docs/SUBMISSION.md", "docs/DEMO-SCRIPT.md"] },
-  "pahrump_dose": { "value": "0.10 mSv", "docs": ["README.md", "docs/DEMO-SCRIPT.md"] },
   "pahrump_science_time": { "value": "4 h 01 min", "docs": ["docs/DEMO-SCRIPT.md"] },
   "pahrump_science_o2": { "value": "46 %", "docs": ["docs/DEMO-SCRIPT.md"] },
   "pahrump_20kg_o2": { "value": "32 %", "docs": ["README.md"] },

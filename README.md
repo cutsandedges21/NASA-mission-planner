@@ -2,7 +2,7 @@
 
 **Live app:** https://nasa-eva-planner.vercel.app · **NASA Space Apps 2026:** *Interplanetary Survival Guide: Martian Map*
 
-**Pick a place in Gale Crater and get a Marswalk plan computed from real NASA terrain.** The planner finds a SAFE and a FAST route, and for each one works out the time outside, the oxygen left when you're back at the airlock, the steepest ground, the radiation dose and the time you're back before sunset, with a GO / CAUTION / NO-GO verdict. A short briefing explains the recommended route in plain language. It is written in the browser from the computed numbers: **no AI runs in the app.**
+**Pick a place in Gale Crater and get a Marswalk plan computed from real NASA terrain.** The planner finds a SAFE and a FAST route, and for each one works out the time outside, the oxygen left when you're back at the airlock, the steepest ground and the time you're back before sunset, with a GO / CAUTION / NO-GO verdict. A short briefing explains the recommended route in plain language. It is written in the browser from the computed numbers: **no AI runs in the app.**
 
 **And the routes hold up against reality:** on the 5.9 km walk to the foot of Mount Sharp, our FAST route stays within 250 m of the path NASA's Curiosity drivers chose for 100 % of its length, and the SAFE route for 93.5 % ([docs/VALIDATION.md](docs/VALIDATION.md)).
 
@@ -14,20 +14,20 @@ The same 11.8 × 14.8 km patch of Gale Crater, seen by different instruments and
 
 | Layer | NASA mission / instrument | Resolution | What the planner does with it |
 |---|---|---|---|
-| Topography | MSL Gale Merged DEM v3 (MRO HiRISE / CTX, Mars Express HRSC, MGS MOLA) | 1 m source → 25 m cells | Route search, 3D view, elevation layer, radiation by altitude |
+| Topography | MSL Gale Merged DEM v3 (MRO HiRISE / CTX, Mars Express HRSC, MGS MOLA) | 1 m source → 25 m cells | Route search, 3D view, elevation layer |
 | Slope hazard | Derived from the same DEM | steepest slope inside each 25 m cell | SAFE avoids ground above 10°, limit 15°; suit limit 20° |
 | Optical | MRO HiRISE colour mosaic (Viking fills the gaps) | 25 cm source | The map you plan on, and the ground in the first-person ride |
 | Thermal | Mars Odyssey THEMIS night infrared | 100 m | Thermal layer: firm rock stays warm at night, loose dust cools fast |
 | Mission plan | Our routes + Curiosity's real drive path (NASA/JPL MSL feeds) | 1,270 rover stops in the box | Compare a plan with where NASA actually drove |
 
-On top of those: the surface radiation Curiosity's RAD measured here, NASA's Mars Odyssey radiation map, 15 years of NASA-orbiter dust-storm records, and live NASA space-weather forecasts.
+On top of those: 15 years of NASA-orbiter dust-storm records.
 
 ## What you can do in the app
 
-- **Plan a walk.** Click a science site, a bookmark or any point on the map. Two route cards appear (SAFE, FAST), each with time outside, O₂ left, distance, steepest slope, radiation dose, return time and a verdict with its reason.
+- **Plan a walk.** Click a science site, a bookmark or any point on the map. Two route cards appear (SAFE, FAST), each with time outside, O₂ left, distance, steepest slope, return time and a verdict with its reason.
 - **Read the briefing.** One paragraph on the recommended route and how the other one compares, built from the computed numbers.
 - **Choose when to leave.** The *Leave at* slider moves the walk along Gale's daylight. A route that ends after sunset is flagged.
-- **Switch the map.** 2D or 3D relief, and three layers: **Thermal** (THEMIS), **Elevation** (colour-coded 1 m terrain) and **Radiation** (dose rate). **Slope** is one click in the dock. The **Globe** button shows all of Mars from NASA Mars Trek. Hover the map for coordinates, elevation and a modelled ground temperature.
+- **Switch the map.** 2D or 3D relief, and two layers: **Thermal** (THEMIS) and **Elevation** (colour-coded 1 m terrain). **Slope** is one click in the dock. The **Globe** button shows all of Mars from NASA Mars Trek. Hover the map for coordinates, elevation and a modelled ground temperature.
 - **Run the mission simulator.** Five seeded simulations walk from Point 1 to Point 2, each with its own appetite for risk, hidden ground and weather, labelled **FASTEST**, **SAFEST** and **BALANCED** (plus two more). Each has a plain-language account, a step-by-step list of legs, and the assumptions behind it. **What if a dust storm hits?** forces a storm into every run. **+ Pit stop** adds a stop that every route passes through.
 - **Go by rover.** *Rover assist* plans the same trip with an unpressurised rover. Glen Torridon is NO-GO on foot and GO by rover.
 - **Carry science gear.** *Science gear carried* (None / 10 kg / 20 kg) re-prices every route and simulation: the extra load costs oxygen on every step.
@@ -47,7 +47,7 @@ Round trips from Bradbury Landing, Curiosity's touchdown site. Reproduce with `n
 | Target | One way | Best route | O₂ left at the airlock | Verdict |
 |---|---|---|---|---|
 | Yellowknife Bay | 0.4 km | 16 min | 96 % | GO |
-| **Pahrump Hills** (foot of Mount Sharp) | 5.9 km | 3 h 41 min, 0.10 mSv | 49 % | **GO** |
+| **Pahrump Hills** (foot of Mount Sharp) | 5.9 km | 3 h 41 min | 49 % | **GO** |
 | Glen Torridon (clays + organics) | 9.4 km | 6 h 12 min | 6 % | **NO-GO on foot** |
 | Glen Torridon, **rover assist** | 9.4 km | 3 h 44 min | 76 % | **GO** (setup panel → Mode → Rover assist) |
 
@@ -60,18 +60,17 @@ NASA / USGS rasters ──► data pipeline ──► region files ──► pla
  1 m DEM · HiRISE ·       (Python)         elevation,        A* search per strategy         │
  THEMIS · MSL feeds                        slope, imagery,   + suit O₂ / time model         ▼
                                            sites, rover path                     briefing + simulator
-                                                                                 + live NASA space weather
 ```
 
 1. **Data pipeline** (`data/build_region.py`, one JSON config per region) reads only the needed window of each NASA/USGS raster and bakes a 473 × 593 grid of 25 m cells: elevation, the steepest slope inside each cell (from a 12.5 m grid), HiRISE colour (Viking fills the gaps) and THEMIS night-time thermal imagery.
 2. **Planner** (`planner/`, plain JavaScript in a Web Worker) runs A* on that grid, scored as an out-and-back walk:
-   - **SAFE** minimises oxygen use, penalises every degree above 10° (between cells and inside them, limit 15°) and avoids higher-radiation ground.
+   - **SAFE** minimises oxygen use, penalises every degree above 10° (between cells and inside them, limit 15°).
    - **FAST** minimises walking time (limit 20°).
    - **SCIENCE** adds 20 min of work at the sites that cost the smallest detour. The planner computes and tests it (Pahrump Hills: 4 h 01 min, 46 % O₂), but the app shows SAFE and FAST only; a stop on the way is added with **+ Pit stop**.
    - **Rover assist** (`params: { rover: true }`) plans for an unpressurised rover: 1.4 m/s, 20° limit, seated O₂ use.
    - Routes are drawn as a smoothed line that is never steeper than the computed path and stays within 62 m of it; the numbers stay on the computed path.
 3. **Suit model:** walking speed vs slope (Tobler-style), metabolic power from the Pandolf load-carriage equation scaled to Mars gravity with a pressure-suit penalty, a 25 % O₂ reserve, an 8 h suit limit and a 20° walking limit. It comes out at 313–353 W, at the top of Apollo's measured 228–352 W range, which fits Mars gravity being ~2.3× the Moon's.
-4. **Safety:** radiation dose per route from the rate Curiosity's RAD measured at Gale (0.64 mSv/day), scaled by elevation with a fit to NASA's Mars Odyssey radiation map PIA03480 (+5.1 % per km of altitude). Live NASA DONKI forecasts of solar storms reaching Mars. Daylight vs Gale's sunset (Mars24).
+4. **Safety:** daylight vs Gale's sunset (Mars24).
 5. **Recommendation** is a fixed rule: best verdict first (GO, then CAUTION, then NO-GO), then SAFE, then FAST.
 6. **Mission briefing**, written in the browser from the computed numbers (no AI, no server call): the recommended route and how it compares with the alternative.
 7. **Mission simulator** (`planner/src/candidates.js`): five seeded simulations from Point 1 to Point 2. Each seed has its own risk appetite (from pure speed to most cautious), its own hidden ground (soft sand vs packed soil, which a 25 m map can't see) and its own weather, so each finds and walks its own route. **Dust-storm chance is NASA-orbiter data:** the Mars Dust Activity Database (MGS MOC + MRO MARCI, Mars Years 24–32, 14,974 storms) gives how often a storm covered this area in each season. Seeds make every run replayable.
@@ -98,12 +97,9 @@ Curiosity drove 8.4 km to Pahrump Hills against our 5.9 km, because it made scie
 | Colour (gap fill) | Viking MDIM 2.1 colour mosaic | Viking Orbiter | ~232 m |
 | Thermal layer | THEMIS Night IR controlled mosaic v2 (USGS) | Mars Odyssey THEMIS | 100 m |
 | Rover path + site positions | MSL waypoints and traverse line (NASA/JPL MMGIS) | Curiosity | 1,270 stops in the box |
-| Radiation (rate at Gale) | RAD surface dose rate (Hassler et al. 2014) | Curiosity RAD | 0.64 mSv/day |
-| Radiation (by altitude) | Estimated Radiation Dosage on Mars, PIA03480 | Mars Odyssey MARIE + MGS MOLA | global map |
 | Dust-storm chance | Mars Dust Activity Database (Battalio & Wang 2021) | MGS MOC + MRO MARCI | 14,974 storms, Mars Years 24–32 |
 | Whole-planet layers | NASA Mars Trek mosaics | Viking, MGS MOLA, Mars Odyssey THEMIS | 100–463 m |
 | Ground temperature (model) | REMS ground temperature at Gale (Martínez et al. 2017) | Curiosity REMS | daily range |
-| Space weather | DONKI WSA-ENLIL CME forecasts | NASA CCMC, Goddard | live |
 
 All sources with links: `web/lib/credits.ts` (also shown in the app under **Data & credits**) and [docs/DATASETS.md](docs/DATASETS.md). Challenge checklist, row by row: [docs/CHALLENGE.md](docs/CHALLENGE.md).
 
@@ -120,7 +116,7 @@ All sources with links: `web/lib/credits.ts` (also shown in the app under **Data
 
 ## Credits
 
-- Data: NASA, JPL-Caltech, USGS Astrogeology, ESA/DLR/FU Berlin (HRSC), University of Arizona (HiRISE), Arizona State University (THEMIS), NASA CCMC (DONKI), NASA GISS (Mars24), NASA Mars Trek (JPL Solar System Treks), Battalio & Wang (MDAD, CC0).
+- Data: NASA, JPL-Caltech, USGS Astrogeology, ESA/DLR/FU Berlin (HRSC), University of Arizona (HiRISE), Arizona State University (THEMIS), NASA GISS (Mars24), NASA Mars Trek (JPL Solar System Treks), Battalio & Wang (MDAD, CC0).
 - Map: MapLibre GL JS (BSD-3). First-person view: three.js (MIT). App: Next.js. The layered-data picture was rendered in Blender from the same data files the app uses.
 
 ## AI use
@@ -148,4 +144,4 @@ pip install rasterio numpy pillow scipy
 python data/build_region.py gale
 ```
 
-Nothing to configure: the app needs no accounts and no secrets. Space weather uses NASA's shared public `DEMO_KEY`.
+Nothing to configure: the app needs no accounts and no secrets.

@@ -4,10 +4,9 @@
 // Pure ES module, no Node-only imports: runs in a browser Web Worker.
 import { CostGrid } from './route.js';
 import { smoothLine } from './smooth.js';
-import { budget, verdict, RAD_MSV_PER_DAY, EVA_DEFAULTS } from './eva.js';
-import { routeDoseMSv, doseRateMSvDay } from './radiation.js';
+import { budget, verdict, EVA_DEFAULTS } from './eva.js';
 
-export { EVA_DEFAULTS, RAD_MSV_PER_DAY };
+export { EVA_DEFAULTS };
 /** Slope (deg) above which ground counts as steep for budget.steepPct. */
 export const STEEP_DEG = 15;
 export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
@@ -21,33 +20,35 @@ export const STRATEGIES = ['SAFE', 'FAST', 'SCIENCE'];
  * @param {[number,number]} a.start, a.end  grid cells [x, y]
  * @param {Array<{x:number,y:number,id:string}>} [a.pois]
  * @param {{endMarginH:number}} [a.sun]  daylight margin at the end of the EVA, passed to verdict()
- * @param {{lvl:string, short?:string}} [a.spaceWeather]  status from /api/space-weather; 'warn' adds a CAUTION to every route
  * @param {object} [a.params]   overrides for EVA_DEFAULTS (crew mass, O2 capacity, …)
  * @param {boolean} [a.roundTrip=true]  walk back to the start along the same route (a Marswalk ends at the airlock)
  * @param {number} [a.maxStops=2]  most POIs the SCIENCE route visits
  * @param {[number,number]} [a.via]  pit stop ("point 1.5", T-35): every route passes through this cell on the way out
  *   and spends `params.stopMin` there. Never dropped by the SCIENCE safety loop.
+ * @param {Array<[number,number]>} [a.vias]  any number of pit stops, visited in this order on the way out (replaces a.via).
+ *   Stop ids: 'pitstop' for the first, then 'pitstop2', 'pitstop3', … (pitStopId()).
  * @returns {Array<{strategy, path, line, budget, verdict, poisVisited: string[], stops: Array<{id,d}>, ms, note?: string}>}
  */
 export function planMission(a) {
-  const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null, spaceWeather = null,
+  const { elev, w, h, cellX, cellY, fineSlope = null, start, end, pois = [], sun = null,
     roundTrip = true, maxStops = 2 } = a;
   const params = { ...EVA_DEFAULTS, ...(a.params || {}) };
-  const via = a.via ? { id: PIT_STOP_ID, x: a.via[0], y: a.via[1], forced: true } : null;
-  for (const [x, y] of via ? [start, end, a.via] : [start, end]) {
+  const vias = viaCells(a).map(([x, y], i) => ({ id: pitStopId(i), x, y, forced: true }));
+  for (const [x, y] of [start, end, ...viaCells(a)]) {
     if (!(x >= 0 && y >= 0 && x < w && y < h)) throw new RangeError(`cell [${x}, ${y}] is outside the ${w}×${h} grid`);
   }
   const grid = new CostGrid(elev, w, h, cellX, cellY, fineSlope);
-  const ctx = { grid, elev, w, cellX, cellY, fineSlope, params, sun, spaceWeather, roundTrip };
-  const viaStops = via ? [via] : [];
+  const ctx = { grid, elev, w, cellX, cellY, fineSlope, params, sun, roundTrip };
+  const viaStops = vias;
   const through = (list) => [start, ...list.map((p) => [p.x, p.y]), end];
-  // Pit stop + science stops, in the order they're met walking start → end.
-  const withVia = (list) => (via ? orderAlong([...list, via], start, end, cellX, cellY) : list);
+  // Pit stops (in the user's order) + science stops: each science stop goes into the stretch between the
+  // two pit stops it sits closest to along the way.
+  const withVia = (list) => (vias.length ? mergeStops(vias, list, start, end, cellX, cellY) : list);
 
   const fast = timed(() => legs(ctx, through(viaStops), 'FAST'));
   const safe = timed(() => legs(ctx, through(viaStops), 'SAFE'));
   const { stops: chosen0, target } = pickScienceStops(start, end, pois, cellX, cellY, maxStops);
-  const chosen = via ? chosen0.filter((p) => Math.max(Math.abs(p.x - via.x), Math.abs(p.y - via.y)) > POI_SNAP_CELLS) : chosen0;
+  const chosen = chosen0.filter((p) => vias.every((v) => Math.max(Math.abs(p.x - v.x), Math.abs(p.y - v.y)) > POI_SNAP_CELLS));
   let science;
   if (!chosen.length && !target) {
     // No science site worth the walk: reuse the SAFE path rather than force a big detour.
@@ -56,9 +57,8 @@ export function planMission(a) {
   } else {
     // Try the chosen stops; if they make the EVA worse than going without them (e.g. NO-GO on O₂),
     // drop the stop with the biggest detour and try again. Science should never cost the walk home.
-    // Judged without the space-weather caution (it applies to every route alike), then rescored with it.
     const RANK = { go: 0, caution: 1, nogo: 2 };
-    const walkCtx = { ...ctx, spaceWeather: null };
+    const walkCtx = ctx;
     let stops = chosen.slice();
     let ms = 0;
     let path = null;
@@ -89,7 +89,7 @@ export function planMission(a) {
     if (fellBackToSafe) {
       science = { ...score(ctx, 'SAFE', safe.value, viaStops, null, ms), strategy: 'SCIENCE', note: 'Science stops dropped: they would make this EVA unsafe' };
     } else {
-      science = score(ctx, 'SCIENCE', path, withVia(stops), target, ms); // final score, with space weather
+      science = score(ctx, 'SCIENCE', path, withVia(stops), target, ms); // final score
     }
     if (stops.length < chosen.length && !science.note) {
       const n = chosen.length - stops.length;
@@ -105,8 +105,39 @@ export function planMission(a) {
   ];
 }
 
-/** Stop id used for the user's pit stop (`a.via`) in `route.stops` / `poisVisited`. */
+/** Stop id used for the user's (first) pit stop (`a.via` / `a.vias[0]`) in `route.stops` / `poisVisited`. */
 export const PIT_STOP_ID = 'pitstop';
+/** Stop id of pit stop number i (0-based): 'pitstop', 'pitstop2', 'pitstop3', … */
+export const pitStopId = (i) => (i ? `${PIT_STOP_ID}${i + 1}` : PIT_STOP_ID);
+/** Pit stop number (1-based) for a stop id, or 0 if it isn't a pit stop. */
+export const pitStopNumber = (id) => {
+  const m = /^pitstop(\d*)$/.exec(id || '');
+  return m ? Number(m[1] || 1) : 0;
+};
+/** The pit stop cells of a planMission() call: a.vias, or the single legacy a.via. */
+export function viaCells(a) {
+  return a.vias && a.vias.length ? a.vias : a.via ? [a.via] : [];
+}
+
+/** Science stops slotted between the pit stops (kept in the user's order), each in the stretch it's nearest. */
+function mergeStops(vias, list, start, end, cellX, cellY) {
+  const pts = [start, ...vias.map((v) => [v.x, v.y]), end];
+  const seg = (p) => {
+    let best = 0, bestD = Infinity;
+    for (let i = 1; i < pts.length; i++) {
+      const d = detourOf(p, pts[i - 1], pts[i], cellX, cellY);
+      if (d < bestD) { bestD = d; best = i - 1; }
+    }
+    return best;
+  };
+  const out = [];
+  for (let i = 0; i <= vias.length; i++) {
+    const inSeg = list.filter((p) => seg(p) === i);
+    out.push(...orderAlong(inSeg, pts[i], pts[i + 1], cellX, cellY));
+    if (i < vias.length) out.push(vias[i]);
+  }
+  return out;
+}
 
 /** Sort stops by how far along start → end they sit (projection on the straight line). */
 function orderAlong(list, start, end, cellX, cellY) {
@@ -202,11 +233,6 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   b.gradeMaxSlope = b.maxSlope;
   b.fineMaxSlope = ctx.fineSlope ? Math.max(0, ...path.map(([x, y]) => ctx.fineSlope[y * w + x])) : 0;
   b.maxSlope = Math.max(b.gradeMaxSlope, b.fineMaxSlope);
-  // Radiation: Curiosity RAD's measured Gale rate, scaled by elevation with the NASA PIA03480 dose map
-  // (radiation.js), integrated segment by segment along the walk and at each stop.
-  const stopElevs = stops.map((st) => samples.find((x) => x.d >= st.d)?.e ?? out.at(-1).e);
-  b.doseMSv = routeDoseMSv(samples, b.timeline, stopElevs, params.stopMin * 60);
-  b.doseRateMax = Math.max(...out.map((x) => doseRateMSvDay(x.e))); // mSv/day at the route's highest point
   // Terrain risk: share of the outbound distance on cells whose steepest fine-scale slope > STEEP_DEG.
   b.steepPct = steepShare(path, out, ctx.fineSlope, w);
   b.mode = params.rover ? 'rover' : 'foot';
@@ -214,10 +240,6 @@ function score(ctx, strategy, path, stopsPois, target, ms) {
   const vParams = params.rover ? { ...params, maxSlope: params.roverMaxSlope ?? 20 } : params;
   const v = verdict(b, sun, vParams);
   if (params.rover) for (const i of v.issues) i.msg = i.msg.replace('(limit ', '(rover limit ');
-  if (ctx.spaceWeather && ctx.spaceWeather.lvl === 'warn') {
-    v.issues.push({ lvl: 'caution', msg: `Space weather: ${ctx.spaceWeather.short || 'solar storm forecast at Mars'}. Check before egress, keep the shelter close` });
-    if (v.lvl === 'go') v.lvl = 'caution';
-  }
   // Display line: straight runs + rounded bends, never on steeper ground than the cell path (smooth.js).
   // The budget above stays computed on the cell path.
   const line = smoothLine(path, ctx, stopIdx);

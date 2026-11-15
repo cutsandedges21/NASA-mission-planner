@@ -14,7 +14,7 @@ for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
 const base = { elev, w: W, h: H, cellX: CELL, cellY: CELL, start: [20, 100], end: [180, 100], pois: [{ id: 'poi', x: 100, y: 40 }] };
 const routes = planMission(base);
 const by = Object.fromEntries(routes.map((r) => [r.strategy, r]));
-const calm = { seed: 1, pace: 1, terrain: 1.2, effort: 1, dust: null, spe: null };
+const calm = { seed: 1, pace: 1, terrain: 1.2, effort: 1, dust: null };
 
 test('rng and conditions are deterministic per seed', () => {
   const a = rng(42), b = rng(42);
@@ -30,7 +30,6 @@ test('a calm run with nominal pace reproduces the planner budget', () => {
     assert.ok(Math.abs(run.totalT - r.budget.totalT) < 1e-6 * r.budget.totalT, `${r.strategy} time ${run.totalT} vs ${r.budget.totalT}`);
     assert.ok(Math.abs(run.o2 - r.budget.o2) < 1e-6 * r.budget.o2, `${r.strategy} O2`);
     assert.ok(Math.abs(run.distance - r.budget.distance) < 1e-6);
-    assert.ok(Math.abs(run.doseMSv - r.budget.doseMSv) < 1e-6 * r.budget.doseMSv, `${r.strategy} dose ${run.doseMSv} vs ${r.budget.doseMSv}`);
   }
 });
 
@@ -170,4 +169,20 @@ test('simulateCandidates with a pit stop: every simulated route passes it', asyn
     assert.ok(x.route.path.some(([px, py]) => px === via[0] && py === via[1]));
     assert.ok(x.route.stops.some((s) => s.id === 'pitstop'));
   }
+});
+
+test('several pit stops: every route visits them all, in the order given', async () => {
+  const { simulateCandidates } = await import('../src/candidates.js');
+  const vias = [[100, 160], [60, 120], [140, 90]];
+  const order = (path) => vias.map(([vx, vy]) => path.findIndex(([x, y]) => x === vx && y === vy));
+  const rs = planMission({ ...base, vias });
+  for (const r of rs) {
+    const k = order(r.path);
+    assert.ok(k.every((i) => i >= 0), `${r.strategy} passes every pit stop`);
+    assert.ok(k[0] < k[1] && k[1] < k[2], `${r.strategy} visits them in the order given`);
+    assert.deepEqual(r.stops.filter((s) => s.id.startsWith('pitstop')).map((s) => s.id), ['pitstop', 'pitstop2', 'pitstop3']);
+  }
+  assert.throws(() => planMission({ ...base, vias: [[100, 160], [999, 0]] }), RangeError);
+  const res = simulateCandidates({ ...base, vias }, { runs: 5 });
+  for (const x of res.runs) assert.equal(x.route.stops.filter((s) => s.id.startsWith('pitstop')).length, 3);
 });

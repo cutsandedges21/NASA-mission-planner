@@ -10,7 +10,6 @@
 | Region layers | Images baked by our data pipeline, added as MapLibre `image` sources with lon/lat corners | No tile server needed |
 | Routing | `planner/` (pure JS, T-05), run in a **Web Worker** from the web app | 30 ms–1 s per route. The UI never freezes |
 | Briefing | `web/lib/briefing.ts` (pure, runs in the browser): `pickRecommended` (fixed rule on the computed verdicts) + `briefingText` (plain-language sentences from the computed numbers). **No AI at runtime, no API keys** (Moss, Sat 12:05). `/api/explain` was removed | Can't fail, costs nothing, can't invent a number |
-| Space weather | Next.js route handler `web/app/api/space-weather/route.ts` (port of Sol Atlas's DONKI function), key in `NASA_API_KEY` (falls back to `DEMO_KEY`) | Live NASA data, answers challenge objective O6 |
 | Deploy | **Vercel**, from `main`, root directory `web/` | Moss already uses it. Every push = live preview |
 
 Mars on a web-mercator map: our region is small (tens of km), so the projection distortion is negligible. Distances are computed in the planner from the elevation grid's metre cell size, never from map pixels.
@@ -54,13 +53,13 @@ Loading in the browser: `new Int16Array(await (await fetch(url)).arrayBuffer())`
 ```js
 import { planMission } from '../../planner/src/plan.js';   // pure ES module, works in a Web Worker
 planMission({ elev, w, h, cellX, cellY, fineSlope, start: [x, y], end: [x, y], pois: [{ x, y, id }],
-              sun /* optional { endMarginH } */, spaceWeather /* optional status from /api/space-weather: 'warn' → CAUTION on every route */,
+              sun /* optional { endMarginH } */,
               params /* optional EVA_DEFAULTS overrides, e.g. { kitKg: 10 } for carried science gear */,
               roundTrip = true /* walk back to the airlock */, maxStops = 2 /* SCIENCE stops */ })
 // → [{ strategy: 'SAFE'|'FAST'|'SCIENCE', path: [[x, y], …] | null, budget, verdict, poisVisited: [id], stops: [{ id, d }], ms }]
 // budget = eva.js budget(): distance (m, whole EVA), oneWay (m), roundTrip, walkT, stopT, totalT (s), o2 (kg),
 //          marginPct (O2 left at the airlock, %), gain, loss, maxSlope (deg), timeline [{ d, t, o2 }],
-//          doseMSv (radiation for the whole EVA, Curiosity RAD Gale rate 0.64 mSv/day), steepPct (% of route on ground > 15°, from fineSlope)
+//          steepPct (% of route on ground > 15°, from fineSlope)
 // verdict = eva.js verdict(): { lvl: 'go'|'caution'|'nogo', issues: [{ lvl, msg }] }
 // path === null → no walkable route; verdict is NO-GO with a message. Out-of-grid start/end throws RangeError.
 ```
@@ -68,8 +67,5 @@ Strategies: **FAST** = least walking time · **SAFE** = least O₂ with a penalt
 
 ## Briefing (no AI)
 
-`briefingText(req)` and `pickRecommended(routes)` in `web/lib/briefing.ts`, called by `web/components/Briefing.tsx` with `{ region, routes: [{ strategy, distanceKm, durationMin, o2MarginPct, maxSlopeDeg, verdict, poisVisited }], daylight, spaceWeather }`. Recommendation rule: best verdict (GO > CAUTION > NO-GO), then SAFE, then FAST. The text quotes only numbers from the request (test: `node --test web/app/api/_tests/`). The runtime-AI path (`/api/explain`, Claude API, rate limiter) was removed Sat 14 Nov (no API keys).
+`briefingText(req)` and `pickRecommended(routes)` in `web/lib/briefing.ts`, called by `web/components/Briefing.tsx` with `{ region, routes: [{ strategy, distanceKm, durationMin, o2MarginPct, maxSlopeDeg, verdict, poisVisited }], daylight }`. Recommendation rule: best verdict (GO > CAUTION > NO-GO), then SAFE, then FAST. The text quotes only numbers from the request (test: `node --test web/app/api/_tests/`). The runtime-AI path (`/api/explain`, Claude API, rate limiter) was removed Sat 14 Nov (no API keys).
 
-## Space weather contract (T-12)
-
-`GET /api/space-weather` → `{ ok: true, source, checkedAt, summary: { total, window: [CME…] }, status: { lvl: 'ok'|'warn', short, long, link }, cached }` or `{ ok: false, error, status: { lvl: 'off', short: 'not checked', long } }` (always HTTP 200). The UI only needs `status`: badge text = `status.short`, tooltip = `status.long`, colour by `status.lvl`. Source: NASA DONKI WSA-ENLIL runs (last 30 days) that forecast a CME reaching Mars, window = arrived in the last 24 h or due within 72 h. 30-min cache in memory + CDN. `NASA_API_KEY` env (falls back to `DEMO_KEY`, which works but is rate-limited).

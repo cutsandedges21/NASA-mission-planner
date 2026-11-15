@@ -27,7 +27,7 @@ export default function Credits({ meta, onClose }: { meta: RegionMeta | null; on
             <div className="ui-label">Data &amp; credits</div>
             <h2 className="mt-1 text-[20px] font-semibold">Everything this planner is built on</h2>
             <p className="mt-1 max-w-xl text-[12.5px] leading-relaxed text-zinc-400">
-              Routes, oxygen, slope, daylight and radiation are computed from these sources. The briefing restates those computed numbers in plain
+              Routes, oxygen, slope and daylight are computed from these sources. The briefing restates those computed numbers in plain
               language; no AI runs in the app.{meta?.synthetic ? ' The map currently shows demo terrain.' : ''}
             </p>
           </div>

@@ -13,7 +13,7 @@ We built this with **Claude Code** (Anthropic) as a coding assistant, under our 
 
 **The running app uses no AI and no API keys** (decided by Moss, Sat 14 Nov 12:05). An earlier version had Claude word the mission briefing; it was removed.
 
-- The **planner computes everything**: routes (A* on NASA elevation data), time, oxygen, slopes, radiation dose, verdicts.
+- The **planner computes everything**: routes (A* on NASA elevation data), time, oxygen, slopes, verdicts.
 - The **recommended route is chosen by a fixed rule**: best verdict (GO > CAUTION > NO-GO), then SAFE, then FAST (`web/lib/briefing.ts` → `pickRecommended`).
 - The **briefing is plain code**: sentences built in the browser from those computed numbers (`briefingText`). A test checks it quotes no number that wasn't computed.
 - The **hover temperature is a labelled model** (Curiosity REMS range at Gale by local solar time), not AI and not a measurement.
