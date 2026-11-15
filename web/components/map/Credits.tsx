@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RegionMeta } from '@/lib/region';
 import { CREDITS, type Credit } from '@/lib/credits';
 
@@ -13,6 +13,12 @@ export default function Credits({ meta, onClose }: { meta: RegionMeta | null; on
   const [group, setGroup] = useState<Credit['group']>('NASA data');
   const all = CREDITS;
   const list = all.filter((c) => c.group === group);
+  // Esc closes it, like every other pop-up
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="cr-frame" onClick={(e) => e.stopPropagation()}>
