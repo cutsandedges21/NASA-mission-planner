@@ -35,7 +35,7 @@ export const REGIONS = [
 ] as const;
 
 /** Real NASA data by default. `?region=demo` (synthetic terrain) is kept for testing; NEXT_PUBLIC_REGION overrides the build default. */
-export const REGION_ID = process.env.NEXT_PUBLIC_REGION ?? 'gale';
+export const REGION_ID = process.env.NEXT_PUBLIC_REGION ?? 'hadriacus';
 
 async function loadSlope(url: string, w: number, h: number): Promise<Float32Array | null> {
   try {
